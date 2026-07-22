@@ -30,7 +30,21 @@ func _ready() -> void:
 		_show_fatal_error("内容数据校验失败\n\n" + "\n".join(repository.errors))
 		return
 	event_engine = EventEngine.new(repository)
+	if _try_debug_preset():
+		return
 	show_main_menu()
+
+
+func _try_debug_preset() -> bool:
+	for argument in OS.get_cmdline_user_args():
+		if argument.begins_with("--demo-preset="):
+			var preset_id := argument.trim_prefix("--demo-preset=")
+			session = GameSession.new()
+			if DebugPresets.apply(session, preset_id):
+				_present_current_state()
+				return true
+			push_warning("Unknown demo preset: %s" % preset_id)
+	return false
 
 
 func _build_theme() -> void:
@@ -343,7 +357,7 @@ func _build_schedule_panel() -> Control:
 func _make_location_button(location: Dictionary) -> Button:
 	var button := Button.new()
 	button.text = "%s   %s\n%s" % [location.get("icon", "◆"), location.get("name", "地点"), location.get("subtitle", "")]
-	button.custom_minimum_size = Vector2(260, 145)
+	button.custom_minimum_size = Vector2(260, 126)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	button.add_theme_font_size_override("font_size", 18)
@@ -894,7 +908,23 @@ func _make_separator() -> HSeparator:
 
 
 func _make_badge(text_value: String, accent: Color) -> PanelContainer:
-	var badge := _make_panel(Color(accent, 0.13), 10, Color(accent, 0.65))
+	var badge := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(accent, 0.13)
+	style.corner_radius_top_left = 10
+	style.corner_radius_top_right = 10
+	style.corner_radius_bottom_left = 10
+	style.corner_radius_bottom_right = 10
+	style.border_width_left = 1
+	style.border_width_right = 1
+	style.border_width_top = 1
+	style.border_width_bottom = 1
+	style.border_color = Color(accent, 0.65)
+	style.content_margin_left = 10
+	style.content_margin_right = 10
+	style.content_margin_top = 6
+	style.content_margin_bottom = 6
+	badge.add_theme_stylebox_override("panel", style)
 	badge.add_child(_make_label(text_value, 14, accent.lightened(0.16)))
 	return badge
 

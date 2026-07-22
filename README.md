@@ -23,6 +23,18 @@
 & "C:\Users\24578\Tools\Godot\4.7.1\Godot_v4.7.1-stable_win64_console.exe" --editor --path .
 & "C:\Users\24578\Tools\Godot\4.7.1\Godot_v4.7.1-stable_win64_console.exe" --headless --path . --quit-after 180
 & "C:\Users\24578\Tools\Godot\4.7.1\Godot_v4.7.1-stable_win64_console.exe" --headless --path . --script res://tests/test_runner.gd
+& "C:\Users\24578\Tools\Godot\4.7.1\Godot_v4.7.1-stable_win64_console.exe" --headless --path . --script res://tests/ui_smoke.gd
+& "C:\Users\24578\Tools\Godot\4.7.1\Godot_v4.7.1-stable_win64_console.exe" --headless --path . --script res://tests/full_run_simulation.gd
 ```
+
+## 隐藏演示预设
+
+预设不显示在正式 UI 中，仅供比赛录屏和复现路线：
+
+```powershell
+& ".\builds\windows\CampusLifeSim.exe" -- --demo-preset=balanced
+```
+
+可用值：`balanced`、`study`、`project`、`ai`、`pressure`、`presentation`。
 
 第三方代码来源与许可见 `docs/ASSET_SOURCES.md` 和 `third_party/`。
