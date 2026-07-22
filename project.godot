@@ -1,0 +1,37 @@
+; Engine configuration file.
+; CampusLifeSim / 惊魂期末周
+
+config_version=5
+
+[application]
+
+config/name="惊魂期末周"
+config/description="一款关于期末周时间管理、校园关系与 AI 判断的选择模拟游戏。"
+config/version="0.1.0-demo"
+run/main_scene="res://scenes/main.tscn"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/size/window_width_override=1280
+window/size/window_height_override=720
+window/stretch/mode="canvas_items"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+environment/defaults/default_clear_color=Color(0.035, 0.055, 0.075, 1)
+
+[audio]
+
+driver/enable_input=false
+
+[input]
+
+pause_game={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":4194305,"unicode":27)]
+}

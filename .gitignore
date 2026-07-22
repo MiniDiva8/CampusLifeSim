@@ -1,0 +1,13 @@
+# Godot cache and generated files
+.godot/
+*.translation
+
+# Builds and local diagnostics
+builds/
+reports/
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
