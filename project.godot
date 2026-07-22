@@ -10,6 +10,13 @@ config/description="一款关于期末周时间管理、校园关系与 AI 判�
 config/version="0.1.0-demo"
 run/main_scene="res://scenes/main.tscn"
 
+[autoload]
+
+AppConfig="*res://scenes/system/app_config.tscn"
+SceneLoader="*res://scenes/system/scene_loader.tscn"
+ProjectMusicController="*res://scenes/system/music_controller.tscn"
+ProjectUISoundController="*res://scenes/system/ui_sound_controller.tscn"
+
 [display]
 
 window/size/viewport_width=1280
