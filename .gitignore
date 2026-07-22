@@ -4,7 +4,8 @@
 
 # Builds and local diagnostics
 builds/
-reports/
+reports/*
+!reports/.gdignore
 
 # Editors and operating systems
 .vscode/

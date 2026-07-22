@@ -1,7 +1,7 @@
 extends Node
 
 ## Project-owned replacement for the Maaack example AppConfig scene.
-## It deliberately has no dependency on GlobalState or example paths.
+## It deliberately has no dependency on upstream example state or paths.
 
 const MAIN_SCENE := "res://scenes/main.tscn"
 const LOADING_SCENE := "res://scenes/system/loading_screen.tscn"
