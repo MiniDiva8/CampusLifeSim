@@ -1,0 +1,6 @@
+[
+  {"id": "roommate", "name": "程乐天", "role": "室友", "avatar": "乐", "color": "#9B7ED2", "description": "嘴上说完全没复习，抽屉里却有三套重点。"},
+  {"id": "teammate", "name": "周启明", "role": "技术型组员", "avatar": "启", "color": "#4E91BF", "description": "代码写得快，解释问题时常常只说“看日志”。"},
+  {"id": "scholar", "name": "林知夏", "role": "学霸同学", "avatar": "知", "color": "#50A17E", "description": "习惯稳定输出，也愿意帮助认真准备的人。"},
+  {"id": "monitor", "name": "宋小雨", "role": "班长", "avatar": "雨", "color": "#D58A56", "description": "消息可靠、日程清楚，手机永远有 17 条未读。"}
+]

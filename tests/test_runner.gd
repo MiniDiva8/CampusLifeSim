@@ -1,0 +1,140 @@
+extends SceneTree
+
+var failures: Array[String] = []
+var checks := 0
+
+
+func _init() -> void:
+	print("[TEST] CampusLifeSim native test suite")
+	_test_content_repository()
+	_test_clock()
+	_test_session_and_clamping()
+	_test_event_conditions_and_delays()
+	_test_ai_determinism()
+	_test_save_round_trip()
+	_test_endings_reachable()
+	if failures.is_empty():
+		print("[PASS] %d checks passed" % checks)
+		quit(0)
+	else:
+		for failure in failures:
+			printerr("[FAIL] %s" % failure)
+		printerr("[FAIL] %d of %d checks failed" % [failures.size(), checks])
+		quit(1)
+
+
+func _expect(condition: bool, message: String) -> void:
+	checks += 1
+	if not condition:
+		failures.append(message)
+
+
+func _test_content_repository() -> void:
+	var repository := ContentRepository.new()
+	_expect(repository.load_all(), "content repository should validate: %s" % "; ".join(repository.errors))
+	_expect(repository.locations.size() == 6, "six locations should load")
+	_expect(repository.events.size() == 32, "thirty-two events should load")
+	_expect(repository.endings.size() == 7, "seven endings should load")
+	var kind_counts := {"fixed": 0, "location": 0, "npc": 0, "ai": 0}
+	for event in repository.events:
+		var kind := str(event.get("kind", ""))
+		kind_counts[kind] = int(kind_counts.get(kind, 0)) + 1
+	_expect(kind_counts == {"fixed": 8, "location": 12, "npc": 8, "ai": 4}, "event category counts should match the demo scope")
+
+
+func _test_clock() -> void:
+	var clock := GameClock.new()
+	_expect(clock.get_index() == 0 and clock.get_slot_name() == "早晨", "clock should start on day one morning")
+	clock.advance(5)
+	_expect(clock.day == 2 and clock.slot == 0, "five slots should advance to next morning")
+	clock.set_from_index(34)
+	_expect(clock.day == 7 and clock.slot == 4, "index 34 should be day seven late night")
+	clock.advance()
+	_expect(clock.is_finished(), "clock should finish after thirty-five slots")
+
+
+func _test_session_and_clamping() -> void:
+	var study_session := GameSession.new()
+	study_session.reset("测试玩家", "study")
+	_expect(study_session.stats.study == 25, "study trait should add ten study")
+	var social_session := GameSession.new()
+	social_session.reset("测试玩家", "social")
+	_expect(social_session.relationships.roommate == 45 and social_session.relationships.monitor == 45, "social trait should add five to every relationship")
+	social_session.change_stat("energy", 999)
+	social_session.change_stat("stress", -999)
+	_expect(social_session.stats.energy == 100 and social_session.stats.stress == 0, "stats should clamp to zero and one hundred")
+
+
+func _test_event_conditions_and_delays() -> void:
+	var session := GameSession.new()
+	var engine := EventEngine.new()
+	_expect(engine.condition_matches({"type": "stat_min", "target": "energy", "value": 70}, session), "stat minimum condition should match")
+	_expect(not engine.condition_matches({"type": "relationship_min", "target": "roommate", "value": 80}, session), "relationship minimum condition should reject")
+	var event := {"id": "test_event"}
+	var choice := {
+		"id": "test_choice",
+		"effects": [{"type": "stat", "target": "study", "amount": 5}],
+		"delayed": [{"after_slots": 2, "title": "测试后果", "message": "到期", "effects": [{"type": "stat", "target": "energy", "amount": -10}]}],
+	}
+	engine.apply_choice(event, choice, session)
+	_expect(session.stats.study == 30 and session.pending_consequences.size() == 1, "choice should apply immediate and queue delayed effects")
+	session.clock.advance(1)
+	_expect(engine.process_due_consequences(session).is_empty(), "delayed consequence should not resolve early")
+	session.clock.advance(1)
+	var resolved := engine.process_due_consequences(session)
+	_expect(resolved.size() == 1 and session.stats.energy == 70, "delayed consequence should resolve on its due slot")
+
+
+func _test_ai_determinism() -> void:
+	var repository := ContentRepository.new()
+	repository.load_all()
+	var advisor := AIAdvisor.new(repository.ai_advice)
+	var session := GameSession.new()
+	var first := advisor.choose_advice(session)
+	var second := advisor.choose_advice(session)
+	_expect(first.get("id") == second.get("id"), "AI advice should be deterministic for the same saved state")
+
+
+func _test_save_round_trip() -> void:
+	var service := SaveService.new("user://campus_test_autosave.json", "user://campus_test_settings.json")
+	service.delete_save()
+	var session := GameSession.new()
+	session.reset("存档测试", "project")
+	session.clock.advance(7)
+	session.change_relationship("teammate", 13)
+	var save_error := service.save_game(session)
+	_expect(save_error == OK, "autosave should succeed")
+	var restored := service.load_game()
+	_expect(restored != null, "autosave should load")
+	if restored != null:
+		_expect(restored.player_name == "存档测试" and restored.clock.get_index() == 7, "save should preserve identity and time")
+		_expect(restored.relationships.teammate == 53 and restored.trait_id == "project", "save should preserve relationships and trait")
+	service.delete_save()
+
+
+func _test_endings_reachable() -> void:
+	var repository := ContentRepository.new()
+	repository.load_all()
+	var evaluator := EndingEvaluator.new()
+	var scenarios := {
+		"pressure_breakdown": {"stress": 95},
+		"ai_overdependence": {"ai_dependence": 80},
+		"all_round": {"study": 70, "project": 70, "energy": 50, "stress": 30, "relationships": 50},
+		"ai_partner": {"study": 60, "project": 60, "ai_dependence": 40, "verified_ai": true},
+		"study_master": {"study": 80},
+		"tech_builder": {"project": 80},
+		"warm_campus": {},
+	}
+	for ending_id in scenarios:
+		var session := GameSession.new()
+		var scenario: Dictionary = scenarios[ending_id]
+		for stat_id in ["study", "project", "energy", "stress", "ai_dependence"]:
+			if scenario.has(stat_id):
+				session.stats[stat_id] = scenario[stat_id]
+		if scenario.has("relationships"):
+			for npc_id in session.relationships:
+				session.relationships[npc_id] = scenario.relationships
+		if scenario.get("verified_ai", false):
+			session.flags.verified_ai = true
+		var result := evaluator.evaluate(session, repository.endings)
+		_expect(result.get("id") == ending_id, "ending %s should be reachable, got %s" % [ending_id, result.get("id")])

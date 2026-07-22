@@ -1,0 +1,74 @@
+[
+  {
+    "id": "dorm",
+    "name": "海风宿舍",
+    "icon": "▣",
+    "subtitle": "休息、夜聊与赶工",
+    "description": "床铺是最可靠的充电器，室友则是最不可预测的消息源。",
+    "color": "#7C6FB2",
+    "actions": [
+      {"id": "sleep", "label": "补个好觉", "description": "恢复精力，也让脑子停止冒烟。", "effects": [{"type": "stat", "target": "energy", "amount": 22}, {"type": "stat", "target": "stress", "amount": -12}]},
+      {"id": "night_work", "label": "在宿舍赶工", "description": "效率可观，但身体会记账。", "effects": [{"type": "stat", "target": "project", "amount": 9}, {"type": "stat", "target": "energy", "amount": -16}, {"type": "stat", "target": "stress", "amount": 8}]}
+    ]
+  },
+  {
+    "id": "library",
+    "name": "星海图书馆",
+    "icon": "▤",
+    "subtitle": "复习、资料与偶遇",
+    "description": "这里很安静，除了翻书声、键盘声和心里倒计时的声音。",
+    "color": "#4C8F78",
+    "actions": [
+      {"id": "review", "label": "专注复习", "description": "稳定提高知识掌握。", "effects": [{"type": "stat", "target": "study", "amount": 10}, {"type": "stat", "target": "energy", "amount": -10}, {"type": "stat", "target": "stress", "amount": 3}]},
+      {"id": "organize", "label": "整理资料", "description": "为考试和展示同时打底。", "effects": [{"type": "stat", "target": "study", "amount": 6}, {"type": "task", "target": "exam", "amount": 7}, {"type": "stat", "target": "energy", "amount": -7}]}
+    ]
+  },
+  {
+    "id": "teaching",
+    "name": "明德教学楼",
+    "icon": "▥",
+    "subtitle": "课程、答疑与考试",
+    "description": "每一间教室都可能藏着重点，也可能藏着临时通知。",
+    "color": "#D08A57",
+    "actions": [
+      {"id": "self_study", "label": "找空教室自习", "description": "没有抢座压力的复习。", "effects": [{"type": "stat", "target": "study", "amount": 8}, {"type": "stat", "target": "energy", "amount": -8}]},
+      {"id": "ask_teacher", "label": "整理问题清单", "description": "把模糊问题变成可解决的问题。", "effects": [{"type": "task", "target": "exam", "amount": 8}, {"type": "stat", "target": "study", "amount": 5}, {"type": "stat", "target": "stress", "amount": -3}]}
+    ]
+  },
+  {
+    "id": "lab",
+    "name": "启智实验室",
+    "icon": "▦",
+    "subtitle": "代码、协作与 AI",
+    "description": "显示器亮着，希望也亮着；至于测试为什么红了，另说。",
+    "color": "#477FA8",
+    "actions": [
+      {"id": "code", "label": "推进核心功能", "description": "扎实完成自己负责的部分。", "effects": [{"type": "stat", "target": "project", "amount": 11}, {"type": "task", "target": "presentation", "amount": 5}, {"type": "stat", "target": "energy", "amount": -12}, {"type": "stat", "target": "stress", "amount": 5}]},
+      {"id": "pair_work", "label": "和组员结对调试", "description": "进度略慢，但减少理解断层。", "effects": [{"type": "stat", "target": "project", "amount": 8}, {"type": "relationship", "target": "teammate", "amount": 4}, {"type": "stat", "target": "energy", "amount": -9}]}
+    ]
+  },
+  {
+    "id": "canteen",
+    "name": "齐园食堂",
+    "icon": "▧",
+    "subtitle": "吃饭、闲聊与情报",
+    "description": "一顿热饭能解决很多问题，至少在下一道 DDL 之前。",
+    "color": "#C96767",
+    "actions": [
+      {"id": "meal", "label": "认真吃顿饭", "description": "补充精力，暂停内耗。", "effects": [{"type": "stat", "target": "energy", "amount": 14}, {"type": "stat", "target": "stress", "amount": -7}]},
+      {"id": "chat", "label": "和同学拼桌", "description": "饭桌也是校园情报站。", "effects": [{"type": "relationship", "target": "monitor", "amount": 4}, {"type": "stat", "target": "stress", "amount": -5}, {"type": "stat", "target": "energy", "amount": 7}]}
+    ]
+  },
+  {
+    "id": "field",
+    "name": "青春操场",
+    "icon": "◇",
+    "subtitle": "运动、散步与整理心情",
+    "description": "跑道不问你复习了多少，只提醒你先把气喘匀。",
+    "color": "#5D9B66",
+    "actions": [
+      {"id": "walk", "label": "沿校园路散步", "description": "把脑内弹窗一个个关掉。", "effects": [{"type": "stat", "target": "stress", "amount": -14}, {"type": "stat", "target": "energy", "amount": 4}]},
+      {"id": "exercise", "label": "慢跑几圈", "description": "消耗一点精力，换来更稳的心态。", "effects": [{"type": "stat", "target": "stress", "amount": -18}, {"type": "stat", "target": "energy", "amount": -4}]}
+    ]
+  }
+]
