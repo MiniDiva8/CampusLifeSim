@@ -11,3 +11,5 @@
 界面只能通过明确接口修改游戏状态，JSON 只描述受控条件和效果，不执行脚本。
 
 `DifficultyRules` 在 `EventEngine` 应用效果前统一调整数值，确保事件 JSON 保持单一基础数值。`GameSession` 只保存难度 ID，不复制倍率配置；旧存档自动回退到简易规则。
+
+`BackgroundCatalog` 除了随机选择照片，还从清单提供真实场景名称、活动文本和 EXIF 方向。`OrientedPhotoRect` 不改写原 JPEG，而是在显示层旋转画面；前景保持原始比例完整显示，背景层使用同图覆盖和轻度模糊填充宽屏。
