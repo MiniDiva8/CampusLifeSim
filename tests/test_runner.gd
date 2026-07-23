@@ -53,7 +53,18 @@ func _test_background_catalog() -> void:
 	_expect(catalog.menu.size() == 1, "one menu background should load")
 	_expect(not catalog.get_stress_background().is_empty(), "one long-exposure stress background should load")
 	_expect(location_total == 46, "forty-six location backgrounds should load")
+	_expect(catalog.scenes.size() == 16, "sixteen named teaching and sports scenes should load")
 	_expect(catalog.roads.get("day", []).size() == 13 and catalog.roads.get("night", []).size() == 4, "seventeen day and night travel backgrounds should load")
+	var tennis_path := "res://assets/backgrounds/locations/field/网球.jpg"
+	var tennis_context := catalog.get_scene_context(tennis_path, "field")
+	_expect(tennis_context.display_name == "网球场" and tennis_context.activity_text == "打网球", "tennis photo should provide its real scene and activity names")
+	var teaching_context := catalog.get_scene_context("res://assets/backgrounds/locations/teaching/理综楼走廊.jpg", "teaching")
+	_expect(teaching_context.display_name == "理综楼走廊", "teaching photo should expose its exact filename-based place")
+	_expect(catalog.get_photo_orientation("res://assets/backgrounds/locations/teaching/理综楼走廊.jpg") == 6, "EXIF-oriented originals should keep their display rotation metadata")
+	var meal_context := catalog.get_scene_context("res://assets/backgrounds/locations/canteen/早餐/8969be5d9c0b20d7439da056e4fd3b7a.jpg", "canteen")
+	_expect(meal_context.display_name == "齐园食堂 · 早餐", "canteen subfolder should provide a meaningful scene name")
+	var tennis_texture := load(tennis_path) as Texture2D
+	_expect(tennis_texture != null and tennis_texture.get_size() == Vector2(4284, 5712), "tennis photo should retain its original 4284 by 5712 resolution")
 	var session := GameSession.new()
 	var first := catalog.choose_location_background("library", session)
 	var second := catalog.choose_location_background("library", session)

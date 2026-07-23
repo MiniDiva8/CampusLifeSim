@@ -14,6 +14,15 @@ func _expect(condition: bool, message: String) -> void:
 		failures.append(message)
 
 
+func _has_label_containing(node: Node, fragment: String) -> bool:
+	if node is Label and str(node.text).contains(fragment):
+		return true
+	for child in node.get_children():
+		if _has_label_containing(child, fragment):
+			return true
+	return false
+
+
 func _run() -> void:
 	var packed := load("res://scenes/main.tscn") as PackedScene
 	var app = packed.instantiate()
@@ -65,6 +74,36 @@ func _run() -> void:
 	await process_frame
 	_expect(app.session.clock.get_index() == 2, "location event should consume one slot")
 	_expect(app.current_screen == "event", "day-one schedule notice should trigger on its fixed slot")
+
+	app.session.current_location_id = "field"
+	app.session.current_background_path = "res://assets/backgrounds/locations/field/网球.jpg"
+	app.show_event({
+		"id": "scene_ui_test",
+		"title": "{scene_name}里的临时选择",
+		"speaker": "旁白",
+		"body": "你正在{scene_activity}，需要决定下一步。",
+		"choices": [{"id": "continue", "label": "继续{scene_activity}", "effects": []}],
+	})
+	await process_frame
+	_expect(_has_label_containing(app, "你来到了 · 网球场"), "event UI should show the real scene name from the displayed photo")
+	_expect(_has_label_containing(app, "你正在打网球"), "event text should describe the real activity from the displayed photo")
+	_expect(app.active_photo_background.stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_CENTERED and app.active_photo_fill != null, "photo UI should fit the original aspect over a separate fill layer")
+	_expect(app.active_photo_background.texture.get_size() == Vector2(4284, 5712), "event UI should load the original-resolution tennis photo")
+	var event_card := app.find_child("EventCard", true, false) as PanelContainer
+	var event_style := event_card.get_theme_stylebox("panel") as StyleBoxFlat
+	_expect(event_style != null and event_style.bg_color.a < 0.85, "event card should remain translucent enough to reveal the photo")
+	app.session.current_location_id = "teaching"
+	app.session.current_background_path = "res://assets/backgrounds/locations/teaching/理综楼走廊.jpg"
+	app.show_event({
+		"id": "orientation_ui_test",
+		"title": "来到{scene_name}",
+		"speaker": "旁白",
+		"body": "确认原图方向。",
+		"choices": [{"id": "ok", "label": "继续", "effects": []}],
+	})
+	await process_frame
+	_expect(_has_label_containing(app, "你来到了 · 理综楼走廊"), "teaching event should show the exact building scene name")
+	_expect(is_equal_approx(absf(app.active_photo_background.rotation), PI * 0.5), "EXIF orientation six should rotate the untouched original at display time")
 
 	app.show_pause_menu()
 	await process_frame
