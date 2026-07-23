@@ -12,6 +12,8 @@
 
 - 七个游戏日，每天五个时段
 - 六个可点击校园地点
+- 64 张校园实景背景，按地点与昼夜道路分类随机展示
+- 进入地点前约两秒的道路滚动过渡，支持“减少界面动效”设置
 - 学习、项目、精力、压力、人物关系与隐藏 AI 依赖度
 - 数据驱动事件、即时与延迟后果
 - 一个考试、一次项目展示和七种结局
@@ -26,6 +28,14 @@
 & "C:\Users\24578\Tools\Godot\4.7.1\Godot_v4.7.1-stable_win64_console.exe" --headless --path . --script res://tests/ui_smoke.gd
 & "C:\Users\24578\Tools\Godot\4.7.1\Godot_v4.7.1-stable_win64_console.exe" --headless --path . --script res://tests/full_run_simulation.gd
 ```
+
+用户更新父级 `游戏场景图片/` 后，可重新生成经过方向校正和尺寸优化的项目副本：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\tools\import_user_backgrounds.ps1"
+```
+
+运行时图片清单位于 `data/backgrounds.json`；分类变化时需同步更新该文件。
 
 ## 隐藏演示预设
 

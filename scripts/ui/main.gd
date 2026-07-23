@@ -9,8 +9,10 @@ const COLOR_ACCENT := Color("#F2B84B")
 const COLOR_TEAL := Color("#55C2A3")
 const COLOR_CORAL := Color("#EF7E73")
 const COLOR_BLUE := Color("#66A9D2")
+const TRAVEL_DURATION_SECONDS := 2.0
 
 var repository := ContentRepository.new()
+var background_catalog := BackgroundCatalog.new()
 var event_engine: EventEngine
 var save_service := SaveService.new()
 var session: GameSession
@@ -18,6 +20,7 @@ var current_screen := "main_menu"
 var settings_return_screen := "main_menu"
 var settings := {}
 var screen_layer: Control
+var active_photo_background: TextureRect
 var notice_text := ""
 
 
@@ -28,6 +31,9 @@ func _ready() -> void:
 	_apply_settings()
 	if not repository.load_all():
 		_show_fatal_error("内容数据校验失败\n\n" + "\n".join(repository.errors))
+		return
+	if not background_catalog.load_all():
+		_show_fatal_error("场景图片校验失败\n\n" + "\n".join(background_catalog.errors))
 		return
 	event_engine = EventEngine.new(repository)
 	if _try_debug_preset():
@@ -72,22 +78,32 @@ func _unhandled_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 
-func _reset_screen(screen_name: String, backdrop_tint: Color = Color.WHITE) -> VBoxContainer:
+func _reset_screen(screen_name: String, backdrop_tint: Color = Color.WHITE, background_path: String = "", shade_color: Color = Color("#07161CB8")) -> VBoxContainer:
 	current_screen = screen_name
+	active_photo_background = null
 	for child in get_children():
 		child.queue_free()
 	screen_layer = Control.new()
 	screen_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(screen_layer)
 
-	var backdrop := CampusBackdrop.new()
-	backdrop.tint = backdrop_tint
-	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	screen_layer.add_child(backdrop)
+	if not background_path.is_empty() and ResourceLoader.exists(background_path):
+		active_photo_background = TextureRect.new()
+		active_photo_background.texture = load(background_path)
+		active_photo_background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		active_photo_background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		active_photo_background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		active_photo_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		screen_layer.add_child(active_photo_background)
+	else:
+		var backdrop := CampusBackdrop.new()
+		backdrop.tint = backdrop_tint
+		backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		screen_layer.add_child(backdrop)
 
 	var shade := ColorRect.new()
-	shade.color = Color("#07161CB8")
+	shade.color = shade_color
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	screen_layer.add_child(shade)
@@ -106,7 +122,7 @@ func _reset_screen(screen_name: String, backdrop_tint: Color = Color.WHITE) -> V
 
 
 func show_main_menu() -> void:
-	var root := _reset_screen("main_menu", Color("#6DAF9A"))
+	var root := _reset_screen("main_menu", Color("#6DAF9A"), background_catalog.get_menu_background(), Color("#07161C55"))
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(spacer)
@@ -365,19 +381,84 @@ func _make_location_button(location: Dictionary) -> Button:
 	var accent := Color(str(location.get("color", "#55C2A3")))
 	_style_button(button, Color("#1C3D44E8"), accent)
 	button.tooltip_text = str(location.get("description", ""))
-	button.pressed.connect(show_location.bind(str(location.get("id", ""))))
+	button.pressed.connect(_travel_to_location.bind(str(location.get("id", ""))))
 	return button
+
+
+func _travel_to_location(location_id: String, duration: float = TRAVEL_DURATION_SECONDS) -> void:
+	var location := repository.get_location(location_id)
+	if location.is_empty() or session == null:
+		return
+	background_catalog.choose_location_background(location_id, session)
+	var road_background := background_catalog.choose_road_background(session)
+	var save_error := save_service.save_game(session)
+	if save_error != OK:
+		notice_text = "自动存档失败：%s" % error_string(save_error)
+	show_travel(location, road_background, duration)
+	await get_tree().create_timer(maxf(duration, 0.01)).timeout
+	if current_screen == "travel" and session != null and session.current_location_id == location_id:
+		show_location(location_id)
+
+
+func show_travel(location: Dictionary, road_background: String, duration: float = TRAVEL_DURATION_SECONDS) -> void:
+	var root := _reset_screen("travel", Color("#416B72"), road_background, Color("#07161C62"))
+	if active_photo_background != null:
+		active_photo_background.offset_left = -40.0
+		active_photo_background.offset_right = 200.0
+		active_photo_background.offset_top = -30.0
+		active_photo_background.offset_bottom = 30.0
+		if not bool(settings.get("reduced_motion", false)):
+			var pan_tween := create_tween().set_parallel(true)
+			pan_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+			pan_tween.tween_property(active_photo_background, "offset_left", -200.0, maxf(duration, 0.01))
+			pan_tween.tween_property(active_photo_background, "offset_right", 40.0, maxf(duration, 0.01))
+
+	var top_space := Control.new()
+	top_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(top_space)
+	var center := HBoxContainer.new()
+	center.alignment = BoxContainer.ALIGNMENT_CENTER
+	root.add_child(center)
+	var panel := _make_panel(Color("#102C35D9"), 22, Color(str(location.get("color", "#55C2A3"))))
+	panel.custom_minimum_size = Vector2(560, 210)
+	center.add_child(panel)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 14)
+	panel.add_child(box)
+	var eyebrow := _make_label("穿过校园", 14, COLOR_TEAL)
+	eyebrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(eyebrow)
+	var title := _make_label("正在前往 · %s" % location.get("name", "新地点"), 30, COLOR_INK)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(title)
+	var message := _make_label("路上的两分钟，也属于你的期末周。", 16, COLOR_MUTED)
+	message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(message)
+	var progress := ProgressBar.new()
+	progress.name = "TravelProgress"
+	progress.show_percentage = false
+	progress.value = 0.0
+	progress.custom_minimum_size.y = 10
+	box.add_child(progress)
+	var progress_tween := create_tween()
+	progress_tween.set_trans(Tween.TRANS_LINEAR)
+	progress_tween.tween_property(progress, "value", 100.0, maxf(duration, 0.01))
+	var bottom_space := Control.new()
+	bottom_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(bottom_space)
 
 
 func show_location(location_id: String) -> void:
 	var location := repository.get_location(location_id)
 	if location.is_empty():
 		return
+	if session.current_location_id != location_id or session.current_background_path.is_empty():
+		background_catalog.choose_location_background(location_id, session)
 	var event := event_engine.get_location_event(location_id, session)
 	if not event.is_empty():
 		show_event(event)
 		return
-	var root := _reset_screen("location", Color(str(location.get("color", "#6DAF9A"))))
+	var root := _reset_screen("location", Color(str(location.get("color", "#6DAF9A"))), session.current_background_path, Color("#07161C76"))
 	root.add_child(_make_header(str(location.name), str(location.subtitle), show_map))
 	var body := HBoxContainer.new()
 	body.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -405,7 +486,7 @@ func show_location(location_id: String) -> void:
 
 
 func show_event(event: Dictionary) -> void:
-	var root := _reset_screen("event", Color("#4D8190"))
+	var root := _reset_screen("event", Color("#4D8190"), session.current_background_path, Color("#07161C70"))
 	var top := HBoxContainer.new()
 	root.add_child(top)
 	var time_label := _make_badge(session.clock.get_display_text(), COLOR_TEAL)
@@ -462,7 +543,7 @@ func _visible_effects(effects: Array[String]) -> Array[String]:
 
 
 func show_result(title_text: String, description: String, effects: Array[String], continue_action: Callable) -> void:
-	var root := _reset_screen("result", Color("#678F8C"))
+	var root := _reset_screen("result", Color("#678F8C"), session.current_background_path if session != null else "", Color("#07161C70"))
 	var center := HBoxContainer.new()
 	center.alignment = BoxContainer.ALIGNMENT_CENTER
 	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -503,6 +584,7 @@ func _advance_after_action() -> void:
 		day_messages.append("跨夜恢复：精力 %s%d" % ["+" if energy_change >= 0 else "", energy_change])
 		day_messages.append("新的一天：压力 %s%d" % ["+" if stress_change >= 0 else "", stress_change])
 	var consequences := event_engine.process_due_consequences(session)
+	session.clear_current_background()
 	var save_error := save_service.save_game(session)
 	if save_error != OK:
 		notice_text = "自动存档失败：%s" % error_string(save_error)
@@ -678,7 +760,7 @@ func show_credits() -> void:
 	box.add_theme_constant_override("separation", 15)
 	panel.add_child(box)
 	box.add_child(_make_label("惊魂期末周 · CampusLifeSim", 28, COLOR_INK))
-	var text := _make_label("策划、程序、事件文本与程序化校园视觉：CampusLifeSim 项目\n\n引擎：Godot 4.7.1（MIT License）\n菜单、加载、暂停及音频基础参考：Maaack/Godot-Game-Template v1.4.7（MIT License）\n上游作者：Marek Belski\n\n本项目未使用 Maaack 品牌 Logo、Godot Logo、Git Logo或来源不明的第三方美术。完整许可证与素材记录随项目分发。", 17, COLOR_MUTED)
+	var text := _make_label("策划、程序与事件文本：CampusLifeSim 项目\n校园场景摄影：项目所有者提供的校园照片\n\n引擎：Godot 4.7.1（MIT License）\n菜单、加载、暂停及音频基础参考：Maaack/Godot-Game-Template v1.4.7（MIT License）\n上游作者：Marek Belski\n\n本项目未使用 Maaack 品牌 Logo、Godot Logo、Git Logo或来源不明的第三方美术。完整许可证与素材记录随项目分发。", 17, COLOR_MUTED)
 	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	text.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(text)

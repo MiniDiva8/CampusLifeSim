@@ -17,6 +17,11 @@ var flags: Dictionary = {}
 var fired_events: Array = []
 var pending_consequences: Array = []
 var event_history: Array = []
+var current_location_id := ""
+var current_background_path := ""
+var last_location_backgrounds: Dictionary = {}
+var last_road_background := ""
+var background_choice_counter := 0
 
 
 func _init() -> void:
@@ -46,6 +51,11 @@ func reset(name_value: String = "小山", selected_trait: String = "study") -> v
 	fired_events = []
 	pending_consequences = []
 	event_history = []
+	current_location_id = ""
+	current_background_path = ""
+	last_location_backgrounds = {}
+	last_road_background = ""
+	background_choice_counter = 0
 	apply_trait(selected_trait)
 
 
@@ -116,6 +126,11 @@ func mark_event_fired(event_id: String, choice_id: String) -> void:
 	})
 
 
+func clear_current_background() -> void:
+	current_location_id = ""
+	current_background_path = ""
+
+
 func to_dict() -> Dictionary:
 	return {
 		"schema_version": SCHEMA_VERSION,
@@ -130,6 +145,11 @@ func to_dict() -> Dictionary:
 		"fired_events": fired_events.duplicate(true),
 		"pending_consequences": pending_consequences.duplicate(true),
 		"event_history": event_history.duplicate(true),
+		"current_location_id": current_location_id,
+		"current_background_path": current_background_path,
+		"last_location_backgrounds": last_location_backgrounds.duplicate(true),
+		"last_road_background": last_road_background,
+		"background_choice_counter": background_choice_counter,
 	}
 
 
@@ -147,6 +167,11 @@ func from_dict(data: Dictionary) -> bool:
 	fired_events = data.get("fired_events", []).duplicate(true)
 	pending_consequences = data.get("pending_consequences", []).duplicate(true)
 	event_history = data.get("event_history", []).duplicate(true)
+	current_location_id = str(data.get("current_location_id", ""))
+	current_background_path = str(data.get("current_background_path", ""))
+	last_location_backgrounds = data.get("last_location_backgrounds", {}).duplicate(true)
+	last_road_background = str(data.get("last_road_background", ""))
+	background_choice_counter = maxi(int(data.get("background_choice_counter", 0)), 0)
 	for key in STAT_KEYS:
 		if not stats.has(key):
 			return false
