@@ -7,6 +7,7 @@ var menu: Array = []
 var locations: Dictionary = {}
 var scenes: Dictionary = {}
 var orientations: Dictionary = {}
+var event_locations: Dictionary = {}
 var roads: Dictionary = {}
 var effects: Dictionary = {}
 var errors: Array[String] = []
@@ -18,6 +19,7 @@ func load_all() -> bool:
 	locations.clear()
 	scenes.clear()
 	orientations.clear()
+	event_locations.clear()
 	roads.clear()
 	effects.clear()
 	var data = _read_json(MANIFEST_PATH)
@@ -53,6 +55,15 @@ func load_all() -> bool:
 				errors.append("Unsupported EXIF orientation %d for: %s" % [orientation, orientation_path])
 			else:
 				orientations[orientation_path] = orientation
+	var raw_event_locations = data.get("event_locations", {})
+	if raw_event_locations is Dictionary:
+		for event_id_value in raw_event_locations:
+			var event_id := str(event_id_value)
+			var location_id := str(raw_event_locations[event_id_value])
+			if location_id not in ["dorm", "library", "teaching", "lab", "canteen", "field"]:
+				errors.append("Event background references an unknown location: %s -> %s" % [event_id, location_id])
+			else:
+				event_locations[event_id] = location_id
 	var raw_roads = data.get("roads", {})
 	if raw_roads is Dictionary:
 		for period in raw_roads:
@@ -110,6 +121,15 @@ func choose_location_background(location_id: String, session: GameSession) -> St
 	if not selected.is_empty():
 		session.last_location_backgrounds[location_id] = selected
 	return selected
+
+
+func ensure_event_background(event_id: String, session: GameSession) -> String:
+	if session == null:
+		return ""
+	if not session.current_background_path.is_empty():
+		return session.current_background_path
+	var location_id := str(event_locations.get(event_id, "teaching"))
+	return choose_location_background(location_id, session)
 
 
 func choose_road_background(session: GameSession) -> String:

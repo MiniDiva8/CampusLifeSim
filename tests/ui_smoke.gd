@@ -51,9 +51,12 @@ func _run() -> void:
 	app._present_current_state()
 	await process_frame
 	_expect(app.current_screen == "event", "new run should present day-one fixed event")
+	_expect(not app.session.current_background_path.is_empty() and app.session.current_location_id == "teaching", "fixed schedule events should receive a semantic campus photograph")
+	_expect(_has_label_containing(app, "考试 +5"), "choice cards should preview difficulty-adjusted consequences")
 
-	var first_event: Dictionary = app.event_engine.get_fixed_event(app.session)
-	app._resolve_event_choice(first_event, first_event.choices[0])
+	var first_choice_button := app.find_child("Choice_plan", true, false) as Button
+	_expect(first_choice_button != null, "data-driven event choices should become named interactive cards")
+	first_choice_button.pressed.emit()
 	await process_frame
 	_expect(app.current_screen == "result", "event choice should show consequences")
 	app._advance_after_action()
@@ -85,13 +88,14 @@ func _run() -> void:
 		"choices": [{"id": "continue", "label": "继续{scene_activity}", "effects": []}],
 	})
 	await process_frame
-	_expect(_has_label_containing(app, "你来到了 · 网球场"), "event UI should show the real scene name from the displayed photo")
+	_expect(_has_label_containing(app, "网球场"), "event UI should show the real scene name from the displayed photo")
 	_expect(_has_label_containing(app, "你正在打网球"), "event text should describe the real activity from the displayed photo")
-	_expect(app.active_photo_background.stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_CENTERED and app.active_photo_fill != null, "photo UI should fit the original aspect over a separate fill layer")
+	_expect(app.active_photo_background.stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_CENTERED and app.active_photo_fill == null, "scene photo should fit its original aspect without a duplicate fill layer")
 	_expect(app.active_photo_background.texture.get_size() == Vector2(4284, 5712), "event UI should load the original-resolution tennis photo")
 	var event_card := app.find_child("EventCard", true, false) as PanelContainer
-	var event_style := event_card.get_theme_stylebox("panel") as StyleBoxFlat
-	_expect(event_style != null and event_style.bg_color.a < 0.85, "event card should remain translucent enough to reveal the photo")
+	var photo_stage := app.find_child("PhotoStage", true, false) as PanelContainer
+	_expect(event_card != null and photo_stage != null and photo_stage.position.x + photo_stage.size.x <= event_card.position.x, "interaction panel should sit beside the photo instead of covering it")
+	_expect(is_equal_approx(photo_stage.size.x, 474.0), "portrait photographs should use the narrow adaptive media stage")
 	app.session.current_location_id = "teaching"
 	app.session.current_background_path = "res://assets/backgrounds/locations/teaching/理综楼走廊.jpg"
 	app.show_event({
@@ -102,7 +106,7 @@ func _run() -> void:
 		"choices": [{"id": "ok", "label": "继续", "effects": []}],
 	})
 	await process_frame
-	_expect(_has_label_containing(app, "你来到了 · 理综楼走廊"), "teaching event should show the exact building scene name")
+	_expect(_has_label_containing(app, "理综楼走廊"), "teaching event should show the exact building scene name")
 	_expect(is_equal_approx(absf(app.active_photo_background.rotation), PI * 0.5), "EXIF orientation six should rotate the untouched original at display time")
 
 	app.show_pause_menu()
@@ -118,11 +122,14 @@ func _run() -> void:
 	_expect(app.current_screen == "stress_crisis", "high stress should automatically open the disorientation choice screen after an action")
 	_expect(app.active_photo_background != null, "stress crisis should use the long-exposure photograph")
 	var stress_before := int(app.session.stats.stress)
-	app._resolve_stress_crisis("recover", func(): pass)
+	var recover_button := app.find_child("StressRecover", true, false) as Button
+	_expect(recover_button != null, "stress crisis responses should use interactive choice cards")
+	recover_button.pressed.emit()
 	_expect(int(app.session.stats.stress) < stress_before, "choosing to recover should lower stress")
 	app.save_service.delete_save()
 	app.queue_free()
 	await process_frame
+	await create_timer(0.1).timeout
 
 	if failures.is_empty():
 		print("[PASS] UI smoke: %d checks passed" % checks)

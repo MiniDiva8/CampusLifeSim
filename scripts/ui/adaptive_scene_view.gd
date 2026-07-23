@@ -1,4 +1,4 @@
-class_name AdaptiveScenePrototypeView
+class_name AdaptiveSceneView
 extends Control
 
 const INK := Color("#F4F2E9")
@@ -12,6 +12,9 @@ const GOLD := Color("#F4C45E")
 const CORAL := Color("#FF8580")
 const BLUE := Color("#7CB9E8")
 
+var photo_rect: OrientedPhotoRect
+var interaction_panel: PanelContainer
+
 
 func configure(data: Dictionary) -> void:
 	for child in get_children():
@@ -19,13 +22,33 @@ func configure(data: Dictionary) -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_build_background()
 	_build_hud(data)
-	var media_width := float(data.get("media_width", 650.0))
+	var media_width := _recommended_media_width(data)
 	var media_position := Vector2(24, 84)
 	var media_size := Vector2(media_width, 612)
 	var content_position := Vector2(42 + media_width, 84)
 	var content_size := Vector2(1238 - content_position.x, 612)
 	_build_photo_stage(data, media_position, media_size)
 	_build_interaction_panel(data, content_position, content_size)
+
+
+func _recommended_media_width(data: Dictionary) -> float:
+	if data.has("media_width"):
+		return clampf(float(data.media_width), 450.0, 720.0)
+	var image_path := str(data.get("image_path", ""))
+	if image_path.is_empty() or not ResourceLoader.exists(image_path):
+		return 560.0
+	var image_texture := load(image_path) as Texture2D
+	if image_texture == null:
+		return 560.0
+	var image_size := image_texture.get_size()
+	if int(data.get("orientation", 1)) in [6, 8]:
+		image_size = Vector2(image_size.y, image_size.x)
+	var aspect := image_size.x / maxf(image_size.y, 1.0)
+	if aspect < 0.86:
+		return 474.0
+	if aspect > 1.45:
+		return 704.0
+	return 652.0
 
 
 func _build_background() -> void:
@@ -52,6 +75,7 @@ func _build_background() -> void:
 
 func _build_hud(data: Dictionary) -> void:
 	var hud := PanelContainer.new()
+	hud.name = "SceneHUD"
 	hud.position = Vector2(24, 16)
 	hud.size = Vector2(1232, 48)
 	hud.add_theme_stylebox_override("panel", _style(Color("#0D191CD9"), 13, Color("#2D4C50"), 1, 12))
@@ -69,20 +93,35 @@ func _build_hud(data: Dictionary) -> void:
 	brand.add_child(_label("FINAL WEEK · CAMPUS LIFE", 9, Color("#6FA59A")))
 
 	row.add_child(_divider())
-	row.add_child(_compact_pair("日期", str(data.get("time", "第 3 天 · 早晨")), TEAL, 178))
+	row.add_child(_compact_pair("日期", str(data.get("time", "第 1 天 · 清晨")), TEAL, 178))
 	row.add_child(_compact_pair("地点", str(data.get("scene_name", "校园场景")), BLUE, 180))
 
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(spacer)
 
-	row.add_child(_stat_chip("精力", int(data.get("energy", 68)), TEAL))
-	row.add_child(_stat_chip("压力", int(data.get("stress", 42)), CORAL))
-	row.add_child(_stat_chip("考试", int(data.get("exam", 51)), GOLD))
+	row.add_child(_stat_chip("精力", int(data.get("energy", 80)), TEAL))
+	row.add_child(_stat_chip("压力", int(data.get("stress", 20)), CORAL))
+	row.add_child(_stat_chip("考试", int(data.get("exam", 0)), GOLD))
+
+	var pause_action = data.get("pause_action")
+	if pause_action is Callable and not pause_action.is_null():
+		var pause_button := Button.new()
+		pause_button.name = "ScenePause"
+		pause_button.text = "暂停"
+		pause_button.custom_minimum_size = Vector2(62, 34)
+		pause_button.add_theme_font_size_override("font_size", 11)
+		pause_button.add_theme_stylebox_override("normal", _style(Color("#142326"), 9, Color("#36545A"), 1, 8))
+		pause_button.add_theme_stylebox_override("hover", _style(Color("#20383C"), 9, TEAL, 1, 8))
+		pause_button.add_theme_stylebox_override("pressed", _style(Color("#0B1518"), 9, GOLD, 1, 8))
+		pause_button.add_theme_color_override("font_color", MUTED)
+		pause_button.pressed.connect(pause_action)
+		row.add_child(pause_button)
 
 
 func _build_photo_stage(data: Dictionary, stage_position: Vector2, stage_size: Vector2) -> void:
 	var stage := PanelContainer.new()
+	stage.name = "PhotoStage"
 	stage.position = stage_position
 	stage.size = stage_size
 	stage.add_theme_stylebox_override("panel", _style(Color("#0B1518"), 18, Color("#36545A"), 1, 8))
@@ -95,19 +134,20 @@ func _build_photo_stage(data: Dictionary, stage_position: Vector2, stage_size: V
 	var image_backdrop := ColorRect.new()
 	image_backdrop.color = Color("#10191B")
 	image_backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	image_backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	media.add_child(image_backdrop)
 
-	var photo := OrientedPhotoRect.new()
-	photo.name = "PrototypePhoto"
-	photo.configure(
-		load(str(data.get("image_path", ""))) as Texture2D,
-		int(data.get("orientation", 1)),
-		false
-	)
-	photo.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	media.add_child(photo)
+	photo_rect = OrientedPhotoRect.new()
+	photo_rect.name = "PhotoFrame"
+	var image_path := str(data.get("image_path", ""))
+	var image_texture: Texture2D
+	if not image_path.is_empty() and ResourceLoader.exists(image_path):
+		image_texture = load(image_path) as Texture2D
+	photo_rect.configure(image_texture, int(data.get("orientation", 1)), false)
+	photo_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	media.add_child(photo_rect)
 
-	var index_label := _label("SCENE  %s" % str(data.get("scene_index", "01 / 03")), 10, TEAL)
+	var index_label := _label("SCENE  %s" % str(data.get("scene_index", "LIVE")), 10, TEAL)
 	index_label.position = Vector2(18, 16)
 	index_label.size = Vector2(170, 24)
 	index_label.add_theme_color_override("font_shadow_color", Color("#000000CC"))
@@ -116,6 +156,7 @@ func _build_photo_stage(data: Dictionary, stage_position: Vector2, stage_size: V
 	media.add_child(index_label)
 
 	var caption := PanelContainer.new()
+	caption.name = "PhotoCaption"
 	caption.position = Vector2(14, stage_size.y - 82)
 	caption.size = Vector2(stage_size.x - 28, 66)
 	caption.add_theme_stylebox_override("panel", _style(Color("#081113E8"), 12, Color("#517076AA"), 1, 14))
@@ -128,37 +169,40 @@ func _build_photo_stage(data: Dictionary, stage_position: Vector2, stage_size: V
 	caption_copy.add_theme_constant_override("separation", 0)
 	caption_row.add_child(caption_copy)
 	caption_copy.add_child(_label(str(data.get("scene_name", "校园场景")), 19, INK))
-	caption_copy.add_child(_label(str(data.get("activity", "本时段活动")), 12, MUTED))
-	caption_row.add_child(_badge(str(data.get("photo_shape", "原比例")), TEAL))
+	caption_copy.add_child(_label(str(data.get("activity", "安排当前时段")), 12, MUTED))
+	var image_shape := str(data.get("photo_shape", "原图比例"))
+	caption_row.add_child(_badge(image_shape, TEAL))
 
 
 func _build_interaction_panel(data: Dictionary, panel_position: Vector2, panel_size: Vector2) -> void:
-	var panel := PanelContainer.new()
-	panel.position = panel_position
-	panel.size = panel_size
-	panel.add_theme_stylebox_override("panel", _style(Color("#0E191CF7"), 18, BORDER, 1, 22))
-	add_child(panel)
+	interaction_panel = PanelContainer.new()
+	interaction_panel.name = str(data.get("panel_name", "InteractionPanel"))
+	interaction_panel.position = panel_position
+	interaction_panel.size = panel_size
+	interaction_panel.add_theme_stylebox_override("panel", _style(Color("#0E191CF7"), 18, BORDER, 1, 22))
+	add_child(interaction_panel)
 
 	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 12)
-	panel.add_child(content)
+	content.add_theme_constant_override("separation", 10)
+	interaction_panel.add_child(content)
 
 	var eyebrow_row := HBoxContainer.new()
 	content.add_child(eyebrow_row)
-	eyebrow_row.add_child(_badge(str(data.get("section", "校园事件")), Color(str(data.get("accent", "#63DDB8")))))
+	var accent := Color(str(data.get("accent", "#63DDB8")))
+	eyebrow_row.add_child(_badge(str(data.get("section", "校园事件")), accent))
 	var eyebrow_spacer := Control.new()
 	eyebrow_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	eyebrow_row.add_child(eyebrow_spacer)
-	eyebrow_row.add_child(_label("选择后推进 1 个时段", 11, Color("#7D908D")))
+	eyebrow_row.add_child(_label(str(data.get("cost_text", "选择后推进 1 个时段")), 11, Color("#7D908D")))
 
 	var title := _label(str(data.get("title", "这个时段要怎么安排？")), int(data.get("title_size", 30)), INK)
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	title.custom_minimum_size.y = 42
+	title.custom_minimum_size.y = 40
 	content.add_child(title)
 
-	var body := _label(str(data.get("body", "")), 16, MUTED)
+	var body := _label(str(data.get("body", "")), 15, MUTED)
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	body.custom_minimum_size.y = float(data.get("body_height", 66))
+	body.custom_minimum_size.y = float(data.get("body_height", 58))
 	content.add_child(body)
 
 	var state_row := HBoxContainer.new()
@@ -170,7 +214,7 @@ func _build_interaction_panel(data: Dictionary, panel_position: Vector2, panel_s
 
 	var separator := HSeparator.new()
 	separator.modulate = Color("#49606466")
-	separator.custom_minimum_size.y = 5
+	separator.custom_minimum_size.y = 4
 	content.add_child(separator)
 
 	var question := HBoxContainer.new()
@@ -180,13 +224,19 @@ func _build_interaction_panel(data: Dictionary, panel_position: Vector2, panel_s
 	question.add_child(question_label)
 	question.add_child(_label("%d 个选择" % data.get("choices", []).size(), 11, Color("#728681")))
 
+	var choice_scroll := ScrollContainer.new()
+	choice_scroll.name = "ChoiceScroll"
+	choice_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	choice_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	content.add_child(choice_scroll)
 	var choices := VBoxContainer.new()
+	choices.name = "ChoiceList"
 	choices.add_theme_constant_override("separation", 9)
-	choices.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_child(choices)
+	choices.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	choice_scroll.add_child(choices)
 	var choice_index := 1
 	for choice_value in data.get("choices", []):
-		choices.add_child(_choice_card(choice_index, choice_value, Color(str(data.get("accent", "#63DDB8")))))
+		choices.add_child(_choice_card(choice_index, choice_value, accent))
 		choice_index += 1
 
 	var footer := HBoxContainer.new()
@@ -195,37 +245,58 @@ func _build_interaction_panel(data: Dictionary, panel_position: Vector2, panel_s
 	var footer_spacer := Control.new()
 	footer_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	footer.add_child(footer_spacer)
-	footer.add_child(_label("ESC  暂停", 10, Color("#61736F")))
+	footer.add_child(_label(str(data.get("footer_hint", "ESC  暂停")), 10, Color("#61736F")))
 
 
-func _choice_card(index: int, choice_value, accent: Color) -> PanelContainer:
+func _choice_card(index: int, choice_value, accent: Color) -> Button:
 	var choice: Dictionary = choice_value
-	var card := PanelContainer.new()
-	card.custom_minimum_size.y = 78
-	card.add_theme_stylebox_override("panel", _style(Color("#152528"), 12, Color(accent, 0.52), 1, 12))
+	var button := Button.new()
+	button.name = str(choice.get("name", "Choice_%02d" % index))
+	button.custom_minimum_size.y = float(choice.get("height", 76))
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.add_theme_stylebox_override("normal", _style(Color("#152528"), 12, Color(accent, 0.52), 1, 12))
+	button.add_theme_stylebox_override("hover", _style(Color("#1C3336"), 12, accent, 1, 12))
+	button.add_theme_stylebox_override("pressed", _style(Color("#0C1719"), 12, GOLD, 1, 12))
+	button.add_theme_stylebox_override("focus", _style(Color("#1C3336"), 12, accent, 1, 12))
+	button.add_theme_stylebox_override("disabled", _style(Color("#111C1E"), 12, Color("#2D3B3D"), 1, 12))
+	button.disabled = bool(choice.get("disabled", false))
 
 	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	row.add_theme_constant_override("separation", 11)
-	card.add_child(row)
+	button.add_child(row)
 
 	var number := _label("%02d" % index, 13, accent)
 	number.custom_minimum_size.x = 27
 	number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	number.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(number)
 
 	var copy := VBoxContainer.new()
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	copy.add_theme_constant_override("separation", 2)
+	copy.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(copy)
-	copy.add_child(_label(str(choice.get("title", "选择")), 16, INK))
+	var title := _label(str(choice.get("title", "选择")), 16, INK)
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	copy.add_child(title)
 	var detail := _label(str(choice.get("detail", "")), 11, MUTED)
 	detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	detail.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	copy.add_child(detail)
 
 	var effect := _badge(str(choice.get("effect", "查看后果")), Color(str(choice.get("effect_color", "#7CB9E8"))))
-	effect.custom_minimum_size.x = 104
+	effect.custom_minimum_size.x = float(choice.get("effect_width", 112))
+	effect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(effect)
-	return card
+	for child in effect.get_children():
+		child.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var action = choice.get("action")
+	if action is Callable and not action.is_null():
+		button.pressed.connect(action)
+	return button
 
 
 func _compact_pair(key: String, value: String, accent: Color, width: float) -> Control:
@@ -239,7 +310,7 @@ func _compact_pair(key: String, value: String, accent: Color, width: float) -> C
 
 func _stat_chip(title: String, value: int, accent: Color) -> PanelContainer:
 	var chip := PanelContainer.new()
-	chip.custom_minimum_size = Vector2(94, 34)
+	chip.custom_minimum_size = Vector2(88, 34)
 	chip.add_theme_stylebox_override("panel", _style(Color(accent, 0.08), 9, Color(accent, 0.42), 1, 8))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 7)

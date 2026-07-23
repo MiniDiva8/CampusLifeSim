@@ -2,6 +2,16 @@
   "menu": [
     "res://assets/backgrounds/menu/d8bdb26a1b4a1979ecc89d8cfddf715c.jpg"
   ],
+  "event_locations": {
+    "fixed_arrival": "teaching",
+    "fixed_schedule": "teaching",
+    "fixed_project_meeting": "lab",
+    "fixed_qa": "teaching",
+    "fixed_midweek": "library",
+    "fixed_exam": "teaching",
+    "fixed_rehearsal": "lab",
+    "fixed_presentation": "teaching"
+  },
   "locations": {
     "dorm": [
       "res://assets/backgrounds/locations/dorm/dbcf09ccccce30aff69900d491efebc2.jpg",

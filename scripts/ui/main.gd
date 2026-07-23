@@ -1,34 +1,15 @@
 extends Control
 
-const COLOR_INK := Color("#EAF4F1")
-const COLOR_MUTED := Color("#A9BDBA")
-const COLOR_DARK := Color("#10242C")
-const COLOR_PANEL := Color("#17333BEE")
-const COLOR_PANEL_LIGHT := Color("#214650F2")
-const COLOR_ACCENT := Color("#F2B84B")
-const COLOR_TEAL := Color("#55C2A3")
-const COLOR_CORAL := Color("#EF7E73")
-const COLOR_BLUE := Color("#66A9D2")
+const COLOR_INK := Color("#F4F2E9")
+const COLOR_MUTED := Color("#9BAAA7")
+const COLOR_DARK := Color("#071013")
+const COLOR_PANEL := Color("#0E191CF5")
+const COLOR_PANEL_LIGHT := Color("#142326F5")
+const COLOR_ACCENT := Color("#F4C45E")
+const COLOR_TEAL := Color("#63DDB8")
+const COLOR_CORAL := Color("#FF8580")
+const COLOR_BLUE := Color("#7CB9E8")
 const TRAVEL_DURATION_SECONDS := 2.0
-const PHOTO_FILL_SHADER := """
-shader_type canvas_item;
-
-uniform float blur_radius = 5.0;
-
-void fragment() {
-	vec2 step_size = TEXTURE_PIXEL_SIZE * blur_radius;
-	vec4 color = texture(TEXTURE, UV) * 0.20;
-	color += texture(TEXTURE, UV + vec2(step_size.x, 0.0)) * 0.12;
-	color += texture(TEXTURE, UV - vec2(step_size.x, 0.0)) * 0.12;
-	color += texture(TEXTURE, UV + vec2(0.0, step_size.y)) * 0.12;
-	color += texture(TEXTURE, UV - vec2(0.0, step_size.y)) * 0.12;
-	color += texture(TEXTURE, UV + step_size) * 0.08;
-	color += texture(TEXTURE, UV - step_size) * 0.08;
-	color += texture(TEXTURE, UV + vec2(step_size.x, -step_size.y)) * 0.08;
-	color += texture(TEXTURE, UV + vec2(-step_size.x, step_size.y)) * 0.08;
-	COLOR = color * COLOR;
-}
-"""
 
 var repository := ContentRepository.new()
 var background_catalog := BackgroundCatalog.new()
@@ -111,21 +92,9 @@ func _reset_screen(screen_name: String, backdrop_tint: Color = Color.WHITE, back
 	if not background_path.is_empty() and ResourceLoader.exists(background_path):
 		var photo_texture := load(background_path) as Texture2D
 		var photo_orientation := background_catalog.get_photo_orientation(background_path)
-		active_photo_fill = OrientedPhotoRect.new()
-		active_photo_fill.name = "PhotoFill"
-		active_photo_fill.configure(photo_texture, photo_orientation, true)
-		active_photo_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		active_photo_fill.modulate = Color(0.48, 0.54, 0.54, 1.0)
-		var fill_shader := Shader.new()
-		fill_shader.code = PHOTO_FILL_SHADER
-		var fill_material := ShaderMaterial.new()
-		fill_material.shader = fill_shader
-		active_photo_fill.material = fill_material
-		screen_layer.add_child(active_photo_fill)
-
 		active_photo_background = OrientedPhotoRect.new()
 		active_photo_background.name = "PhotoFrame"
-		active_photo_background.configure(photo_texture, photo_orientation, false)
+		active_photo_background.configure(photo_texture, photo_orientation, true)
 		active_photo_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		screen_layer.add_child(active_photo_background)
 	else:
@@ -154,61 +123,204 @@ func _reset_screen(screen_name: String, backdrop_tint: Color = Color.WHITE, back
 	return content
 
 
+func _show_adaptive_scene(screen_name: String, data: Dictionary) -> AdaptiveSceneView:
+	current_screen = screen_name
+	active_photo_background = null
+	active_photo_fill = null
+	for child in get_children():
+		child.queue_free()
+	screen_layer = Control.new()
+	screen_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(screen_layer)
+	var view := AdaptiveSceneView.new()
+	view.name = "AdaptiveScene"
+	view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	screen_layer.add_child(view)
+	view.configure(data)
+	active_photo_background = view.photo_rect
+	return view
+
+
+func _base_scene_data(scene_context: Dictionary, background_path: String) -> Dictionary:
+	var scene_name := str(scene_context.get("display_name", "校园场景"))
+	var photo_shape := "原图比例"
+	if not background_path.is_empty() and ResourceLoader.exists(background_path):
+		var image_texture := load(background_path) as Texture2D
+		if image_texture != null:
+			var image_size := image_texture.get_size()
+			if background_catalog.get_photo_orientation(background_path) in [6, 8]:
+				image_size = Vector2(image_size.y, image_size.x)
+			photo_shape = "竖幅原图" if image_size.x < image_size.y else "横幅原图"
+	return {
+		"image_path": background_path,
+		"orientation": background_catalog.get_photo_orientation(background_path),
+		"time": session.clock.get_display_text() if session != null else "期末周",
+		"scene_name": scene_name,
+		"activity": str(scene_context.get("activity_text", "安排当前时段")),
+		"photo_shape": photo_shape,
+		"energy": int(session.stats.energy) if session != null else 0,
+		"stress": int(session.stats.stress) if session != null else 0,
+		"exam": int(session.tasks.exam) if session != null else 0,
+		"footer_hint": "离线运行 · 自动存档",
+	}
+
+
+func _scene_state_tags() -> Array:
+	if session == null:
+		return []
+	var difficulty_color := str(DifficultyRules.get_config(session.difficulty_id).get("color", "#63DDB8"))
+	var energy_state := "精力尚可"
+	var energy_color := "#63DDB8"
+	if int(session.stats.energy) <= 25:
+		energy_state = "精力告急"
+		energy_color = "#FF8580"
+	elif int(session.stats.energy) <= 50:
+		energy_state = "精力偏低"
+		energy_color = "#F4C45E"
+	var stress_state := "压力可控"
+	var stress_color := "#7CB9E8"
+	if int(session.stats.stress) >= DifficultyRules.get_crisis_threshold(session.difficulty_id):
+		stress_state = "压力过载"
+		stress_color = "#FF8580"
+	elif int(session.stats.stress) >= 60:
+		stress_state = "压力偏高"
+		stress_color = "#F4C45E"
+	return [
+		{"text": "%s难度" % DifficultyRules.get_display_name(session.difficulty_id), "color": difficulty_color},
+		{"text": energy_state, "color": energy_color},
+		{"text": stress_state, "color": stress_color},
+	]
+
+
+func _effect_preview(effects) -> String:
+	if not effects is Array or effects.is_empty():
+		return "情境选择"
+	var parts: Array[String] = []
+	for effect_value in effects:
+		if not effect_value is Dictionary:
+			continue
+		var effect: Dictionary = effect_value
+		var effect_type := str(effect.get("type", ""))
+		var target := str(effect.get("target", ""))
+		var amount := int(effect.get("amount", 0))
+		var target_name: String = {
+			"study": "学习",
+			"project": "项目",
+			"energy": "精力",
+			"stress": "压力",
+			"ai_dependence": "AI习惯",
+			"exam": "考试",
+			"presentation": "展示",
+			"roommate": "室友关系",
+			"teammate": "组员关系",
+			"scholar": "同学关系",
+			"monitor": "班长关系",
+		}.get(target, target)
+		if effect_type == "flag":
+			continue
+		if target == "ai_dependence":
+			parts.append("AI 使用习惯")
+			continue
+		var adjusted: int = DifficultyRules.adjust_effect_amount(effect_type, target, amount, session.difficulty_id) if session != null else amount
+		parts.append("%s %s%d" % [target_name, "+" if adjusted >= 0 else "", adjusted])
+		if parts.size() >= 2:
+			break
+	return " · ".join(parts) if not parts.is_empty() else "记录线索"
+
+
+func _choice_detail(choice: Dictionary) -> String:
+	if not choice.get("delayed", []).is_empty():
+		return "这项决定还可能在之后继续产生影响。"
+	for effect_value in choice.get("effects", []):
+		if effect_value is Dictionary and str(effect_value.get("target", "")) == "ai_dependence":
+			return "可以快速推进，但仍需要你保留自己的判断。"
+	return "根据当前精力、压力和截止日期权衡这项选择。"
+
+
 func show_main_menu() -> void:
-	var root := _reset_screen("main_menu", Color("#6DAF9A"), background_catalog.get_menu_background(), Color("#07161C55"))
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(spacer)
+	var root := _reset_screen("main_menu", Color("#284246"), background_catalog.get_menu_background(), Color("#050C0EE0"))
+	var top := HBoxContainer.new()
+	root.add_child(top)
+	top.add_child(_make_badge("CAMPUS LIFE · INTERACTIVE DEMO", COLOR_TEAL))
+	var top_space := Control.new()
+	top_space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(top_space)
+	top.add_child(_make_label("BUILD  0.4 · OFFLINE", 11, Color("#71837F")))
 
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	root.add_child(row)
-	var card := _make_panel(Color("#102D36F5"), 22, Color("#4B807C"))
-	card.custom_minimum_size = Vector2(520, 0)
-	row.add_child(card)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 12)
-	card.add_child(box)
+	var main := HBoxContainer.new()
+	main.add_theme_constant_override("separation", 54)
+	main.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	main.alignment = BoxContainer.ALIGNMENT_CENTER
+	root.add_child(main)
 
-	var eyebrow := _make_label("CAMPUS CHOICE SIMULATION", 14, COLOR_TEAL)
-	eyebrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(eyebrow)
-	var title := _make_label("惊魂期末周", 52, COLOR_INK)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(title)
-	var subtitle := _make_label("七天、五个时段，以及没有标准答案的校园生活", 18, COLOR_MUTED)
-	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var identity := VBoxContainer.new()
+	identity.custom_minimum_size.x = 650
+	identity.add_theme_constant_override("separation", 13)
+	main.add_child(identity)
+	var marker := ColorRect.new()
+	marker.color = COLOR_TEAL
+	marker.custom_minimum_size = Vector2(72, 3)
+	identity.add_child(marker)
+	identity.add_child(_make_label("FINAL WEEK", 16, COLOR_TEAL))
+	var title := _make_label("惊魂期末周", 70, COLOR_INK)
+	identity.add_child(title)
+	var subtitle := _make_label("七天、五个时段，以及没有标准答案的校园生活。", 23, Color("#D3DDD8"))
 	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	box.add_child(subtitle)
-	box.add_child(_make_separator())
+	identity.add_child(subtitle)
+	var statement := _make_label("在考试、项目、关系与身体状态之间做选择。\n每一次取舍都会留下痕迹，并在之后重新出现。", 16, COLOR_MUTED)
+	statement.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	identity.add_child(statement)
+	var feature_row := HBoxContainer.new()
+	feature_row.add_theme_constant_override("separation", 8)
+	identity.add_child(feature_row)
+	feature_row.add_child(_make_badge("7 天", COLOR_TEAL))
+	feature_row.add_child(_make_badge("5 时段 / 天", COLOR_BLUE))
+	feature_row.add_child(_make_badge("6 个地点", COLOR_ACCENT))
+	feature_row.add_child(_make_badge("7 种结局", COLOR_CORAL))
 
-	var new_button := _make_button("开始新的期末周", show_setup, true)
+	var card := _make_panel(Color("#0B1518F5"), 20, Color("#36545A"))
+	card.custom_minimum_size = Vector2(410, 480)
+	main.add_child(card)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 11)
+	card.add_child(box)
+	box.add_child(_make_label("开始你的期末周", 25, COLOR_INK))
+	var menu_note := _make_label("进度在每次选择后自动保存。", 13, COLOR_MUTED)
+	box.add_child(menu_note)
+	box.add_child(_make_separator())
+	var new_button := _make_button("开始新的期末周  →", show_setup, true)
+	new_button.custom_minimum_size.y = 58
 	box.add_child(new_button)
 	var continue_button := _make_button("继续上次进度", continue_game)
 	continue_button.disabled = not save_service.has_save()
 	box.add_child(continue_button)
 	box.add_child(_make_button("设置", func(): show_settings("main_menu")))
 	box.add_child(_make_button("制作与许可", show_credits))
+	var card_space := Control.new()
+	card_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.add_child(card_space)
 	box.add_child(_make_button("退出游戏", show_exit_confirmation, false, true))
+	box.add_child(_make_label("离线运行 · 原图展示 · Godot 4.7.1", 11, Color("#61736F")))
 
-	var footnote := _make_label("离线运行 · 自动存档 · Godot 4.7.1", 13, Color("#789994"))
-	footnote.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(footnote)
-
-	var bottom := Control.new()
-	bottom.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(bottom)
+	var footer := HBoxContainer.new()
+	root.add_child(footer)
+	footer.add_child(_make_label("CAMPUSLIFESIM", 10, Color("#61736F")))
+	var footer_space := Control.new()
+	footer_space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	footer.add_child(footer_space)
+	footer.add_child(_make_label("时间管理 × 选择叙事 × 校园摄影", 10, Color("#71837F")))
 
 
 func show_setup() -> void:
-	var root := _reset_screen("setup", Color("#7CA7B8"))
+	var root := _reset_screen("setup", Color("#244046"), "", Color("#07101388"))
 	root.add_child(_make_header("新生档案", "在期末周开始前，给自己一个名字和起点", show_main_menu))
 	var center := HBoxContainer.new()
 	center.alignment = BoxContainer.ALIGNMENT_CENTER
 	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(center)
-	var panel := _make_panel(COLOR_PANEL, 20, Color("#3C6B70"))
+	var panel := _make_panel(COLOR_PANEL, 20, Color("#36545A"))
 	panel.custom_minimum_size = Vector2(940, 550)
+	panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	center.add_child(panel)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 10)
@@ -324,7 +436,7 @@ func show_map() -> void:
 	if session == null:
 		show_main_menu()
 		return
-	var root := _reset_screen("map", Color("#79B69D"))
+	var root := _reset_screen("map", Color("#18373A"), "", Color("#07101366"))
 	root.add_child(_make_game_header())
 	var columns := HBoxContainer.new()
 	columns.add_theme_constant_override("separation", 14)
@@ -337,7 +449,7 @@ func show_map() -> void:
 
 
 func _make_game_header() -> Control:
-	var panel := _make_panel(Color("#112C34F4"), 16, Color("#3E7372"))
+	var panel := _make_panel(Color("#0B1518F5"), 16, Color("#36545A"))
 	panel.custom_minimum_size.y = 72
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 14)
@@ -345,8 +457,8 @@ func _make_game_header() -> Control:
 	var title_box := VBoxContainer.new()
 	title_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(title_box)
-	title_box.add_child(_make_label("惊魂期末周", 24, COLOR_INK))
-	title_box.add_child(_make_label("%s · %s · %s难度" % [session.player_name, session.clock.get_display_text(), DifficultyRules.get_display_name(session.difficulty_id)], 14, COLOR_MUTED))
+	title_box.add_child(_make_label("惊魂期末周", 23, COLOR_INK))
+	title_box.add_child(_make_label("%s  /  %s  /  %s难度" % [session.player_name, session.clock.get_display_text(), DifficultyRules.get_display_name(session.difficulty_id)], 13, COLOR_MUTED))
 	var exam_badge := _make_badge("考试：第 5 天上午", COLOR_TEAL)
 	row.add_child(exam_badge)
 	var project_badge := _make_badge("展示：第 7 天下午", COLOR_ACCENT)
@@ -356,12 +468,12 @@ func _make_game_header() -> Control:
 
 
 func _build_status_panel() -> Control:
-	var panel := _make_panel(COLOR_PANEL, 16, Color("#365E64"))
-	panel.custom_minimum_size.x = 250
+	var panel := _make_panel(Color("#0B1518F2"), 16, Color("#294247"))
+	panel.custom_minimum_size.x = 245
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 9)
 	panel.add_child(box)
-	box.add_child(_make_label("当前状态", 21, COLOR_INK))
+	box.add_child(_make_label("STATUS / 当前状态", 18, COLOR_INK))
 	var difficulty_config := DifficultyRules.get_config(session.difficulty_id)
 	box.add_child(_make_label("%s难度 · %s" % [difficulty_config.name, difficulty_config.subtitle], 13, Color(str(difficulty_config.color))))
 	box.add_child(_make_stat_bar("学习进度", int(session.stats.study), COLOR_TEAL))
@@ -386,15 +498,15 @@ func _build_status_panel() -> Control:
 
 
 func _build_map_panel() -> Control:
-	var panel := _make_panel(Color("#17343ACC"), 18, Color("#46776F"))
+	var panel := _make_panel(Color("#0E191CF0"), 18, Color("#36545A"))
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 10)
 	panel.add_child(box)
-	var title := _make_label("校园总览", 23, COLOR_INK)
+	var title := _make_label("选择下一站", 25, COLOR_INK)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
-	var subtitle := _make_label("选择一个地点安排本时段。每次行动都会推进时间。", 14, COLOR_MUTED)
+	var subtitle := _make_label("点击地点后将经过约 2 秒校园路途。每次行动都会推进时间。", 13, COLOR_MUTED)
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(subtitle)
 	var grid := GridContainer.new()
@@ -409,12 +521,12 @@ func _build_map_panel() -> Control:
 
 
 func _build_schedule_panel() -> Control:
-	var panel := _make_panel(COLOR_PANEL, 16, Color("#365E64"))
+	var panel := _make_panel(Color("#0B1518F2"), 16, Color("#294247"))
 	panel.custom_minimum_size.x = 275
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 10)
 	panel.add_child(box)
-	box.add_child(_make_label("日程与任务", 21, COLOR_INK))
+	box.add_child(_make_label("DEADLINES / 日程", 18, COLOR_INK))
 	box.add_child(_make_progress_card("算法考试", int(session.tasks.exam), "第 5 天上午"))
 	box.add_child(_make_progress_card("项目展示", int(session.tasks.presentation), "第 7 天下午"))
 	box.add_child(_make_separator())
@@ -443,7 +555,7 @@ func _make_location_button(location: Dictionary) -> Button:
 	button.add_theme_font_size_override("font_size", 18)
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	var accent := Color(str(location.get("color", "#55C2A3")))
-	_style_button(button, Color("#1C3D44E8"), accent)
+	_style_button(button, Color("#142326F2"), Color(accent, 0.72))
 	button.tooltip_text = str(location.get("description", ""))
 	button.pressed.connect(_travel_to_location.bind(str(location.get("id", ""))))
 	return button
@@ -465,39 +577,45 @@ func _travel_to_location(location_id: String, duration: float = TRAVEL_DURATION_
 
 
 func show_travel(location: Dictionary, road_background: String, duration: float = TRAVEL_DURATION_SECONDS) -> void:
-	var root := _reset_screen("travel", Color("#416B72"), road_background, Color("#07161C62"))
+	var root := _reset_screen("travel", Color("#416B72"), road_background, Color("#07101372"))
 	if active_photo_background != null:
-		active_photo_background.offset_left = -40.0
-		active_photo_background.offset_right = 200.0
-		active_photo_background.offset_top = -30.0
-		active_photo_background.offset_bottom = 30.0
+		var resting_position := active_photo_background.position
+		active_photo_background.scale = Vector2(1.12, 1.12)
+		active_photo_background.position.x = resting_position.x + 24.0
 		if not bool(settings.get("reduced_motion", false)):
 			var pan_tween := create_tween().set_parallel(true)
 			pan_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-			pan_tween.tween_property(active_photo_background, "offset_left", -200.0, maxf(duration, 0.01))
-			pan_tween.tween_property(active_photo_background, "offset_right", 40.0, maxf(duration, 0.01))
+			pan_tween.tween_property(active_photo_background, "position:x", resting_position.x - 24.0, maxf(duration, 0.01))
 
+	var top := HBoxContainer.new()
+	root.add_child(top)
+	top.add_child(_make_badge("CAMPUS TRANSIT", COLOR_TEAL))
 	var top_space := Control.new()
-	top_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(top_space)
-	var center := HBoxContainer.new()
-	center.alignment = BoxContainer.ALIGNMENT_CENTER
-	root.add_child(center)
-	var panel := _make_panel(Color("#102C35D9"), 22, Color(str(location.get("color", "#55C2A3"))))
-	panel.custom_minimum_size = Vector2(560, 210)
-	center.add_child(panel)
+	top_space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(top_space)
+	top.add_child(_make_badge(session.clock.get_display_text(), COLOR_BLUE))
+	var vertical_space := Control.new()
+	vertical_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(vertical_space)
+	var bottom := HBoxContainer.new()
+	bottom.alignment = BoxContainer.ALIGNMENT_BEGIN
+	root.add_child(bottom)
+	var panel := _make_panel(Color("#091316F2"), 18, Color(str(location.get("color", "#63DDB8"))))
+	panel.custom_minimum_size = Vector2(760, 178)
+	bottom.add_child(panel)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 14)
+	box.add_theme_constant_override("separation", 9)
 	panel.add_child(box)
-	var eyebrow := _make_label("穿过校园", 14, COLOR_TEAL)
-	eyebrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(eyebrow)
-	var title := _make_label("正在前往 · %s" % location.get("name", "新地点"), 30, COLOR_INK)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var route := HBoxContainer.new()
+	box.add_child(route)
+	route.add_child(_make_label("正在穿过校园", 12, COLOR_TEAL))
+	var route_space := Control.new()
+	route_space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	route.add_child(route_space)
+	route.add_child(_make_label("约 2 秒", 11, COLOR_MUTED))
+	var title := _make_label("前往  %s" % location.get("name", "新地点"), 31, COLOR_INK)
 	box.add_child(title)
-	var message := _make_label("路上的两分钟，也属于你的期末周。", 16, COLOR_MUTED)
-	message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(message)
+	box.add_child(_make_label("路上的片刻，也属于你的期末周。", 14, COLOR_MUTED))
 	var progress := ProgressBar.new()
 	progress.name = "TravelProgress"
 	progress.show_percentage = false
@@ -507,9 +625,9 @@ func show_travel(location: Dictionary, road_background: String, duration: float 
 	var progress_tween := create_tween()
 	progress_tween.set_trans(Tween.TRANS_LINEAR)
 	progress_tween.tween_property(progress, "value", 100.0, maxf(duration, 0.01))
-	var bottom_space := Control.new()
-	bottom_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(bottom_space)
+	var photo_note := _make_label("校园道路原图 · 仅做等比裁切与平移", 10, Color("#80918D"))
+	photo_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	root.add_child(photo_note)
 
 
 func show_location(location_id: String) -> void:
@@ -523,81 +641,61 @@ func show_location(location_id: String) -> void:
 	if not event.is_empty():
 		show_event(event)
 		return
-	var root := _reset_screen("location", Color(str(location.get("color", "#6DAF9A"))), session.current_background_path, Color("#07161C30"))
 	var scene_name := str(scene_context.get("display_name", location.name))
-	root.add_child(_make_header(scene_name, "%s · %s" % [location.name, location.subtitle], show_map))
-	var body := HBoxContainer.new()
-	body.alignment = BoxContainer.ALIGNMENT_CENTER
-	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(body)
-	var panel := _make_panel(Color("#17333BC4"), 20, Color(str(location.color)))
-	panel.name = "LocationCard"
-	panel.custom_minimum_size = Vector2(820, 440)
-	body.add_child(panel)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 16)
-	panel.add_child(box)
-	var icon := _make_label(str(location.icon), 52, Color(str(location.color)))
-	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(icon)
-	var description := _make_label(str(scene_context.get("arrival_text", location.description)), 19, COLOR_INK)
-	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	box.add_child(description)
-	var location_note := _make_label(str(location.description), 14, COLOR_MUTED)
-	location_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	location_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	box.add_child(location_note)
-	box.add_child(_make_separator())
-	box.add_child(_make_label("本时段可以：", 18, COLOR_MUTED))
+	var choices: Array = []
 	for action in location.get("actions", []):
 		var presented_action := _present_action_for_scene(action, location_id, scene_context)
-		var action_button := _make_button("%s\n%s" % [presented_action.get("label", "行动"), presented_action.get("description", "")], _resolve_fallback_action.bind(action), true)
-		action_button.custom_minimum_size.y = 72
-		_style_button(action_button, Color("#29735FCB"), COLOR_TEAL)
-		box.add_child(action_button)
+		choices.append({
+			"name": "Action_%s" % str(action.get("id", "")),
+			"title": str(presented_action.get("label", "行动")),
+			"detail": str(presented_action.get("description", "")),
+			"effect": _effect_preview(action.get("effects", [])),
+			"effect_color": str(location.get("color", "#63DDB8")),
+			"action": _resolve_fallback_action.bind(action),
+		})
+	var data := _base_scene_data(scene_context, session.current_background_path)
+	data.merge({
+		"panel_name": "LocationCard",
+		"section": "%s · 地点行动" % str(location.get("icon", "◆")),
+		"accent": str(location.get("color", "#63DDB8")),
+		"title": "抵达 · %s" % scene_name,
+		"body": "%s\n%s" % [scene_context.get("arrival_text", location.description), location.description],
+		"question": "这个时段，你准备做什么？",
+		"cost_text": "行动后推进 1 个时段",
+		"state_tags": _scene_state_tags(),
+		"choices": choices,
+		"pause_action": show_pause_menu,
+	}, true)
+	_show_adaptive_scene("location", data)
 
 
 func show_event(event: Dictionary) -> void:
+	background_catalog.ensure_event_background(str(event.get("id", "")), session)
 	var scene_context := background_catalog.get_active_scene_context(session)
-	var root := _reset_screen("event", Color("#4D8190"), session.current_background_path, Color("#07161C2E"))
-	var top := HBoxContainer.new()
-	root.add_child(top)
-	var time_label := _make_badge(session.clock.get_display_text(), COLOR_TEAL)
-	top.add_child(time_label)
-	if not session.current_background_path.is_empty():
-		top.add_child(_make_badge("你来到了 · %s" % scene_context.get("display_name", "校园场景"), COLOR_BLUE))
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top.add_child(spacer)
-	top.add_child(_make_badge("选择将消耗一个时段", COLOR_ACCENT))
-
-	var center := HBoxContainer.new()
-	center.alignment = BoxContainer.ALIGNMENT_CENTER
-	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(center)
-	var card := _make_panel(Color("#122C35C4"), 22, Color("#5A969A"))
-	card.name = "EventCard"
-	card.custom_minimum_size = Vector2(900, 520)
-	center.add_child(card)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 13)
-	card.add_child(box)
-	var speaker := _make_label(str(event.get("speaker", "校园事件")), 15, COLOR_TEAL)
-	box.add_child(speaker)
-	box.add_child(_make_label(_format_scene_text(str(event.get("title", "事件")), scene_context), 31, COLOR_INK))
-	var body := _make_label(_format_scene_text(str(event.get("body", "")), scene_context), 19, COLOR_MUTED)
-	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	body.custom_minimum_size.y = 92
-	box.add_child(body)
-	box.add_child(_make_separator())
-	box.add_child(_make_label("你准备怎么做？", 17, COLOR_INK))
+	var choices: Array = []
 	for choice in event.get("choices", []):
 		var choice_label := _format_scene_text(str(choice.get("label", "选择")), scene_context)
-		var button := _make_button(choice_label, _resolve_event_choice.bind(event, choice), true)
-		button.custom_minimum_size.y = 56
-		_style_button(button, Color("#29735FCB"), COLOR_TEAL)
-		box.add_child(button)
+		choices.append({
+			"name": "Choice_%s" % str(choice.get("id", "")),
+			"title": choice_label,
+			"detail": _choice_detail(choice),
+			"effect": _effect_preview(choice.get("effects", [])),
+			"effect_color": "#7CB9E8" if str(event.get("speaker", "")) == "AI 学伴" else "#63DDB8",
+			"action": _resolve_event_choice.bind(event, choice),
+		})
+	var data := _base_scene_data(scene_context, session.current_background_path)
+	data.merge({
+		"panel_name": "EventCard",
+		"section": str(event.get("speaker", "校园事件")),
+		"accent": "#7CB9E8" if str(event.get("speaker", "")) == "AI 学伴" else "#63DDB8",
+		"title": _format_scene_text(str(event.get("title", "事件")), scene_context),
+		"body": _format_scene_text(str(event.get("body", "")), scene_context),
+		"question": "你准备怎么做？",
+		"cost_text": "选择后推进 1 个时段",
+		"state_tags": _scene_state_tags(),
+		"choices": choices,
+	}, true)
+	_show_adaptive_scene("event", data)
 
 
 func _format_scene_text(text_value: String, scene_context: Dictionary) -> String:
@@ -645,36 +743,34 @@ func _visible_effects(effects: Array[String]) -> Array[String]:
 
 
 func show_result(title_text: String, description: String, effects: Array[String], continue_action: Callable) -> void:
-	var root := _reset_screen("result", Color("#678F8C"), session.current_background_path if session != null else "", Color("#07161C70"))
-	var center := HBoxContainer.new()
-	center.alignment = BoxContainer.ALIGNMENT_CENTER
-	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(center)
-	var panel := _make_panel(Color("#122C35F8"), 22, COLOR_TEAL)
-	panel.custom_minimum_size = Vector2(760, 430)
-	center.add_child(panel)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 16)
-	panel.add_child(box)
-	var small := _make_label("选择的回声", 14, COLOR_TEAL)
-	small.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(small)
-	var title := _make_label(title_text, 30, COLOR_INK)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(title)
-	var text := _make_label(description, 18, COLOR_MUTED)
-	text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	text.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	box.add_child(text)
-	var effect_box := VBoxContainer.new()
-	effect_box.add_theme_constant_override("separation", 6)
-	box.add_child(effect_box)
-	for effect in effects:
-		var effect_label := _make_label("•  " + effect, 16, COLOR_INK)
-		effect_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		effect_box.add_child(effect_label)
-	box.add_child(_make_button("继续", continue_action, true))
+	var background_path := session.current_background_path if session != null else ""
+	if background_path.is_empty():
+		background_path = background_catalog.get_menu_background()
+	var scene_context := background_catalog.get_scene_context(background_path, session.current_location_id if session != null else "")
+	var effect_text := "本次选择没有直接改变可见数值。"
+	if not effects.is_empty():
+		effect_text = " · ".join(effects)
+	var data := _base_scene_data(scene_context, background_path)
+	data.merge({
+		"panel_name": "ResultCard",
+		"section": "选择的回声",
+		"accent": "#F4C45E",
+		"title": title_text,
+		"body": description,
+		"question": "这次选择带来的变化",
+		"cost_text": "结果已结算",
+		"state_tags": _scene_state_tags(),
+		"choices": [{
+			"name": "ContinueResult",
+			"title": "继续期末周",
+			"detail": effect_text,
+			"effect": "继续",
+			"effect_color": "#F4C45E",
+			"action": continue_action,
+			"height": 88,
+		}],
+	}, true)
+	_show_adaptive_scene("result", data)
 
 
 func _advance_after_action() -> void:
@@ -727,48 +823,63 @@ func _complete_advance(consequences: Array[Dictionary], day_messages: Array[Stri
 
 func show_stress_crisis(continue_action: Callable) -> void:
 	var background_path := background_catalog.get_stress_background()
-	var root := _reset_screen("stress_crisis", Color("#7C3748"), background_path, Color("#18070A45"))
+	var config := DifficultyRules.get_config(session.difficulty_id)
+	var focus_target := "考试准备" if not bool(session.flags.get("exam_completed", false)) else "展示准备"
+	var scene_context := {
+		"display_name": "压力过载",
+		"activity_text": "长曝光 · 感官失衡",
+	}
+	var choices: Array = [
+		{
+			"name": "StressRecover",
+			"title": "停下来喝水，调整呼吸",
+			"detail": "先让身体重新获得对当下的控制。",
+			"effect": "压力 -%d · 精力 +3" % int(config.crisis_relief),
+			"effect_color": "#63DDB8",
+			"action": _resolve_stress_crisis.bind("recover", continue_action),
+		},
+		{
+			"name": "StressFocus",
+			"title": "趁思路还在，记下关键点",
+			"detail": "继续推进，但会用更多精力和压力换取进度。",
+			"effect": "%s +%d" % [focus_target, int(config.focus_gain)],
+			"effect_color": "#F4C45E",
+			"action": _resolve_stress_crisis.bind("focus", continue_action),
+		},
+		{
+			"name": "StressSocial",
+			"title": "给信任的人发消息",
+			"detail": "至少一段关系达到 50 时，可以获得真实支持。",
+			"effect": "压力 -%d" % int(config.social_relief),
+			"effect_color": "#7CB9E8",
+			"action": _resolve_stress_crisis.bind("social", continue_action),
+			"disabled": _highest_relationship_id().is_empty(),
+		},
+	]
+	var data := _base_scene_data(scene_context, background_path)
+	data.merge({
+		"panel_name": "StressCard",
+		"section": "压力危机 · %s难度" % DifficultyRules.get_display_name(session.difficulty_id),
+		"accent": "#FF8580",
+		"title": "视线开始拉扯",
+		"body": "压力已经达到 %d。灯光拖成了长线，耳边的声音忽远忽近。你必须先处理此刻的状态。" % int(session.stats.stress),
+		"question": "现在怎样回应身体的警报？",
+		"cost_text": "危机应对不额外耗时",
+		"state_tags": [
+			{"text": "压力过载", "color": "#FF8580"},
+			{"text": "判断受影响", "color": "#F4C45E"},
+			{"text": "必须回应", "color": "#7CB9E8"},
+		],
+		"choices": choices,
+	}, true)
+	_show_adaptive_scene("stress_crisis", data)
 	if active_photo_background != null and not bool(settings.get("reduced_motion", false)):
-		active_photo_background.offset_left = -90.0
-		active_photo_background.offset_right = 90.0
-		var disorient := create_tween().set_loops()
+		var disorient := active_photo_background.create_tween().set_loops()
 		disorient.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 		disorient.tween_property(active_photo_background, "modulate", Color("#FFC7D4"), 0.45)
-		disorient.parallel().tween_property(active_photo_background, "offset_left", -120.0, 0.45)
-		disorient.parallel().tween_property(active_photo_background, "offset_right", 60.0, 0.45)
+		disorient.parallel().tween_property(active_photo_background, "position:x", active_photo_background.position.x - 5.0, 0.45)
 		disorient.tween_property(active_photo_background, "modulate", Color.WHITE, 0.45)
-		disorient.parallel().tween_property(active_photo_background, "offset_left", -90.0, 0.45)
-		disorient.parallel().tween_property(active_photo_background, "offset_right", 90.0, 0.45)
-
-	var center := HBoxContainer.new()
-	center.alignment = BoxContainer.ALIGNMENT_CENTER
-	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(center)
-	var panel := _make_panel(Color("#260F18E8"), 22, COLOR_CORAL)
-	panel.custom_minimum_size = Vector2(820, 520)
-	center.add_child(panel)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 14)
-	panel.add_child(box)
-	var eyebrow := _make_label("压力过载 · %s难度" % DifficultyRules.get_display_name(session.difficulty_id), 15, Color("#FF9DA6"))
-	eyebrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(eyebrow)
-	var title := _make_label("视线开始拉扯", 38, COLOR_INK)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(title)
-	var body := _make_label("压力已经达到 %d。灯光拖成了长线，耳边的声音忽远忽近。你必须先决定怎样处理此刻的状态。" % int(session.stats.stress), 18, Color("#F0C8CD"))
-	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	body.custom_minimum_size.y = 72
-	box.add_child(body)
-	box.add_child(_make_separator())
-	var config := DifficultyRules.get_config(session.difficulty_id)
-	box.add_child(_make_button("停下来喝水，调整呼吸\n压力 -%d · 精力 +3" % int(config.crisis_relief), _resolve_stress_crisis.bind("recover", continue_action), true))
-	var focus_target := "考试准备" if not bool(session.flags.get("exam_completed", false)) else "展示准备"
-	box.add_child(_make_button("趁思路还在，记下关键点\n%s +%d · 精力 -%d · 压力 +%d" % [focus_target, int(config.focus_gain), int(config.focus_energy_cost), int(config.focus_stress_gain)], _resolve_stress_crisis.bind("focus", continue_action)))
-	var social_button := _make_button("给信任的人发消息\n压力 -%d · 需要至少一段关系达到 50" % int(config.social_relief), _resolve_stress_crisis.bind("social", continue_action))
-	social_button.disabled = _highest_relationship_id().is_empty()
-	box.add_child(social_button)
+		disorient.parallel().tween_property(active_photo_background, "position:x", active_photo_background.position.x, 0.45)
 
 
 func _resolve_stress_crisis(response_id: String, continue_action: Callable) -> void:
@@ -807,13 +918,14 @@ func _highest_relationship_id() -> String:
 
 
 func show_ai_advice(advice: Dictionary) -> void:
-	var root := _reset_screen("ai_advice", Color("#527F9C"))
+	var root := _reset_screen("ai_advice", Color("#1B3441"), "", Color("#07101388"))
 	var center := HBoxContainer.new()
 	center.alignment = BoxContainer.ALIGNMENT_CENTER
 	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(center)
-	var panel := _make_panel(Color("#102B38F8"), 22, COLOR_BLUE)
+	var panel := _make_panel(Color("#0B1518FA"), 22, COLOR_BLUE)
 	panel.custom_minimum_size = Vector2(760, 460)
+	panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	center.add_child(panel)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 16)
@@ -841,18 +953,19 @@ func show_pause_menu() -> void:
 	if session == null:
 		show_main_menu()
 		return
-	var root := _reset_screen("pause", Color("#466D72"))
+	var root := _reset_screen("pause", Color("#1B3337"), "", Color("#07101388"))
 	var center := HBoxContainer.new()
 	center.alignment = BoxContainer.ALIGNMENT_CENTER
 	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(center)
-	var panel := _make_panel(Color("#102931FA"), 22, COLOR_ACCENT)
+	var panel := _make_panel(Color("#0B1518FA"), 22, COLOR_ACCENT)
 	panel.custom_minimum_size = Vector2(500, 470)
+	panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	center.add_child(panel)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 13)
 	panel.add_child(box)
-	var title := _make_label("暂停一下", 36, COLOR_INK)
+	var title := _make_label("暂停 / PAUSED", 34, COLOR_INK)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 	var time := _make_label(session.clock.get_display_text(), 16, COLOR_MUTED)
@@ -873,14 +986,15 @@ func _manual_save() -> void:
 
 func show_settings(return_screen: String) -> void:
 	settings_return_screen = return_screen
-	var root := _reset_screen("settings", Color("#577D86"))
+	var root := _reset_screen("settings", Color("#1B343A"), "", Color("#07101388"))
 	root.add_child(_make_header("设置", "设置数据与游戏进度分开保存", _return_from_settings))
 	var center := HBoxContainer.new()
 	center.alignment = BoxContainer.ALIGNMENT_CENTER
 	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(center)
-	var panel := _make_panel(COLOR_PANEL, 20, Color("#4D7B82"))
+	var panel := _make_panel(COLOR_PANEL, 20, Color("#36545A"))
 	panel.custom_minimum_size = Vector2(720, 430)
+	panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	center.add_child(panel)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 18)
@@ -949,14 +1063,15 @@ func _return_from_settings() -> void:
 
 
 func show_credits() -> void:
-	var root := _reset_screen("credits", Color("#5E8C82"))
+	var root := _reset_screen("credits", Color("#1D3935"), "", Color("#07101388"))
 	root.add_child(_make_header("制作与许可", "原创内容与第三方来源透明记录", show_main_menu))
 	var center := HBoxContainer.new()
 	center.alignment = BoxContainer.ALIGNMENT_CENTER
 	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(center)
-	var panel := _make_panel(COLOR_PANEL, 20, Color("#49756F"))
+	var panel := _make_panel(COLOR_PANEL, 20, Color("#36545A"))
 	panel.custom_minimum_size = Vector2(900, 500)
+	panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	center.add_child(panel)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 15)
@@ -970,13 +1085,14 @@ func show_credits() -> void:
 
 
 func show_exit_confirmation() -> void:
-	var root := _reset_screen("exit_confirm", Color("#4D6B70"))
+	var root := _reset_screen("exit_confirm", Color("#26383B"), "", Color("#07101388"))
 	var center := HBoxContainer.new()
 	center.alignment = BoxContainer.ALIGNMENT_CENTER
 	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(center)
-	var panel := _make_panel(Color("#102931FA"), 20, COLOR_CORAL)
+	var panel := _make_panel(Color("#0B1518FA"), 20, COLOR_CORAL)
 	panel.custom_minimum_size = Vector2(520, 300)
+	panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	center.add_child(panel)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 16)
@@ -995,52 +1111,74 @@ func show_exit_confirmation() -> void:
 func show_ending() -> void:
 	var ending := EndingEvaluator.new().evaluate(session, repository.endings)
 	var ending_color := Color(str(ending.get("color", "#E0B14C")))
-	var root := _reset_screen("ending", ending_color)
+	var root := _reset_screen("ending", ending_color.darkened(0.65), "", Color("#07101388"))
+	var heading := HBoxContainer.new()
+	root.add_child(heading)
+	heading.add_child(_make_badge("FINAL REPORT / 期末周结算", ending_color))
+	var heading_space := Control.new()
+	heading_space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.add_child(heading_space)
+	heading.add_child(_make_label("7 DAYS COMPLETE", 11, Color("#71837F")))
 	var center := HBoxContainer.new()
 	center.alignment = BoxContainer.ALIGNMENT_CENTER
 	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(center)
-	var panel := _make_panel(Color("#102931F8"), 24, ending_color)
-	panel.custom_minimum_size = Vector2(940, 600)
+	var panel := _make_panel(Color("#0B1518FA"), 24, ending_color)
+	panel.custom_minimum_size = Vector2(1120, 570)
 	center.add_child(panel)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 13)
-	panel.add_child(box)
-	var eyebrow := _make_label("你的期末周结局", 15, ending_color)
-	eyebrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(eyebrow)
-	var title := _make_label(str(ending.get("title", "结局")), 43, COLOR_INK)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(title)
-	var tagline := _make_label(str(ending.get("tagline", "")), 19, COLOR_ACCENT)
-	tagline.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(tagline)
+	var columns := HBoxContainer.new()
+	columns.add_theme_constant_override("separation", 34)
+	panel.add_child(columns)
+	var narrative := VBoxContainer.new()
+	narrative.custom_minimum_size.x = 670
+	narrative.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	narrative.add_theme_constant_override("separation", 15)
+	columns.add_child(narrative)
+	narrative.add_child(_make_label("你的期末周结局", 14, ending_color))
+	var title := _make_label(str(ending.get("title", "结局")), 52, COLOR_INK)
+	narrative.add_child(title)
+	var tagline := _make_label(str(ending.get("tagline", "")), 20, COLOR_ACCENT)
+	tagline.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	narrative.add_child(tagline)
 	var description := _make_label(str(ending.get("description", "")), 18, COLOR_MUTED)
-	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	description.custom_minimum_size.y = 90
-	box.add_child(description)
-	box.add_child(_make_separator())
-	var summary := GridContainer.new()
-	summary.columns = 4
-	summary.add_theme_constant_override("h_separation", 10)
-	box.add_child(summary)
-	summary.add_child(_make_summary_cell("学习", int(session.stats.study), COLOR_TEAL))
-	summary.add_child(_make_summary_cell("项目", int(session.stats.project), COLOR_BLUE))
-	summary.add_child(_make_summary_cell("精力", int(session.stats.energy), COLOR_ACCENT))
-	summary.add_child(_make_summary_cell("压力", int(session.stats.stress), COLOR_CORAL))
-	var reveal := _make_label("难度：%s   ·   眩晕危机：%d 次   ·   AI 依赖度：%d   ·   平均关系：%d   ·   经历事件：%d" % [DifficultyRules.get_display_name(session.difficulty_id), int(session.flags.get("stress_crisis_count", 0)), int(session.stats.ai_dependence), int(session.average_relationship()), session.event_history.size()], 14, COLOR_MUTED)
-	reveal.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(reveal)
+	description.custom_minimum_size.y = 120
+	narrative.add_child(description)
+	var narrative_space := Control.new()
+	narrative_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	narrative.add_child(narrative_space)
+	var reveal := _make_label("难度：%s   ·   眩晕危机：%d 次\nAI 依赖度：%d   ·   平均关系：%d   ·   经历事件：%d" % [DifficultyRules.get_display_name(session.difficulty_id), int(session.flags.get("stress_crisis_count", 0)), int(session.stats.ai_dependence), int(session.average_relationship()), session.event_history.size()], 13, COLOR_MUTED)
+	reveal.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	narrative.add_child(reveal)
 	var buttons := HBoxContainer.new()
 	buttons.add_theme_constant_override("separation", 12)
-	box.add_child(buttons)
+	narrative.add_child(buttons)
 	var again := _make_button("再玩一次", _restart_game, true)
 	again.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	buttons.add_child(again)
 	var menu := _make_button("返回主菜单", show_main_menu)
 	menu.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	buttons.add_child(menu)
+
+	var report := VBoxContainer.new()
+	report.custom_minimum_size.x = 340
+	report.add_theme_constant_override("separation", 12)
+	columns.add_child(report)
+	report.add_child(_make_label("WEEK SUMMARY", 13, Color("#71837F")))
+	var summary := GridContainer.new()
+	summary.columns = 2
+	summary.add_theme_constant_override("h_separation", 10)
+	summary.add_theme_constant_override("v_separation", 10)
+	report.add_child(summary)
+	summary.add_child(_make_summary_cell("学习", int(session.stats.study), COLOR_TEAL))
+	summary.add_child(_make_summary_cell("项目", int(session.stats.project), COLOR_BLUE))
+	summary.add_child(_make_summary_cell("精力", int(session.stats.energy), COLOR_ACCENT))
+	summary.add_child(_make_summary_cell("压力", int(session.stats.stress), COLOR_CORAL))
+	report.add_child(_make_separator())
+	var reflection := _make_label("没有唯一最优路线。\n这份报告记录的是你如何在有限时间里取舍、求助、核验并继续前进。", 14, COLOR_MUTED)
+	reflection.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	reflection.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	report.add_child(reflection)
 
 
 func _restart_game() -> void:
@@ -1068,7 +1206,7 @@ func _show_fatal_error(message: String) -> void:
 
 
 func _make_header(title_text: String, subtitle_text: String, back_action: Callable) -> Control:
-	var panel := _make_panel(Color("#112C34F4"), 16, Color("#3E7372"))
+	var panel := _make_panel(Color("#0B1518F5"), 16, Color("#36545A"))
 	panel.custom_minimum_size.y = 72
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 14)
@@ -1117,13 +1255,13 @@ func _make_button(text_value: String, action: Callable, accent: bool = false, da
 	button.text = text_value
 	button.custom_minimum_size = Vector2(width, 48)
 	button.add_theme_font_size_override("font_size", 17)
-	var color := Color("#244850")
-	var border := Color("#52757A")
+	var color := Color("#142326")
+	var border := Color("#36545A")
 	if accent:
-		color = Color("#29735F")
+		color = Color("#245E50")
 		border = COLOR_TEAL
 	elif danger:
-		color = Color("#63363C")
+		color = Color("#522D33")
 		border = COLOR_CORAL
 	_style_button(button, color, border)
 	button.pressed.connect(action)
@@ -1166,7 +1304,7 @@ func _button_style(color: Color, border_color: Color, radius: int) -> StyleBoxFl
 
 func _style_line_edit(line_edit: LineEdit) -> void:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#0D252DE8")
+	style.bg_color = Color("#091517F2")
 	style.corner_radius_top_left = 10
 	style.corner_radius_top_right = 10
 	style.corner_radius_bottom_left = 10
@@ -1175,7 +1313,7 @@ func _style_line_edit(line_edit: LineEdit) -> void:
 	style.border_width_right = 1
 	style.border_width_top = 1
 	style.border_width_bottom = 1
-	style.border_color = Color("#467078")
+	style.border_color = Color("#36545A")
 	style.content_margin_left = 14
 	style.content_margin_right = 14
 	line_edit.add_theme_stylebox_override("normal", style)
@@ -1186,7 +1324,7 @@ func _style_line_edit(line_edit: LineEdit) -> void:
 
 func _make_separator() -> HSeparator:
 	var separator := HSeparator.new()
-	separator.modulate = Color("#5B7B7C88")
+	separator.modulate = Color("#49606466")
 	separator.custom_minimum_size.y = 6
 	return separator
 
