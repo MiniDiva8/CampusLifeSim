@@ -22,6 +22,11 @@ func _run() -> void:
 	_expect(app.current_screen == "main_menu", "application should open on main menu")
 	_expect(app.repository.events.size() == 32, "main UI should load validated content")
 	_expect(app.background_catalog.locations.size() == 6, "main UI should load all location background pools")
+	app.show_setup()
+	await process_frame
+	_expect(app.find_child("Difficulty_easy", true, false) != null and app.find_child("Difficulty_medium", true, false) != null and app.find_child("Difficulty_hard", true, false) != null, "setup should expose three difficulty choices")
+	var medium_button := app.find_child("Difficulty_medium", true, false) as Button
+	_expect(medium_button != null and medium_button.button_pressed, "new games should recommend medium difficulty")
 
 	app.save_service = SaveService.new("user://campus_ui_smoke_save.json", "user://campus_ui_smoke_settings.json")
 	app.save_service.delete_save()
@@ -60,6 +65,15 @@ func _run() -> void:
 	app.show_settings("pause")
 	await process_frame
 	_expect(app.current_screen == "settings", "settings should open from pause")
+	app.session.difficulty_id = "medium"
+	app.session.stats.stress = DifficultyRules.get_crisis_threshold("medium")
+	app._advance_after_action()
+	await process_frame
+	_expect(app.current_screen == "stress_crisis", "high stress should automatically open the disorientation choice screen after an action")
+	_expect(app.active_photo_background != null, "stress crisis should use the long-exposure photograph")
+	var stress_before := int(app.session.stats.stress)
+	app._resolve_stress_crisis("recover", func(): pass)
+	_expect(int(app.session.stats.stress) < stress_before, "choosing to recover should lower stress")
 	app.save_service.delete_save()
 	app.queue_free()
 	await process_frame

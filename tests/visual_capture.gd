@@ -14,6 +14,10 @@ func _capture() -> void:
 	for _frame in 5:
 		await process_frame
 	_save_viewport("res://reports/main_menu.png")
+	app.show_setup()
+	for _frame in 5:
+		await process_frame
+	_save_viewport("res://reports/difficulty_setup.png")
 	app.session = GameSession.new()
 	app.session.reset("演示同学", "social")
 	app.show_map()
@@ -37,6 +41,12 @@ func _capture() -> void:
 	for _frame in 5:
 		await process_frame
 	_save_viewport("res://reports/library_event.png")
+	app.session.difficulty_id = "hard"
+	app.session.stats.stress = 78
+	app.show_stress_crisis(func(): pass)
+	for _frame in 5:
+		await process_frame
+	_save_viewport("res://reports/stress_crisis.png")
 	print("[PASS] visual captures written to reports/")
 	quit(0)
 

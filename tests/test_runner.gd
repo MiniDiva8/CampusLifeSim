@@ -10,6 +10,7 @@ func _init() -> void:
 	_test_background_catalog()
 	_test_clock()
 	_test_session_and_clamping()
+	_test_difficulty_rules()
 	_test_event_conditions_and_delays()
 	_test_ai_determinism()
 	_test_save_round_trip()
@@ -50,6 +51,7 @@ func _test_background_catalog() -> void:
 	for options in catalog.locations.values():
 		location_total += options.size()
 	_expect(catalog.menu.size() == 1, "one menu background should load")
+	_expect(not catalog.get_stress_background().is_empty(), "one long-exposure stress background should load")
 	_expect(location_total == 46, "forty-six location backgrounds should load")
 	_expect(catalog.roads.get("day", []).size() == 13 and catalog.roads.get("night", []).size() == 4, "seventeen day and night travel backgrounds should load")
 	var session := GameSession.new()
@@ -82,6 +84,42 @@ func _test_session_and_clamping() -> void:
 	social_session.change_stat("energy", 999)
 	social_session.change_stat("stress", -999)
 	_expect(social_session.stats.energy == 100 and social_session.stats.stress == 0, "stats should clamp to zero and one hundred")
+
+
+func _test_difficulty_rules() -> void:
+	var engine := EventEngine.new()
+	var action := {"effects": [
+		{"type": "stat", "target": "study", "amount": 10},
+		{"type": "task", "target": "exam", "amount": 10},
+		{"type": "stat", "target": "stress", "amount": 8},
+		{"type": "stat", "target": "energy", "amount": -10},
+	]}
+	var easy := GameSession.new()
+	easy.reset("简易", "study", "easy")
+	var medium := GameSession.new()
+	medium.reset("中等", "study", "medium")
+	var hard := GameSession.new()
+	hard.reset("困难", "study", "hard")
+	engine.apply_fallback_action(action, easy)
+	engine.apply_fallback_action(action, medium)
+	engine.apply_fallback_action(action, hard)
+	_expect(easy.stats.study == 35 and medium.stats.study == 33 and hard.stats.study == 31, "academic gains should shrink as difficulty rises")
+	_expect(easy.tasks.exam == 10 and medium.tasks.exam == 8 and hard.tasks.exam == 6, "task gains should shrink as difficulty rises")
+	_expect(easy.stats.stress == 28 and medium.stats.stress == 31 and hard.stats.stress == 35, "stress gains and ambient pressure should grow as difficulty rises")
+	_expect(easy.stats.energy == 70 and medium.stats.energy == 68 and hard.stats.energy == 66, "energy costs should grow as difficulty rises")
+	_expect(DifficultyRules.get_crisis_threshold("easy") > DifficultyRules.get_crisis_threshold("medium") and DifficultyRules.get_crisis_threshold("medium") > DifficultyRules.get_crisis_threshold("hard"), "stress crisis thresholds should fall as difficulty rises")
+	engine.apply_fallback_action(action, hard)
+	engine.apply_fallback_action(action, hard)
+	_expect(hard.stats.stress >= DifficultyRules.get_crisis_threshold("hard"), "repeating a stressful plan on hard should reach the disorientation threshold")
+	hard.clock.day = 6
+	hard.stats.energy = 20
+	hard.flags.exam_completed = true
+	hard.tasks.presentation = 20
+	_expect(DifficultyRules.get_action_pressure(hard) == 6, "hard pressure should react to low energy and an unprepared deadline")
+	var legacy_data := medium.to_dict()
+	legacy_data.erase("difficulty_id")
+	var legacy_session := GameSession.new()
+	_expect(legacy_session.from_dict(legacy_data) and legacy_session.difficulty_id == "easy", "old saves should continue under easy rules")
 
 
 func _test_event_conditions_and_delays() -> void:
@@ -119,6 +157,7 @@ func _test_save_round_trip() -> void:
 	service.delete_save()
 	var session := GameSession.new()
 	session.reset("存档测试", "project")
+	session.difficulty_id = "hard"
 	session.clock.advance(7)
 	session.change_relationship("teammate", 13)
 	var catalog := BackgroundCatalog.new()
@@ -132,6 +171,7 @@ func _test_save_round_trip() -> void:
 	if restored != null:
 		_expect(restored.player_name == "存档测试" and restored.clock.get_index() == 7, "save should preserve identity and time")
 		_expect(restored.relationships.teammate == 53 and restored.trait_id == "project", "save should preserve relationships and trait")
+		_expect(restored.difficulty_id == "hard", "save should preserve difficulty")
 		_expect(restored.current_location_id == "lab" and not restored.current_background_path.is_empty(), "save should preserve the active scene background")
 		_expect(restored.background_choice_counter == 2 and not restored.last_road_background.is_empty(), "save should preserve reproducible background history")
 	service.delete_save()

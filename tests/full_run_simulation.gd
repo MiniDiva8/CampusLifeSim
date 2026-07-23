@@ -12,14 +12,16 @@ func _init() -> void:
 	_run_campaign(repository, "balanced")
 	_run_campaign(repository, "study")
 	_run_campaign(repository, "ai")
+	_run_campaign(repository, "balanced", "medium")
+	_run_campaign(repository, "balanced", "hard")
 	_test_debug_presets(repository)
 	_finish()
 
 
-func _run_campaign(repository: ContentRepository, strategy: String) -> void:
+func _run_campaign(repository: ContentRepository, strategy: String, difficulty_id: String = "easy") -> void:
 	var engine := EventEngine.new(repository)
 	var session := GameSession.new()
-	session.reset("模拟玩家", "study" if strategy != "ai" else "project")
+	session.reset("模拟玩家", "study" if strategy != "ai" else "project", difficulty_id)
 	var locations := ["dorm", "library", "teaching", "lab", "canteen", "field"]
 	var steps := 0
 	while not bool(session.flags.get("presentation_completed", false)) and not session.clock.is_finished() and steps < 40:
@@ -49,7 +51,7 @@ func _run_campaign(repository: ContentRepository, strategy: String) -> void:
 	var ending := EndingEvaluator.new().evaluate(session, repository.endings)
 	if str(ending.get("id", "")).is_empty():
 		_fail("%s campaign should resolve an ending" % strategy)
-	print("[SIM] %s: %d steps, ending=%s, study=%d, project=%d, stress=%d, ai=%d" % [strategy, steps, ending.get("id"), session.stats.study, session.stats.project, session.stats.stress, session.stats.ai_dependence])
+	print("[SIM] %s/%s: %d steps, ending=%s, study=%d, project=%d, stress=%d, ai=%d" % [strategy, difficulty_id, steps, ending.get("id"), session.stats.study, session.stats.project, session.stats.stress, session.stats.ai_dependence])
 
 
 func _strategy_location(strategy: String, index: int, locations: Array) -> String:
