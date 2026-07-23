@@ -27,6 +27,13 @@ func _run() -> void:
 	_expect(app.find_child("Difficulty_easy", true, false) != null and app.find_child("Difficulty_medium", true, false) != null and app.find_child("Difficulty_hard", true, false) != null, "setup should expose three difficulty choices")
 	var medium_button := app.find_child("Difficulty_medium", true, false) as Button
 	_expect(medium_button != null and medium_button.button_pressed, "new games should recommend medium difficulty")
+	app.save_service = SaveService.new("user://campus_ui_smoke_save.json", "user://campus_ui_smoke_settings.json")
+	app.save_service.delete_save()
+	var name_input := app.find_child("PlayerName", true, false) as LineEdit
+	var study_button := app.find_child("Trait_study", true, false) as Button
+	app._start_from_setup(name_input, study_button.button_group, medium_button.button_group)
+	await process_frame
+	_expect(app.session.difficulty_id == "medium" and app.current_screen == "event", "starting from setup should save the selected medium difficulty")
 
 	app.save_service = SaveService.new("user://campus_ui_smoke_save.json", "user://campus_ui_smoke_settings.json")
 	app.save_service.delete_save()
