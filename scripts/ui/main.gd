@@ -10,6 +10,25 @@ const COLOR_TEAL := Color("#55C2A3")
 const COLOR_CORAL := Color("#EF7E73")
 const COLOR_BLUE := Color("#66A9D2")
 const TRAVEL_DURATION_SECONDS := 2.0
+const PHOTO_FILL_SHADER := """
+shader_type canvas_item;
+
+uniform float blur_radius = 5.0;
+
+void fragment() {
+	vec2 step_size = TEXTURE_PIXEL_SIZE * blur_radius;
+	vec4 color = texture(TEXTURE, UV) * 0.20;
+	color += texture(TEXTURE, UV + vec2(step_size.x, 0.0)) * 0.12;
+	color += texture(TEXTURE, UV - vec2(step_size.x, 0.0)) * 0.12;
+	color += texture(TEXTURE, UV + vec2(0.0, step_size.y)) * 0.12;
+	color += texture(TEXTURE, UV - vec2(0.0, step_size.y)) * 0.12;
+	color += texture(TEXTURE, UV + step_size) * 0.08;
+	color += texture(TEXTURE, UV - step_size) * 0.08;
+	color += texture(TEXTURE, UV + vec2(step_size.x, -step_size.y)) * 0.08;
+	color += texture(TEXTURE, UV + vec2(-step_size.x, step_size.y)) * 0.08;
+	COLOR = color * COLOR;
+}
+"""
 
 var repository := ContentRepository.new()
 var background_catalog := BackgroundCatalog.new()
@@ -21,6 +40,7 @@ var settings_return_screen := "main_menu"
 var settings := {}
 var screen_layer: Control
 var active_photo_background: TextureRect
+var active_photo_fill: TextureRect
 var notice_text := ""
 
 
@@ -81,6 +101,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _reset_screen(screen_name: String, backdrop_tint: Color = Color.WHITE, background_path: String = "", shade_color: Color = Color("#07161CB8")) -> VBoxContainer:
 	current_screen = screen_name
 	active_photo_background = null
+	active_photo_fill = null
 	for child in get_children():
 		child.queue_free()
 	screen_layer = Control.new()
@@ -88,11 +109,23 @@ func _reset_screen(screen_name: String, backdrop_tint: Color = Color.WHITE, back
 	add_child(screen_layer)
 
 	if not background_path.is_empty() and ResourceLoader.exists(background_path):
-		active_photo_background = TextureRect.new()
-		active_photo_background.texture = load(background_path)
-		active_photo_background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		active_photo_background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		active_photo_background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		var photo_texture := load(background_path) as Texture2D
+		var photo_orientation := background_catalog.get_photo_orientation(background_path)
+		active_photo_fill = OrientedPhotoRect.new()
+		active_photo_fill.name = "PhotoFill"
+		active_photo_fill.configure(photo_texture, photo_orientation, true)
+		active_photo_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		active_photo_fill.modulate = Color(0.48, 0.54, 0.54, 1.0)
+		var fill_shader := Shader.new()
+		fill_shader.code = PHOTO_FILL_SHADER
+		var fill_material := ShaderMaterial.new()
+		fill_material.shader = fill_shader
+		active_photo_fill.material = fill_material
+		screen_layer.add_child(active_photo_fill)
+
+		active_photo_background = OrientedPhotoRect.new()
+		active_photo_background.name = "PhotoFrame"
+		active_photo_background.configure(photo_texture, photo_orientation, false)
 		active_photo_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		screen_layer.add_child(active_photo_background)
 	else:
@@ -485,18 +518,21 @@ func show_location(location_id: String) -> void:
 		return
 	if session.current_location_id != location_id or session.current_background_path.is_empty():
 		background_catalog.choose_location_background(location_id, session)
+	var scene_context := background_catalog.get_active_scene_context(session)
 	var event := event_engine.get_location_event(location_id, session)
 	if not event.is_empty():
 		show_event(event)
 		return
-	var root := _reset_screen("location", Color(str(location.get("color", "#6DAF9A"))), session.current_background_path, Color("#07161C76"))
-	root.add_child(_make_header(str(location.name), str(location.subtitle), show_map))
+	var root := _reset_screen("location", Color(str(location.get("color", "#6DAF9A"))), session.current_background_path, Color("#07161C30"))
+	var scene_name := str(scene_context.get("display_name", location.name))
+	root.add_child(_make_header(scene_name, "%s · %s" % [location.name, location.subtitle], show_map))
 	var body := HBoxContainer.new()
 	body.alignment = BoxContainer.ALIGNMENT_CENTER
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(body)
-	var panel := _make_panel(COLOR_PANEL, 20, Color(str(location.color)))
-	panel.custom_minimum_size = Vector2(900, 470)
+	var panel := _make_panel(Color("#17333BC4"), 20, Color(str(location.color)))
+	panel.name = "LocationCard"
+	panel.custom_minimum_size = Vector2(820, 440)
 	body.add_child(panel)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 16)
@@ -504,24 +540,33 @@ func show_location(location_id: String) -> void:
 	var icon := _make_label(str(location.icon), 52, Color(str(location.color)))
 	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(icon)
-	var description := _make_label(str(location.description), 19, COLOR_INK)
+	var description := _make_label(str(scene_context.get("arrival_text", location.description)), 19, COLOR_INK)
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(description)
+	var location_note := _make_label(str(location.description), 14, COLOR_MUTED)
+	location_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	location_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(location_note)
 	box.add_child(_make_separator())
 	box.add_child(_make_label("本时段可以：", 18, COLOR_MUTED))
 	for action in location.get("actions", []):
-		var action_button := _make_button("%s\n%s" % [action.get("label", "行动"), action.get("description", "")], _resolve_fallback_action.bind(action), true)
+		var presented_action := _present_action_for_scene(action, location_id, scene_context)
+		var action_button := _make_button("%s\n%s" % [presented_action.get("label", "行动"), presented_action.get("description", "")], _resolve_fallback_action.bind(action), true)
 		action_button.custom_minimum_size.y = 72
+		_style_button(action_button, Color("#29735FCB"), COLOR_TEAL)
 		box.add_child(action_button)
 
 
 func show_event(event: Dictionary) -> void:
-	var root := _reset_screen("event", Color("#4D8190"), session.current_background_path, Color("#07161C70"))
+	var scene_context := background_catalog.get_active_scene_context(session)
+	var root := _reset_screen("event", Color("#4D8190"), session.current_background_path, Color("#07161C2E"))
 	var top := HBoxContainer.new()
 	root.add_child(top)
 	var time_label := _make_badge(session.clock.get_display_text(), COLOR_TEAL)
 	top.add_child(time_label)
+	if not session.current_background_path.is_empty():
+		top.add_child(_make_badge("你来到了 · %s" % scene_context.get("display_name", "校园场景"), COLOR_BLUE))
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(spacer)
@@ -531,31 +576,57 @@ func show_event(event: Dictionary) -> void:
 	center.alignment = BoxContainer.ALIGNMENT_CENTER
 	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(center)
-	var card := _make_panel(Color("#122C35FA"), 22, Color("#4B7F84"))
-	card.custom_minimum_size = Vector2(980, 560)
+	var card := _make_panel(Color("#122C35C4"), 22, Color("#5A969A"))
+	card.name = "EventCard"
+	card.custom_minimum_size = Vector2(900, 520)
 	center.add_child(card)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 13)
 	card.add_child(box)
 	var speaker := _make_label(str(event.get("speaker", "校园事件")), 15, COLOR_TEAL)
 	box.add_child(speaker)
-	box.add_child(_make_label(str(event.get("title", "事件")), 31, COLOR_INK))
-	var body := _make_label(str(event.get("body", "")), 19, COLOR_MUTED)
+	box.add_child(_make_label(_format_scene_text(str(event.get("title", "事件")), scene_context), 31, COLOR_INK))
+	var body := _make_label(_format_scene_text(str(event.get("body", "")), scene_context), 19, COLOR_MUTED)
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	body.custom_minimum_size.y = 110
+	body.custom_minimum_size.y = 92
 	box.add_child(body)
 	box.add_child(_make_separator())
 	box.add_child(_make_label("你准备怎么做？", 17, COLOR_INK))
 	for choice in event.get("choices", []):
-		var button := _make_button(str(choice.get("label", "选择")), _resolve_event_choice.bind(event, choice), true)
+		var choice_label := _format_scene_text(str(choice.get("label", "选择")), scene_context)
+		var button := _make_button(choice_label, _resolve_event_choice.bind(event, choice), true)
 		button.custom_minimum_size.y = 56
+		_style_button(button, Color("#29735FCB"), COLOR_TEAL)
 		box.add_child(button)
+
+
+func _format_scene_text(text_value: String, scene_context: Dictionary) -> String:
+	return text_value \
+		.replace("{scene_name}", str(scene_context.get("display_name", "校园场景"))) \
+		.replace("{scene_activity}", str(scene_context.get("activity_text", "处理眼前的安排")))
+
+
+func _present_action_for_scene(action: Dictionary, location_id: String, scene_context: Dictionary) -> Dictionary:
+	var presented := action.duplicate(true)
+	if location_id != "field":
+		return presented
+	if str(action.get("id", "")) == "exercise":
+		var activity_label := str(scene_context.get("activity_label", ""))
+		if not activity_label.is_empty():
+			presented.label = activity_label
+			presented.description = "按照照片中的真实场地活动身体，缓解压力并消耗少量精力。"
+	elif str(action.get("id", "")) == "walk":
+		presented.label = "在场边放松调整"
+		presented.description = "先观察和舒展，让呼吸与心态慢慢稳定下来。"
+	return presented
 
 
 func _resolve_event_choice(event: Dictionary, choice: Dictionary) -> void:
 	var effects := event_engine.apply_choice(event, choice, session)
-	var outcome := str(choice.get("outcome", "你的选择产生了影响。"))
-	show_result(str(event.get("title", "事件结果")), outcome, _visible_effects(effects), _advance_after_action)
+	var scene_context := background_catalog.get_active_scene_context(session)
+	var outcome := _format_scene_text(str(choice.get("outcome", "你的选择产生了影响。")), scene_context)
+	var result_title := _format_scene_text(str(event.get("title", "事件结果")), scene_context)
+	show_result(result_title, outcome, _visible_effects(effects), _advance_after_action)
 
 
 func _resolve_fallback_action(action: Dictionary) -> void:

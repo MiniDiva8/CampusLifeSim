@@ -153,7 +153,7 @@
     ]
   },
   {
-    "id": "loc_field_walk", "kind": "location", "title": "跑道上的故障排除", "speaker": "旁白", "body": "你绕着操场走到第二圈，那个卡了半天的项目结构忽然在脑中变得简单。原来离开屏幕也算调试。", "once": true, "priority": 50,
+    "id": "loc_field_walk", "kind": "location", "title": "{scene_name}里的故障排除", "speaker": "旁白", "body": "你正在{scene_activity}。身体进入节奏后，那个卡了半天的项目结构忽然在脑中变得简单。原来离开屏幕也算调试。", "once": true, "priority": 50,
     "trigger": {"type": "location", "location": "field", "days": [], "slots": []}, "requirements": [],
     "choices": [
       {"id": "note", "label": "停下来记下新思路", "outcome": "你用一条清楚的流程替代了三段绕路代码。", "effects": [{"type": "stat", "target": "project", "amount": 7}, {"type": "stat", "target": "stress", "amount": -11}, {"type": "stat", "target": "energy", "amount": 3}]},
@@ -161,11 +161,11 @@
     ]
   },
   {
-    "id": "loc_field_message", "kind": "location", "title": "散步时弹出的紧急消息", "speaker": "周启明", "body": "组员发来：“现在方便看一下吗？”后面跟着六张截图。你刚刚才让脑子安静下来。", "once": true, "priority": 50,
+    "id": "loc_field_message", "kind": "location", "title": "{scene_activity}时弹出的紧急消息", "speaker": "周启明", "body": "你刚开始{scene_activity}，组员就发来：“现在方便看一下吗？”后面跟着六张截图。你才刚让脑子安静下来。", "once": true, "priority": 50,
     "trigger": {"type": "location", "location": "field", "days": [], "slots": []}, "requirements": [{"type": "day_min", "value": 4}],
     "choices": [
-      {"id": "boundary", "label": "回复时间点，走完这圈再处理", "outcome": "你没有消失，也没有立刻牺牲休息。边界让沟通更可靠。", "effects": [{"type": "relationship", "target": "teammate", "amount": 4}, {"type": "stat", "target": "stress", "amount": -10}, {"type": "flag", "target": "healthy_boundary", "value": true, "message": "你建立了清楚的协作边界"}]},
-      {"id": "immediate", "label": "站在跑道边立刻排查", "outcome": "问题推进了，散步则在半途变成了远程工位。", "effects": [{"type": "stat", "target": "project", "amount": 8}, {"type": "relationship", "target": "teammate", "amount": 3}, {"type": "stat", "target": "stress", "amount": 5}]}
+      {"id": "boundary", "label": "回复时间点，完成这次运动再处理", "outcome": "你没有消失，也没有立刻牺牲休息。边界让沟通更可靠。", "effects": [{"type": "relationship", "target": "teammate", "amount": 4}, {"type": "stat", "target": "stress", "amount": -10}, {"type": "flag", "target": "healthy_boundary", "value": true, "message": "你建立了清楚的协作边界"}]},
+      {"id": "immediate", "label": "先停下运动，立刻排查", "outcome": "问题推进了，{scene_activity}则在半途变成了远程工位。", "effects": [{"type": "stat", "target": "project", "amount": 8}, {"type": "relationship", "target": "teammate", "amount": 3}, {"type": "stat", "target": "stress", "amount": 5}]}
     ]
   },
 

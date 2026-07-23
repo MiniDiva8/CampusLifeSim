@@ -62,6 +62,122 @@
       "res://assets/backgrounds/locations/field/羽毛球.jpg"
     ]
   },
+  "scenes": {
+    "res://assets/backgrounds/locations/teaching/学校咖啡馆.jpg": {
+      "display_name": "学校咖啡馆",
+      "arrival_text": "你来到学校咖啡馆，在咖啡香和低声交谈中找了一个位置。"
+    },
+    "res://assets/backgrounds/locations/teaching/理综楼.jpg": {
+      "display_name": "理综楼",
+      "arrival_text": "你来到理综楼，课程、答疑和期末复习都在这栋楼里交汇。"
+    },
+    "res://assets/backgrounds/locations/teaching/理综楼走廊.jpg": {
+      "display_name": "理综楼走廊",
+      "arrival_text": "你走进理综楼走廊，教室门牌和来往脚步提醒着你期末仍在继续。"
+    },
+    "res://assets/backgrounds/locations/teaching/知新楼.jpg": {
+      "display_name": "知新楼",
+      "arrival_text": "你来到知新楼，准备找一处安静的位置处理今天的学习任务。"
+    },
+    "res://assets/backgrounds/locations/teaching/董明珠楼.jpg": {
+      "display_name": "董明珠楼",
+      "arrival_text": "你来到董明珠楼，在下一项安排开始前重新确认自己的学习计划。"
+    },
+    "res://assets/backgrounds/locations/teaching/蒋震图书馆.jpg": {
+      "display_name": "蒋震图书馆",
+      "arrival_text": "你来到蒋震图书馆，准备借这里的安静梳理课程重点。"
+    },
+    "res://assets/backgrounds/locations/teaching/阅读馆.jpg": {
+      "display_name": "阅读馆",
+      "arrival_text": "你来到阅读馆，翻开资料，准备把零散知识重新连起来。"
+    },
+    "res://assets/backgrounds/locations/teaching/青年会客厅.jpg": {
+      "display_name": "青年会客厅",
+      "arrival_text": "你来到青年会客厅，这里适合短暂交流，也适合重新整理思路。"
+    },
+    "res://assets/backgrounds/locations/field/体育馆.jpg": {
+      "display_name": "校体育馆",
+      "arrival_text": "你走进校体育馆，准备进行一段室内训练，让注意力离开截止日期一会儿。",
+      "activity_text": "在体育馆训练",
+      "activity_label": "进行室内训练"
+    },
+    "res://assets/backgrounds/locations/field/散步.jpg": {
+      "display_name": "校园步道",
+      "arrival_text": "你来到校园步道，准备慢慢散步，让紧绷的思绪松开一些。",
+      "activity_text": "沿校园步道散步",
+      "activity_label": "沿校园步道散步"
+    },
+    "res://assets/backgrounds/locations/field/游泳.jpg": {
+      "display_name": "游泳馆",
+      "arrival_text": "你来到游泳馆，换好装备，准备下水游泳。",
+      "activity_text": "游泳",
+      "activity_label": "下水游泳"
+    },
+    "res://assets/backgrounds/locations/field/篮球 (2).jpg": {
+      "display_name": "篮球场",
+      "arrival_text": "你来到篮球场，准备运球、投篮，让身体接管这段时间。",
+      "activity_text": "打篮球",
+      "activity_label": "去打篮球"
+    },
+    "res://assets/backgrounds/locations/field/篮球.jpg": {
+      "display_name": "篮球场",
+      "arrival_text": "你来到篮球场，准备运球、投篮，让身体接管这段时间。",
+      "activity_text": "打篮球",
+      "activity_label": "去打篮球"
+    },
+    "res://assets/backgrounds/locations/field/网球.jpg": {
+      "display_name": "网球场",
+      "arrival_text": "你来到网球场，握好球拍，准备打一场网球。",
+      "activity_text": "打网球",
+      "activity_label": "去打网球"
+    },
+    "res://assets/backgrounds/locations/field/羽毛球.jpg": {
+      "display_name": "羽毛球场",
+      "arrival_text": "你来到羽毛球场，活动肩膀，准备挥拍打羽毛球。",
+      "activity_text": "打羽毛球",
+      "activity_label": "去打羽毛球"
+    },
+    "res://assets/backgrounds/locations/field/跑步.jpg": {
+      "display_name": "校园跑道",
+      "arrival_text": "你来到校园跑道，系紧鞋带，准备跑上几圈。",
+      "activity_text": "沿跑道跑步",
+      "activity_label": "沿跑道跑步"
+    }
+  },
+  "orientations": {
+    "res://assets/backgrounds/effects/stress_overload.jpg": 6,
+    "res://assets/backgrounds/locations/dorm/dbcf09ccccce30aff69900d491efebc2.jpg": 6,
+    "res://assets/backgrounds/locations/dorm/e4205386052301c1bc9cdfa53eac04d0.jpg": 6,
+    "res://assets/backgrounds/locations/library/52168f75445cb7a56f92829d6d3e1dcb.jpg": 6,
+    "res://assets/backgrounds/locations/teaching/理综楼走廊.jpg": 6,
+    "res://assets/backgrounds/locations/teaching/青年会客厅.jpg": 6,
+    "res://assets/backgrounds/locations/canteen/水果/c08523334890cc3e38091093fa0ba737.jpg": 6,
+    "res://assets/backgrounds/locations/canteen/早餐/8969be5d9c0b20d7439da056e4fd3b7a.jpg": 6,
+    "res://assets/backgrounds/locations/canteen/早餐/b0d81e589bf3806c1195ca016aa78af8.jpg": 6,
+    "res://assets/backgrounds/locations/canteen/正餐/0eea477bee68a22ce55780665542be70.jpg": 6,
+    "res://assets/backgrounds/locations/canteen/正餐/2c5f31b5f38cf1fe113beee94227f0b3.jpg": 6,
+    "res://assets/backgrounds/locations/canteen/正餐/31e382f18726b835faf0b0326e016c2a.jpg": 6,
+    "res://assets/backgrounds/locations/canteen/正餐/5992f4fe4590f9855f88a0e1f8922cbc.jpg": 6,
+    "res://assets/backgrounds/locations/canteen/正餐/9410a15158631015dc018959ceb7cfa7.jpg": 6,
+    "res://assets/backgrounds/locations/canteen/正餐/96b6eb9390e688fc279be1bdaa6e14dd.jpg": 6,
+    "res://assets/backgrounds/locations/canteen/正餐/b7ca4a61816666c472859d2868d6542e.jpg": 6,
+    "res://assets/backgrounds/locations/canteen/正餐/fa01d1cae7cf8841c3901ff5db4c91e8.jpg": 6,
+    "res://assets/backgrounds/locations/field/篮球 (2).jpg": 6,
+    "res://assets/backgrounds/locations/field/篮球.jpg": 6,
+    "res://assets/backgrounds/locations/field/散步.jpg": 6,
+    "res://assets/backgrounds/roads/day/5b369c2e59629e1e2df52ee260fd9942.jpg": 6,
+    "res://assets/backgrounds/roads/day/7ac9245044365025709d32307c4d011f.jpg": 6,
+    "res://assets/backgrounds/roads/day/c5104be4f583eda1ee9e163d22df1e46.jpg": 6,
+    "res://assets/backgrounds/roads/day/c8aba3007adeb0a8822e6509e7645496.jpg": 6,
+    "res://assets/backgrounds/roads/day/d624f6334d788452aec45ef51bd120df.jpg": 6,
+    "res://assets/backgrounds/roads/day/e13c9ad68727e1114e765fc98c5650f4.jpg": 6,
+    "res://assets/backgrounds/roads/day/f7b94a51a1e2724d387aa835d356a0dc.jpg": 6,
+    "res://assets/backgrounds/roads/day/faa3ca18295f0b35142f6eaa6cbf6d54.jpg": 6,
+    "res://assets/backgrounds/roads/day/fddd198361745ec609515bba87f72bdb.jpg": 6,
+    "res://assets/backgrounds/roads/night/9a9475109fd56715602b8c795f2ab151.jpg": 6,
+    "res://assets/backgrounds/roads/night/bad33f1e283c7bf1248a415508073d92.jpg": 6,
+    "res://assets/backgrounds/roads/night/e70749735350d968c78e35a486a63975.jpg": 6
+  },
   "roads": {
     "day": [
       "res://assets/backgrounds/roads/day/0d4f942f3463c54b6a1f5f81111eae33.jpg",
