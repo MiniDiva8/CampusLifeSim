@@ -107,5 +107,13 @@ foreach ($entry in $categoryMap.GetEnumerator()) {
     }
 }
 
+$stressSource = Join-Path $sourcePath "4da1d68dda097bc790fe525e223bb096.jpg"
+if (-not (Test-Path -LiteralPath $stressSource -PathType Leaf)) {
+    throw "Missing stress effect source: $stressSource"
+}
+$stressDestination = Join-Path $destinationPath "effects\stress_overload.jpg"
+Save-OptimizedJpeg $stressSource $stressDestination
+$imported += 1
+
 $totalBytes = (Get-ChildItem -LiteralPath $destinationPath -Recurse -File | Measure-Object Length -Sum).Sum
 Write-Output ("Imported {0} backgrounds to {1} ({2:N2} MB)." -f $imported, $destinationPath, ($totalBytes / 1MB))

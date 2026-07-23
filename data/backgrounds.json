@@ -84,5 +84,10 @@
       "res://assets/backgrounds/roads/night/bad33f1e283c7bf1248a415508073d92.jpg",
       "res://assets/backgrounds/roads/night/e70749735350d968c78e35a486a63975.jpg"
     ]
+  },
+  "effects": {
+    "stress_overload": [
+      "res://assets/backgrounds/effects/stress_overload.jpg"
+    ]
   }
 }

@@ -6,6 +6,7 @@ const MANIFEST_PATH := "res://data/backgrounds.json"
 var menu: Array = []
 var locations: Dictionary = {}
 var roads: Dictionary = {}
+var effects: Dictionary = {}
 var errors: Array[String] = []
 
 
@@ -14,6 +15,7 @@ func load_all() -> bool:
 	menu.clear()
 	locations.clear()
 	roads.clear()
+	effects.clear()
 	var data = _read_json(MANIFEST_PATH)
 	if not data is Dictionary:
 		errors.append("Background manifest is missing or invalid: %s" % MANIFEST_PATH)
@@ -27,6 +29,10 @@ func load_all() -> bool:
 	if raw_roads is Dictionary:
 		for period in raw_roads:
 			roads[str(period)] = _validated_paths(raw_roads[period], "roads:%s" % period)
+	var raw_effects = data.get("effects", {})
+	if raw_effects is Dictionary:
+		for effect_id in raw_effects:
+			effects[str(effect_id)] = _validated_paths(raw_effects[effect_id], "effects:%s" % effect_id)
 	for location_id in ["dorm", "library", "teaching", "lab", "canteen", "field"]:
 		if not locations.has(location_id) or locations[location_id].is_empty():
 			errors.append("No backgrounds configured for location: %s" % location_id)
@@ -35,11 +41,18 @@ func load_all() -> bool:
 			errors.append("No travel backgrounds configured for: %s" % period)
 	if menu.is_empty():
 		errors.append("No menu background configured")
+	if not effects.has("stress_overload") or effects.stress_overload.is_empty():
+		errors.append("No stress overload background configured")
 	return errors.is_empty()
 
 
 func get_menu_background() -> String:
 	return str(menu[0]) if not menu.is_empty() else ""
+
+
+func get_stress_background() -> String:
+	var options: Array = effects.get("stress_overload", [])
+	return str(options[0]) if not options.is_empty() else ""
 
 
 func choose_location_background(location_id: String, session: GameSession) -> String:
