@@ -1,0 +1,88 @@
+{
+  "menu": [
+    "res://assets/backgrounds/menu/d8bdb26a1b4a1979ecc89d8cfddf715c.jpg"
+  ],
+  "locations": {
+    "dorm": [
+      "res://assets/backgrounds/locations/dorm/dbcf09ccccce30aff69900d491efebc2.jpg",
+      "res://assets/backgrounds/locations/dorm/e4205386052301c1bc9cdfa53eac04d0.jpg"
+    ],
+    "library": [
+      "res://assets/backgrounds/locations/library/16c10d9b4c034e0cd48821b096564588.jpg",
+      "res://assets/backgrounds/locations/library/33adc7d69faede7c94112ac5dbab4112.jpg",
+      "res://assets/backgrounds/locations/library/52168f75445cb7a56f92829d6d3e1dcb.jpg",
+      "res://assets/backgrounds/locations/library/f83f9a20e29f8804a51641d408a08fe5.jpg"
+    ],
+    "teaching": [
+      "res://assets/backgrounds/locations/teaching/董明珠楼.jpg",
+      "res://assets/backgrounds/locations/teaching/蒋震图书馆.jpg",
+      "res://assets/backgrounds/locations/teaching/理综楼.jpg",
+      "res://assets/backgrounds/locations/teaching/理综楼走廊.jpg",
+      "res://assets/backgrounds/locations/teaching/青年会客厅.jpg",
+      "res://assets/backgrounds/locations/teaching/学校咖啡馆.jpg",
+      "res://assets/backgrounds/locations/teaching/阅读馆.jpg",
+      "res://assets/backgrounds/locations/teaching/知新楼.jpg"
+    ],
+    "lab": [
+      "res://assets/backgrounds/locations/lab/155a5039eb14fc8bcd83164507f0643e.jpg",
+      "res://assets/backgrounds/locations/lab/7b3b4ef07a8588941aeee9fa859a1abb.jpg"
+    ],
+    "canteen": [
+      "res://assets/backgrounds/locations/canteen/水果/30c11daead283879b3c1714fad9a425e.jpg",
+      "res://assets/backgrounds/locations/canteen/水果/5ace6728aafdf1725a839a11d33b69f2.jpg",
+      "res://assets/backgrounds/locations/canteen/水果/a72a5fc7edd1ccdf19b25648d67635cd.jpg",
+      "res://assets/backgrounds/locations/canteen/水果/c08523334890cc3e38091093fa0ba737.jpg",
+      "res://assets/backgrounds/locations/canteen/水果/cca5fe41f5b12b5d3bf3addc1293537f.jpg",
+      "res://assets/backgrounds/locations/canteen/水果/df608727e5312d605868310d639862f5.jpg",
+      "res://assets/backgrounds/locations/canteen/水果/e442cdbf1a8389eb4482f093348c77ba.jpg",
+      "res://assets/backgrounds/locations/canteen/水果/e624356a5e1d5c842a59990b80f3c707.jpg",
+      "res://assets/backgrounds/locations/canteen/早餐/8969be5d9c0b20d7439da056e4fd3b7a.jpg",
+      "res://assets/backgrounds/locations/canteen/早餐/b0d81e589bf3806c1195ca016aa78af8.jpg",
+      "res://assets/backgrounds/locations/canteen/早餐/f02efc55cdb9b357a2c89a3851c493ee.jpg",
+      "res://assets/backgrounds/locations/canteen/正餐/0eea477bee68a22ce55780665542be70.jpg",
+      "res://assets/backgrounds/locations/canteen/正餐/2c5f31b5f38cf1fe113beee94227f0b3.jpg",
+      "res://assets/backgrounds/locations/canteen/正餐/31da4b2e5955560b1eb8fd2830a9cd18.jpg",
+      "res://assets/backgrounds/locations/canteen/正餐/31e382f18726b835faf0b0326e016c2a.jpg",
+      "res://assets/backgrounds/locations/canteen/正餐/5992f4fe4590f9855f88a0e1f8922cbc.jpg",
+      "res://assets/backgrounds/locations/canteen/正餐/9410a15158631015dc018959ceb7cfa7.jpg",
+      "res://assets/backgrounds/locations/canteen/正餐/96b6eb9390e688fc279be1bdaa6e14dd.jpg",
+      "res://assets/backgrounds/locations/canteen/正餐/b7ca4a61816666c472859d2868d6542e.jpg",
+      "res://assets/backgrounds/locations/canteen/正餐/c58bb7d6c9cfb0b7e099c1fc02e10627.jpg",
+      "res://assets/backgrounds/locations/canteen/正餐/dff69de5b9cd02b891ccb25df2272a90.jpg",
+      "res://assets/backgrounds/locations/canteen/正餐/fa01d1cae7cf8841c3901ff5db4c91e8.jpg"
+    ],
+    "field": [
+      "res://assets/backgrounds/locations/field/篮球 (2).jpg",
+      "res://assets/backgrounds/locations/field/篮球.jpg",
+      "res://assets/backgrounds/locations/field/跑步.jpg",
+      "res://assets/backgrounds/locations/field/散步.jpg",
+      "res://assets/backgrounds/locations/field/体育馆.jpg",
+      "res://assets/backgrounds/locations/field/网球.jpg",
+      "res://assets/backgrounds/locations/field/游泳.jpg",
+      "res://assets/backgrounds/locations/field/羽毛球.jpg"
+    ]
+  },
+  "roads": {
+    "day": [
+      "res://assets/backgrounds/roads/day/0d4f942f3463c54b6a1f5f81111eae33.jpg",
+      "res://assets/backgrounds/roads/day/1c5dcaedc34dd7c983934b85d3bc3014.jpg",
+      "res://assets/backgrounds/roads/day/5b369c2e59629e1e2df52ee260fd9942.jpg",
+      "res://assets/backgrounds/roads/day/7ac9245044365025709d32307c4d011f.jpg",
+      "res://assets/backgrounds/roads/day/c5104be4f583eda1ee9e163d22df1e46.jpg",
+      "res://assets/backgrounds/roads/day/c8aba3007adeb0a8822e6509e7645496.jpg",
+      "res://assets/backgrounds/roads/day/d624f6334d788452aec45ef51bd120df.jpg",
+      "res://assets/backgrounds/roads/day/dd2838ea07dda2d2952abc0a2c25d010.jpg",
+      "res://assets/backgrounds/roads/day/e13c9ad68727e1114e765fc98c5650f4.jpg",
+      "res://assets/backgrounds/roads/day/f1fea2306a1c6368e7329bc851989977.jpg",
+      "res://assets/backgrounds/roads/day/f7b94a51a1e2724d387aa835d356a0dc.jpg",
+      "res://assets/backgrounds/roads/day/faa3ca18295f0b35142f6eaa6cbf6d54.jpg",
+      "res://assets/backgrounds/roads/day/fddd198361745ec609515bba87f72bdb.jpg"
+    ],
+    "night": [
+      "res://assets/backgrounds/roads/night/868b2b51888d9039812947f056e1fe09.jpg",
+      "res://assets/backgrounds/roads/night/9a9475109fd56715602b8c795f2ab151.jpg",
+      "res://assets/backgrounds/roads/night/bad33f1e283c7bf1248a415508073d92.jpg",
+      "res://assets/backgrounds/roads/night/e70749735350d968c78e35a486a63975.jpg"
+    ]
+  }
+}
