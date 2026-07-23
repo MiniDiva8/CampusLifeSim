@@ -21,6 +21,7 @@ func _run() -> void:
 	await process_frame
 	_expect(app.current_screen == "main_menu", "application should open on main menu")
 	_expect(app.repository.events.size() == 32, "main UI should load validated content")
+	_expect(app.background_catalog.locations.size() == 6, "main UI should load all location background pools")
 
 	app.save_service = SaveService.new("user://campus_ui_smoke_save.json", "user://campus_ui_smoke_settings.json")
 	app.save_service.delete_save()
@@ -39,9 +40,13 @@ func _run() -> void:
 	_expect(app.current_screen == "map", "continuing should reach the campus map")
 	_expect(app.session.clock.get_index() == 1, "first choice should consume one slot")
 
-	app.show_location("library")
+	app._travel_to_location("library", 0.05)
 	await process_frame
+	_expect(app.current_screen == "travel", "selecting a location should open the travel transition")
+	_expect(app.active_photo_background != null, "travel transition should use a road photograph")
+	await create_timer(0.08).timeout
 	_expect(app.current_screen == "event", "library should present an eligible location event")
+	_expect(app.active_photo_background != null, "location event should retain the selected scene photograph")
 	var library_event: Dictionary = app.event_engine.get_location_event("library", app.session)
 	app._resolve_event_choice(library_event, library_event.choices[0])
 	app._advance_after_action()

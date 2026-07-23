@@ -7,6 +7,7 @@ var checks := 0
 func _init() -> void:
 	print("[TEST] CampusLifeSim native test suite")
 	_test_content_repository()
+	_test_background_catalog()
 	_test_clock()
 	_test_session_and_clamping()
 	_test_event_conditions_and_delays()
@@ -40,6 +41,24 @@ func _test_content_repository() -> void:
 		var kind := str(event.get("kind", ""))
 		kind_counts[kind] = int(kind_counts.get(kind, 0)) + 1
 	_expect(kind_counts == {"fixed": 8, "location": 12, "npc": 8, "ai": 4}, "event category counts should match the demo scope")
+
+
+func _test_background_catalog() -> void:
+	var catalog := BackgroundCatalog.new()
+	_expect(catalog.load_all(), "background catalog should validate: %s" % "; ".join(catalog.errors))
+	var location_total := 0
+	for options in catalog.locations.values():
+		location_total += options.size()
+	_expect(catalog.menu.size() == 1, "one menu background should load")
+	_expect(location_total == 46, "forty-six location backgrounds should load")
+	_expect(catalog.roads.get("day", []).size() == 13 and catalog.roads.get("night", []).size() == 4, "seventeen day and night travel backgrounds should load")
+	var session := GameSession.new()
+	var first := catalog.choose_location_background("library", session)
+	var second := catalog.choose_location_background("library", session)
+	_expect(not first.is_empty() and first != second, "location backgrounds should avoid an immediate repeat")
+	var first_road := catalog.choose_road_background(session)
+	var second_road := catalog.choose_road_background(session)
+	_expect(not first_road.is_empty() and first_road != second_road, "travel backgrounds should avoid an immediate repeat")
 
 
 func _test_clock() -> void:
@@ -102,6 +121,10 @@ func _test_save_round_trip() -> void:
 	session.reset("存档测试", "project")
 	session.clock.advance(7)
 	session.change_relationship("teammate", 13)
+	var catalog := BackgroundCatalog.new()
+	catalog.load_all()
+	catalog.choose_location_background("lab", session)
+	catalog.choose_road_background(session)
 	var save_error := service.save_game(session)
 	_expect(save_error == OK, "autosave should succeed")
 	var restored := service.load_game()
@@ -109,6 +132,8 @@ func _test_save_round_trip() -> void:
 	if restored != null:
 		_expect(restored.player_name == "存档测试" and restored.clock.get_index() == 7, "save should preserve identity and time")
 		_expect(restored.relationships.teammate == 53 and restored.trait_id == "project", "save should preserve relationships and trait")
+		_expect(restored.current_location_id == "lab" and not restored.current_background_path.is_empty(), "save should preserve the active scene background")
+		_expect(restored.background_choice_counter == 2 and not restored.last_road_background.is_empty(), "save should preserve reproducible background history")
 	service.delete_save()
 
 
