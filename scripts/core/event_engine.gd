@@ -95,6 +95,7 @@ func apply_choice(event: Dictionary, choice: Dictionary, session: GameSession) -
 		queued["due_index"] = session.clock.get_index() + int(delayed.get("after_slots", 1))
 		session.pending_consequences.append(queued)
 		result.append("一个后果将在之后显现")
+	_apply_action_pressure(session, result)
 	session.mark_event_fired(str(event.get("id", "")), str(choice.get("id", "")))
 	session.clamp_all()
 	return result
@@ -104,8 +105,17 @@ func apply_fallback_action(action: Dictionary, session: GameSession) -> Array[St
 	var result: Array[String] = []
 	for effect in action.get("effects", []):
 		result.append(_apply_effect(effect, session))
+	_apply_action_pressure(session, result)
 	session.clamp_all()
 	return result
+
+
+func _apply_action_pressure(session: GameSession, result: Array[String]) -> void:
+	var amount := DifficultyRules.get_action_pressure(session)
+	if amount <= 0:
+		return
+	var changed := session.change_stat("stress", amount)
+	result.append("期末环境压力 +%d" % changed)
 
 
 func process_due_consequences(session: GameSession) -> Array[Dictionary]:
@@ -131,7 +141,8 @@ func process_due_consequences(session: GameSession) -> Array[Dictionary]:
 func _apply_effect(effect: Dictionary, session: GameSession) -> String:
 	var effect_type := str(effect.get("type", ""))
 	var target := str(effect.get("target", ""))
-	var amount := int(effect.get("amount", 0))
+	var raw_amount := int(effect.get("amount", 0))
+	var amount := DifficultyRules.adjust_effect_amount(effect_type, target, raw_amount, session.difficulty_id)
 	match effect_type:
 		"stat":
 			var changed := session.change_stat(target, amount)

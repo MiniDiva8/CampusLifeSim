@@ -175,10 +175,10 @@ func show_setup() -> void:
 	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(center)
 	var panel := _make_panel(COLOR_PANEL, 20, Color("#3C6B70"))
-	panel.custom_minimum_size = Vector2(940, 500)
+	panel.custom_minimum_size = Vector2(940, 550)
 	center.add_child(panel)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 14)
+	box.add_theme_constant_override("separation", 10)
 	panel.add_child(box)
 	box.add_child(_make_label("你的名字", 16, COLOR_MUTED))
 	var name_input := LineEdit.new()
@@ -206,7 +206,7 @@ func show_setup() -> void:
 		trait_button.text = "%s\n\n%s" % [trait_entry.title, trait_entry.desc]
 		trait_button.toggle_mode = true
 		trait_button.button_group = trait_group
-		trait_button.custom_minimum_size = Vector2(290, 150)
+		trait_button.custom_minimum_size = Vector2(290, 118)
 		trait_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		trait_button.add_theme_font_size_override("font_size", 17)
 		_style_button(trait_button, Color("#21464F"), COLOR_TEAL)
@@ -215,20 +215,45 @@ func show_setup() -> void:
 		if trait_entry.id == "study":
 			trait_button.button_pressed = true
 
-	var tip := _make_label("所有路线都能通向有意义的结局。特长只是起点，不是标准答案。", 15, COLOR_MUTED)
+	box.add_child(_make_label("选择难度", 20, COLOR_INK))
+	var difficulty_group := ButtonGroup.new()
+	var difficulty_row := HBoxContainer.new()
+	difficulty_row.add_theme_constant_override("separation", 12)
+	box.add_child(difficulty_row)
+	for difficulty_id in DifficultyRules.ORDER:
+		var config: Dictionary = DifficultyRules.get_config(difficulty_id)
+		var difficulty_button := Button.new()
+		difficulty_button.name = "Difficulty_%s" % difficulty_id
+		difficulty_button.text = "%s · %s\n%s" % [config.name, config.subtitle, config.description]
+		difficulty_button.toggle_mode = true
+		difficulty_button.button_group = difficulty_group
+		difficulty_button.custom_minimum_size = Vector2(290, 82)
+		difficulty_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		difficulty_button.add_theme_font_size_override("font_size", 14)
+		_style_button(difficulty_button, Color("#21464F"), Color(str(config.color)))
+		difficulty_button.set_meta("difficulty_id", difficulty_id)
+		difficulty_row.add_child(difficulty_button)
+		if difficulty_id == DifficultyRules.DEFAULT_NEW_GAME:
+			difficulty_button.button_pressed = true
+
+	var tip := _make_label("难度会改变每次结算：压力、精力消耗、恢复效率与学业收益。中等为推荐体验。", 14, COLOR_MUTED)
 	tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(tip)
-	var start_button := _make_button("进入期末周", func(): _start_from_setup(name_input, trait_group), true)
+	var start_button := _make_button("进入期末周", func(): _start_from_setup(name_input, trait_group, difficulty_group), true)
 	box.add_child(start_button)
 
 
-func _start_from_setup(name_input: LineEdit, trait_group: ButtonGroup) -> void:
+func _start_from_setup(name_input: LineEdit, trait_group: ButtonGroup, difficulty_group: ButtonGroup) -> void:
 	var trait_id := "study"
 	var pressed := trait_group.get_pressed_button()
 	if pressed != null:
 		trait_id = str(pressed.get_meta("trait_id"))
+	var difficulty_id := DifficultyRules.DEFAULT_NEW_GAME
+	var pressed_difficulty := difficulty_group.get_pressed_button()
+	if pressed_difficulty != null:
+		difficulty_id = str(pressed_difficulty.get_meta("difficulty_id"))
 	session = GameSession.new()
-	session.reset(name_input.text, trait_id)
+	session.reset(name_input.text, trait_id, difficulty_id)
 	var error := save_service.save_game(session)
 	if error != OK:
 		_show_fatal_error("无法创建自动存档：%s" % error_string(error))
@@ -288,7 +313,7 @@ func _make_game_header() -> Control:
 	title_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(title_box)
 	title_box.add_child(_make_label("惊魂期末周", 24, COLOR_INK))
-	title_box.add_child(_make_label("%s · %s" % [session.player_name, session.clock.get_display_text()], 14, COLOR_MUTED))
+	title_box.add_child(_make_label("%s · %s · %s难度" % [session.player_name, session.clock.get_display_text(), DifficultyRules.get_display_name(session.difficulty_id)], 14, COLOR_MUTED))
 	var exam_badge := _make_badge("考试：第 5 天上午", COLOR_TEAL)
 	row.add_child(exam_badge)
 	var project_badge := _make_badge("展示：第 7 天下午", COLOR_ACCENT)
@@ -304,10 +329,16 @@ func _build_status_panel() -> Control:
 	box.add_theme_constant_override("separation", 9)
 	panel.add_child(box)
 	box.add_child(_make_label("当前状态", 21, COLOR_INK))
+	var difficulty_config := DifficultyRules.get_config(session.difficulty_id)
+	box.add_child(_make_label("%s难度 · %s" % [difficulty_config.name, difficulty_config.subtitle], 13, Color(str(difficulty_config.color))))
 	box.add_child(_make_stat_bar("学习进度", int(session.stats.study), COLOR_TEAL))
 	box.add_child(_make_stat_bar("项目进度", int(session.stats.project), COLOR_BLUE))
 	box.add_child(_make_stat_bar("精力", int(session.stats.energy), COLOR_ACCENT))
 	box.add_child(_make_stat_bar("压力", int(session.stats.stress), COLOR_CORAL))
+	if int(session.stats.stress) >= DifficultyRules.get_crisis_threshold(session.difficulty_id):
+		var warning := _make_label("⚠ 高压：下一次结算可能出现眩晕", 12, Color("#FFD4CE"))
+		warning.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		box.add_child(warning)
 	box.add_child(_make_separator())
 	box.add_child(_make_label("同伴关系", 17, COLOR_INK))
 	for npc in repository.npcs:
@@ -579,18 +610,37 @@ func _advance_after_action() -> void:
 	var transition := session.clock.advance()
 	var day_messages: Array[String] = []
 	if bool(transition.get("day_changed", false)) and not session.clock.is_finished():
-		var energy_change := session.change_stat("energy", 7)
-		var stress_change := session.change_stat("stress", -2)
+		var energy_recovery := DifficultyRules.adjust_effect_amount("stat", "energy", 7, session.difficulty_id)
+		var stress_relief := DifficultyRules.adjust_effect_amount("stat", "stress", -2, session.difficulty_id)
+		var energy_change := session.change_stat("energy", energy_recovery)
+		var stress_change := session.change_stat("stress", stress_relief)
 		day_messages.append("跨夜恢复：精力 %s%d" % ["+" if energy_change >= 0 else "", energy_change])
 		day_messages.append("新的一天：压力 %s%d" % ["+" if stress_change >= 0 else "", stress_change])
 	var consequences := event_engine.process_due_consequences(session)
 	session.clear_current_background()
+	if bool(session.flags.get("presentation_completed", false)) or session.clock.is_finished():
+		_save_current_session()
+		show_ending()
+		return
+	var continue_action := _complete_advance.bind(consequences, day_messages)
+	var crisis_key := "stress_crisis_slot_%d" % session.clock.get_index()
+	if int(session.stats.stress) >= DifficultyRules.get_crisis_threshold(session.difficulty_id) and not bool(session.flags.get(crisis_key, false)):
+		session.flags[crisis_key] = true
+		session.flags["stress_crisis_count"] = int(session.flags.get("stress_crisis_count", 0)) + 1
+		_save_current_session()
+		show_stress_crisis(continue_action)
+	else:
+		_save_current_session()
+		continue_action.call()
+
+
+func _save_current_session() -> void:
 	var save_error := save_service.save_game(session)
 	if save_error != OK:
 		notice_text = "自动存档失败：%s" % error_string(save_error)
-	if bool(session.flags.get("presentation_completed", false)) or session.clock.is_finished():
-		show_ending()
-		return
+
+
+func _complete_advance(consequences: Array[Dictionary], day_messages: Array[String]) -> void:
 	if not consequences.is_empty():
 		var first: Dictionary = consequences[0]
 		var effect_lines: Array[String] = []
@@ -602,6 +652,87 @@ func _advance_after_action() -> void:
 		show_result("新的一天", "睡眠没有解决所有问题，但给了你重新安排的机会。", day_messages, _present_current_state)
 	else:
 		_present_current_state()
+
+
+func show_stress_crisis(continue_action: Callable) -> void:
+	var background_path := background_catalog.get_stress_background()
+	var root := _reset_screen("stress_crisis", Color("#7C3748"), background_path, Color("#18070A45"))
+	if active_photo_background != null and not bool(settings.get("reduced_motion", false)):
+		active_photo_background.offset_left = -90.0
+		active_photo_background.offset_right = 90.0
+		var disorient := create_tween().set_loops()
+		disorient.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		disorient.tween_property(active_photo_background, "modulate", Color("#FFC7D4"), 0.45)
+		disorient.parallel().tween_property(active_photo_background, "offset_left", -120.0, 0.45)
+		disorient.parallel().tween_property(active_photo_background, "offset_right", 60.0, 0.45)
+		disorient.tween_property(active_photo_background, "modulate", Color.WHITE, 0.45)
+		disorient.parallel().tween_property(active_photo_background, "offset_left", -90.0, 0.45)
+		disorient.parallel().tween_property(active_photo_background, "offset_right", 90.0, 0.45)
+
+	var center := HBoxContainer.new()
+	center.alignment = BoxContainer.ALIGNMENT_CENTER
+	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(center)
+	var panel := _make_panel(Color("#260F18E8"), 22, COLOR_CORAL)
+	panel.custom_minimum_size = Vector2(820, 520)
+	center.add_child(panel)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 14)
+	panel.add_child(box)
+	var eyebrow := _make_label("压力过载 · %s难度" % DifficultyRules.get_display_name(session.difficulty_id), 15, Color("#FF9DA6"))
+	eyebrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(eyebrow)
+	var title := _make_label("视线开始拉扯", 38, COLOR_INK)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(title)
+	var body := _make_label("压力已经达到 %d。灯光拖成了长线，耳边的声音忽远忽近。你必须先决定怎样处理此刻的状态。" % int(session.stats.stress), 18, Color("#F0C8CD"))
+	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.custom_minimum_size.y = 72
+	box.add_child(body)
+	box.add_child(_make_separator())
+	var config := DifficultyRules.get_config(session.difficulty_id)
+	box.add_child(_make_button("停下来喝水，调整呼吸\n压力 -%d · 精力 +3" % int(config.crisis_relief), _resolve_stress_crisis.bind("recover", continue_action), true))
+	var focus_target := "考试准备" if not bool(session.flags.get("exam_completed", false)) else "展示准备"
+	box.add_child(_make_button("趁思路还在，记下关键点\n%s +%d · 精力 -%d · 压力 +%d" % [focus_target, int(config.focus_gain), int(config.focus_energy_cost), int(config.focus_stress_gain)], _resolve_stress_crisis.bind("focus", continue_action)))
+	var social_button := _make_button("给信任的人发消息\n压力 -%d · 需要至少一段关系达到 50" % int(config.social_relief), _resolve_stress_crisis.bind("social", continue_action))
+	social_button.disabled = _highest_relationship_id().is_empty()
+	box.add_child(social_button)
+
+
+func _resolve_stress_crisis(response_id: String, continue_action: Callable) -> void:
+	var config := DifficultyRules.get_config(session.difficulty_id)
+	match response_id:
+		"focus":
+			var task_id := "exam" if not bool(session.flags.get("exam_completed", false)) else "presentation"
+			session.change_task(task_id, int(config.focus_gain))
+			session.change_stat("energy", -int(config.focus_energy_cost))
+			session.change_stat("stress", int(config.focus_stress_gain))
+			session.flags["pushed_through_stress"] = true
+		"social":
+			var npc_id := _highest_relationship_id()
+			if not npc_id.is_empty():
+				session.change_stat("stress", -int(config.social_relief))
+				session.change_relationship(npc_id, 1)
+				session.flags["sought_support_under_stress"] = true
+		_:
+			session.change_stat("stress", -int(config.crisis_relief))
+			session.change_stat("energy", 3)
+			session.flags["paused_under_stress"] = true
+	session.clamp_all()
+	_save_current_session()
+	continue_action.call()
+
+
+func _highest_relationship_id() -> String:
+	var best_id := ""
+	var best_value := 49
+	for npc_id in session.relationships:
+		var value := int(session.relationships[npc_id])
+		if value > best_value:
+			best_value = value
+			best_id = str(npc_id)
+	return best_id
 
 
 func show_ai_advice(advice: Dictionary) -> void:
@@ -827,7 +958,7 @@ func show_ending() -> void:
 	summary.add_child(_make_summary_cell("项目", int(session.stats.project), COLOR_BLUE))
 	summary.add_child(_make_summary_cell("精力", int(session.stats.energy), COLOR_ACCENT))
 	summary.add_child(_make_summary_cell("压力", int(session.stats.stress), COLOR_CORAL))
-	var reveal := _make_label("AI 依赖度：%d   ·   平均关系：%d   ·   经历事件：%d" % [int(session.stats.ai_dependence), int(session.average_relationship()), session.event_history.size()], 15, COLOR_MUTED)
+	var reveal := _make_label("难度：%s   ·   眩晕危机：%d 次   ·   AI 依赖度：%d   ·   平均关系：%d   ·   经历事件：%d" % [DifficultyRules.get_display_name(session.difficulty_id), int(session.flags.get("stress_crisis_count", 0)), int(session.stats.ai_dependence), int(session.average_relationship()), session.event_history.size()], 14, COLOR_MUTED)
 	reveal.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(reveal)
 	var buttons := HBoxContainer.new()

@@ -8,6 +8,7 @@ const RELATIONSHIP_KEYS := ["roommate", "teammate", "scholar", "monitor"]
 
 var player_name := "小山"
 var trait_id := "study"
+var difficulty_id := DifficultyRules.LEGACY_DIFFICULTY
 var run_seed := DEFAULT_SEED
 var clock := GameClock.new()
 var stats: Dictionary = {}
@@ -28,9 +29,10 @@ func _init() -> void:
 	reset()
 
 
-func reset(name_value: String = "小山", selected_trait: String = "study") -> void:
+func reset(name_value: String = "小山", selected_trait: String = "study", selected_difficulty: String = DifficultyRules.LEGACY_DIFFICULTY) -> void:
 	player_name = name_value.strip_edges() if not name_value.strip_edges().is_empty() else "小山"
 	trait_id = selected_trait
+	difficulty_id = DifficultyRules.normalize(selected_difficulty)
 	run_seed = DEFAULT_SEED
 	clock.reset()
 	stats = {
@@ -136,6 +138,7 @@ func to_dict() -> Dictionary:
 		"schema_version": SCHEMA_VERSION,
 		"player_name": player_name,
 		"trait_id": trait_id,
+		"difficulty_id": difficulty_id,
 		"run_seed": run_seed,
 		"clock": clock.to_dict(),
 		"stats": stats.duplicate(true),
@@ -158,6 +161,7 @@ func from_dict(data: Dictionary) -> bool:
 		return false
 	player_name = str(data.get("player_name", "小山"))
 	trait_id = str(data.get("trait_id", "study"))
+	difficulty_id = DifficultyRules.normalize(str(data.get("difficulty_id", DifficultyRules.LEGACY_DIFFICULTY)))
 	run_seed = int(data.get("run_seed", DEFAULT_SEED))
 	clock.from_dict(data.get("clock", {}))
 	stats = data.get("stats", {}).duplicate(true)
