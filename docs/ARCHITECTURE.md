@@ -12,4 +12,6 @@
 
 `DifficultyRules` 在 `EventEngine` 应用效果前统一调整数值，确保事件 JSON 保持单一基础数值。`GameSession` 只保存难度 ID，不复制倍率配置；旧存档自动回退到简易规则。
 
-`BackgroundCatalog` 除了随机选择照片，还从清单提供真实场景名称、活动文本和 EXIF 方向。`OrientedPhotoRect` 不改写原 JPEG，而是在显示层旋转画面；前景保持原始比例完整显示，背景层使用同图覆盖和轻度模糊填充宽屏。
+`BackgroundCatalog` 除了随机选择照片，还从清单提供真实场景名称、活动文本、固定事件地点语义和 EXIF 方向。`OrientedPhotoRect` 不改写原 JPEG，而是在显示层旋转画面。
+
+`AdaptiveSceneView` 将照片和交互内容分成两个稳定区域。它依据旋转后的原图宽高比选择 474、652 或 704 像素的照片舞台，竖图与横图都保持完整比例；事件卡不再覆盖照片，也不再创建同图模糊铺底。事件、地点行动、结算与压力危机共用这一组件，按钮回调仍由 `main.gd` 连接到既有规则层。
