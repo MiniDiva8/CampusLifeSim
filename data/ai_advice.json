@@ -1,8 +1,8 @@
 [
-  {"id": "rest_first", "title": "先让大脑恢复在线", "message": "当前精力偏低。建议回宿舍休息，否则后续行动的投入可能得不偿失。", "risk": "这是状态建议，不代表你可以忽略临近截止时间。", "requirements": [{"type": "stat_max", "target": "energy", "value": 32}], "effects": []},
-  {"id": "calm_down", "title": "降低压力峰值", "message": "你的压力已经影响判断。操场散步或和朋友聊聊，可能比继续硬撑更有效。", "risk": "如果有固定考试或展示，请先核对时间。", "requirements": [{"type": "stat_min", "target": "stress", "value": 72}], "effects": []},
-  {"id": "exam_focus", "title": "优先补齐考试准备", "message": "学习进度落后于项目进度，建议去图书馆或教学楼。", "risk": "纯看数值会低估团队沟通的长期价值。", "requirements": [{"type": "stat_max", "target": "study", "value": 45}], "effects": []},
-  {"id": "project_focus", "title": "项目已经亮黄灯", "message": "项目进度偏低。建议去实验室完成一个可展示的小闭环。", "risk": "不要把未经理解的生成内容直接放进答辩。", "requirements": [{"type": "stat_max", "target": "project", "value": 45}], "effects": []},
+  {"id": "rest_first", "title": "先让大脑恢复在线", "message": "当前精力偏低。建议回中心校区学生公寓休息，否则后续行动的投入可能得不偿失。", "risk": "这是状态建议，不代表你可以忽略临近截止时间。", "requirements": [{"type": "stat_max", "target": "energy", "value": 32}], "effects": []},
+  {"id": "calm_down", "title": "降低压力峰值", "message": "你的压力已经影响判断。去风雨操场、校园步道活动，或和朋友聊聊，可能比继续硬撑更有效。", "risk": "如果有固定考试或展示，请先核对时间和场馆安排。", "requirements": [{"type": "stat_min", "target": "stress", "value": 72}], "effects": []},
+  {"id": "exam_focus", "title": "优先补齐考试准备", "message": "学习进度落后于项目进度，建议去蒋震图书馆，或到知新楼、理综楼整理重点。", "risk": "纯看数值会低估同伴解释与答疑的长期价值。", "requirements": [{"type": "stat_max", "target": "study", "value": 45}], "effects": []},
+  {"id": "project_focus", "title": "AI 课程项目已经亮黄灯", "message": "项目进度偏低。建议去人工智能学院机房完成一个数据、模型、评价都能复现的小闭环。", "risk": "不要把未经理解、未经验证的生成内容直接放进答辩。", "requirements": [{"type": "stat_max", "target": "project", "value": 45}], "effects": []},
   {"id": "efficient_bias", "title": "效率最大化方案", "message": "建议连续投入两个时段推进最低数值，暂时取消休息和社交。", "risk": "警告：本方案没有把情绪和同伴支持纳入计算。", "requirements": [{"type": "stat_min", "target": "ai_dependence", "value": 45}], "effects": []},
   {"id": "balanced", "title": "保留一点余量", "message": "当前没有单项危机。建议选择能同时改善两类状态的行动，并为突发通知留出余量。", "risk": "平衡并不等于每项都做到最高。", "requirements": [], "effects": []}
 ]

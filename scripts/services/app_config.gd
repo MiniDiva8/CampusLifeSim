@@ -9,7 +9,7 @@ const SAVE_SCHEMA_VERSION := 1
 const TARGET_GODOT_VERSION := "4.7.1"
 
 var game_title := "惊魂期末周"
-var version := "0.1.0-demo"
+var version := "0.5.0-demo"
 
 
 func _ready() -> void:

@@ -1,6 +1,6 @@
 [
   {
-    "id": "fixed_arrival", "kind": "fixed", "title": "期末周，启动！", "speaker": "旁白", "body": "七天后既有课程项目展示，也有一场绕不开的算法考试。你的日程表看起来像一块刚通电的警示牌。先决定今天怎么进入状态。", "once": true, "priority": 100,
+    "id": "fixed_arrival", "kind": "fixed", "title": "山大期末周，启动！", "speaker": "旁白", "body": "知新楼外仍是熟悉的期末节奏。七天后既有人工智能课程项目展示，也有一场绕不开的专业核心课考试。你的日程表像一块刚通电的警示牌。先决定今天怎么进入状态。", "once": true, "priority": 100,
     "trigger": {"type": "fixed", "day": 1, "slot": 0}, "requirements": [],
     "choices": [
       {"id": "plan", "label": "列出考试与项目的关键节点", "outcome": "你把混乱拆成了可以处理的几件事。", "effects": [{"type": "task", "target": "exam", "amount": 5}, {"type": "task", "target": "presentation", "amount": 5}, {"type": "stat", "target": "stress", "amount": -3}]},
@@ -9,7 +9,7 @@
     ]
   },
   {
-    "id": "fixed_schedule", "kind": "fixed", "title": "群里突然置顶的新通知", "speaker": "宋小雨", "body": "班长发来更新：考试安排不变，但老师把答疑提前到了第三天上午。通知下面已经刷了四十个“收到”。", "once": true, "priority": 100,
+    "id": "fixed_schedule", "kind": "fixed", "title": "人工智能学院群里的新通知", "speaker": "宋小雨", "body": "走到理综楼走廊时，班长发来更新：考试安排不变，但老师把答疑提前到了第三天上午。通知下面已经刷了四十个“收到”。", "once": true, "priority": 100,
     "trigger": {"type": "fixed", "day": 1, "slot": 2}, "requirements": [],
     "choices": [
       {"id": "record", "label": "立刻记进日程并整理问题", "outcome": "未来的你向现在的你点了个赞。", "effects": [{"type": "task", "target": "exam", "amount": 8}, {"type": "relationship", "target": "monitor", "amount": 3}, {"type": "flag", "target": "qa_known", "value": true, "message": "已记录提前答疑"}]},
@@ -17,15 +17,15 @@
     ]
   },
   {
-    "id": "fixed_project_meeting", "kind": "fixed", "title": "第一次项目对齐", "speaker": "周启明", "body": "组员把原型跑了起来，但展示逻辑、数据和测试还没有真正连成闭环。他说：“核心能跑，剩下的应该很快。”你听见了危险的关键词。", "once": true, "priority": 100,
+    "id": "fixed_project_meeting", "kind": "fixed", "title": "AI 课程项目第一次对齐", "speaker": "周启明", "body": "人工智能学院机房里，组员把模型原型跑了起来，但数据划分、评价指标和展示逻辑还没有真正连成闭环。他说：“基线能跑，剩下的应该很快。”你听见了危险的关键词。", "once": true, "priority": 100,
     "trigger": {"type": "fixed", "day": 2, "slot": 3}, "requirements": [],
     "choices": [
-      {"id": "scope", "label": "一起砍掉不必要的功能", "outcome": "你们把“大而空”改成了“小而能演示”。", "effects": [{"type": "stat", "target": "project", "amount": 9}, {"type": "task", "target": "presentation", "amount": 8}, {"type": "relationship", "target": "teammate", "amount": 5}, {"type": "flag", "target": "scope_controlled", "value": true, "message": "项目范围已收敛"}]},
-      {"id": "more", "label": "再加一个看起来很亮眼的功能", "outcome": "待办列表获得了新的生命，你们的睡眠则失去了一些。", "effects": [{"type": "stat", "target": "project", "amount": 5}, {"type": "stat", "target": "stress", "amount": 8}, {"type": "task", "target": "presentation", "amount": -4}]}
+      {"id": "scope", "label": "先固定数据、指标和最小闭环", "outcome": "你们把“大而空”改成了“小而可复现、能解释”。", "effects": [{"type": "stat", "target": "project", "amount": 9}, {"type": "task", "target": "presentation", "amount": 8}, {"type": "relationship", "target": "teammate", "amount": 5}, {"type": "flag", "target": "scope_controlled", "value": true, "message": "项目范围已收敛"}]},
+      {"id": "more", "label": "再加一个看起来很亮眼的大模型功能", "outcome": "待办列表获得了新的生命，你们的睡眠则失去了一些。", "effects": [{"type": "stat", "target": "project", "amount": 5}, {"type": "stat", "target": "stress", "amount": 8}, {"type": "task", "target": "presentation", "amount": -4}]}
     ]
   },
   {
-    "id": "fixed_qa", "kind": "fixed", "title": "考前答疑", "speaker": "老师", "body": "老师没有直接划重点，而是问：“你们觉得这几类算法真正的差异是什么？”教室里忽然只剩空调的声音。", "once": true, "priority": 100,
+    "id": "fixed_qa", "kind": "fixed", "title": "理综楼里的考前答疑", "speaker": "老师", "body": "老师没有直接划重点，而是问：“训练集、验证集和测试集为什么不能混着用？”理综楼教室里忽然只剩空调的声音。", "once": true, "priority": 100,
     "trigger": {"type": "fixed", "day": 3, "slot": 1}, "requirements": [],
     "choices": [
       {"id": "reason", "label": "用自己的理解回答", "outcome": "答案不完美，但老师帮你补上了关键连接。", "effects": [{"type": "stat", "target": "study", "amount": 12}, {"type": "task", "target": "exam", "amount": 10}, {"type": "stat", "target": "stress", "amount": -4}]},
@@ -34,7 +34,7 @@
     ]
   },
   {
-    "id": "fixed_midweek", "kind": "fixed", "title": "期末周中场盘点", "speaker": "AI 学伴", "body": "距离考试只剩一天多，项目展示也已经逼近。AI 把最低的进度标成红色，却没有标出你眼下的疲惫。", "once": true, "priority": 100,
+    "id": "fixed_midweek", "kind": "fixed", "title": "蒋震图书馆的中场盘点", "speaker": "AI 学伴", "body": "蒋震图书馆的桌面上摊着课程资料。距离考试只剩一天多，项目展示也已经逼近。AI 把最低的进度标成红色，却没有标出你眼下的疲惫。", "once": true, "priority": 100,
     "trigger": {"type": "fixed", "day": 4, "slot": 3}, "requirements": [],
     "choices": [
       {"id": "human_check", "label": "把精力和压力也纳入计划", "outcome": "你给计划表加上了“人类限制条件”。", "effects": [{"type": "stat", "target": "stress", "amount": -8}, {"type": "flag", "target": "human_centered_plan", "value": true, "message": "计划已考虑个人状态"}]},
@@ -42,7 +42,7 @@
     ]
   },
   {
-    "id": "fixed_exam", "kind": "fixed", "title": "算法考试", "speaker": "旁白", "body": "试卷翻开的声音整齐得像一次批处理。第一道综合题要求解释为什么选择这个方法——它偏偏不是 AI 摘要里那种只写结论的题。", "once": true, "priority": 100,
+    "id": "fixed_exam", "kind": "fixed", "title": "人工智能专业核心课考试", "speaker": "旁白", "body": "董明珠楼里，试卷翻开的声音整齐得像一次批处理。第一道综合题要求解释模型选择、数据划分和评价指标——它偏偏不是 AI 摘要里那种只写结论的题。", "once": true, "priority": 100,
     "trigger": {"type": "fixed", "day": 5, "slot": 1}, "requirements": [],
     "choices": [
       {"id": "reasoning", "label": "从自己理解的过程开始推导", "outcome": "你写得不算最快，但每一步都能接得上。", "effects": [{"type": "task", "target": "exam", "amount": 25}, {"type": "stat", "target": "study", "amount": 8}, {"type": "stat", "target": "energy", "amount": -12}, {"type": "flag", "target": "exam_completed", "value": true, "message": "考试已完成"}]},
@@ -51,16 +51,16 @@
     ]
   },
   {
-    "id": "fixed_rehearsal", "kind": "fixed", "title": "项目彩排", "speaker": "周启明", "body": "彩排到第三页，演示数据突然和讲稿对不上。组员盯着屏幕说：“昨天明明是好的。”这句话在机房里格外熟悉。", "once": true, "priority": 100,
+    "id": "fixed_rehearsal", "kind": "fixed", "title": "AI 课程项目彩排", "speaker": "周启明", "body": "人工智能学院机房里，彩排到第三页，演示指标突然和讲稿对不上。组员盯着屏幕说：“昨天随机种子明明是好的。”这句话在机房里格外熟悉。", "once": true, "priority": 100,
     "trigger": {"type": "fixed", "day": 6, "slot": 2}, "requirements": [],
     "choices": [
-      {"id": "trace", "label": "按数据流逐步定位问题", "outcome": "你们找到一个被演示脚本掩盖的边界情况。", "effects": [{"type": "stat", "target": "project", "amount": 12}, {"type": "task", "target": "presentation", "amount": 16}, {"type": "relationship", "target": "teammate", "amount": 5}, {"type": "stat", "target": "energy", "amount": -8}]},
-      {"id": "fake", "label": "先固定一组不会出错的数据", "outcome": "演示暂时顺了，但你知道追问仍可能把问题翻出来。", "effects": [{"type": "task", "target": "presentation", "amount": 10}, {"type": "stat", "target": "stress", "amount": 9}, {"type": "flag", "target": "demo_shortcut", "value": true, "message": "演示使用了临时捷径"}]},
+      {"id": "trace", "label": "核对数据划分、随机种子和评价脚本", "outcome": "你们找到一个把验证集结果误当测试集结果的边界情况。", "effects": [{"type": "stat", "target": "project", "amount": 12}, {"type": "task", "target": "presentation", "amount": 16}, {"type": "relationship", "target": "teammate", "amount": 5}, {"type": "stat", "target": "energy", "amount": -8}]},
+      {"id": "fake", "label": "先固定一组最好看的演示结果", "outcome": "演示暂时顺了，但你知道追问仍可能把不可复现的问题翻出来。", "effects": [{"type": "task", "target": "presentation", "amount": 10}, {"type": "stat", "target": "stress", "amount": 9}, {"type": "flag", "target": "demo_shortcut", "value": true, "message": "演示使用了临时捷径"}]},
       {"id": "ask_help", "label": "把现象讲清楚，请组员一起查", "outcome": "沟通花了一点时间，却让两个人都真正理解了问题。", "effects": [{"type": "stat", "target": "project", "amount": 9}, {"type": "task", "target": "presentation", "amount": 13}, {"type": "relationship", "target": "teammate", "amount": 8}]}
     ]
   },
   {
-    "id": "fixed_presentation", "kind": "fixed", "title": "最终展示", "speaker": "评审老师", "body": "五分钟倒计时亮起。你们展示的不只是功能，还有这一周里如何取舍、验证和协作的过程。最后一个问题是：“AI 的建议错了怎么办？”", "once": true, "priority": 100,
+    "id": "fixed_presentation", "kind": "fixed", "title": "人工智能学院课程项目展示", "speaker": "评审老师", "body": "青年会客厅里，五分钟倒计时亮起。你们展示的不只是模型指标，还有这一周里如何取舍、验证和协作的过程。最后一个问题是：“如果训练数据变化，结论还可靠吗？”", "once": true, "priority": 100,
     "trigger": {"type": "fixed", "day": 7, "slot": 2}, "requirements": [],
     "choices": [
       {"id": "explain", "label": "展示验证机制与真实失败案例", "outcome": "你没有把 AI 描述成魔法，而是讲清了工具、风险和人的责任。", "effects": [{"type": "task", "target": "presentation", "amount": 25}, {"type": "stat", "target": "project", "amount": 8}, {"type": "flag", "target": "verified_ai", "value": true, "message": "你说明了 AI 验证方法"}, {"type": "flag", "target": "presentation_completed", "value": true, "message": "项目展示已完成"}]},
@@ -70,7 +70,7 @@
   },
 
   {
-    "id": "loc_dorm_noise", "kind": "location", "title": "宿舍里的外放视频", "speaker": "程乐天", "body": "你刚翻开资料，室友的搞笑视频就用最大音量介绍了什么叫注意力粉碎。", "once": true, "priority": 50,
+    "id": "loc_dorm_noise", "kind": "location", "title": "中心校区学生公寓里的外放视频", "speaker": "程乐天", "body": "你刚在宿舍翻开人工智能核心课资料，室友的搞笑视频就用最大音量介绍了什么叫注意力粉碎。", "once": true, "priority": 50,
     "trigger": {"type": "location", "location": "dorm", "days": [1, 2, 3], "slots": []}, "requirements": [],
     "choices": [
       {"id": "talk", "label": "好好商量安静一小时", "outcome": "室友立刻戴上耳机，还顺手递来一份重点。", "effects": [{"type": "relationship", "target": "roommate", "amount": 6}, {"type": "stat", "target": "study", "amount": 5}]},
@@ -87,7 +87,7 @@
     ]
   },
   {
-    "id": "loc_library_seat", "kind": "location", "title": "图书馆座位消失术", "speaker": "旁白", "body": "空座位像稀有资源一样刚出现就被占走。预约系统显示还有一个位置，但它似乎存在于平行宇宙。", "once": true, "priority": 50,
+    "id": "loc_library_seat", "kind": "location", "title": "蒋震图书馆座位消失术", "speaker": "旁白", "body": "蒋震图书馆的空座位像稀有资源一样刚出现就被占走。预约系统显示还有一个位置，但它似乎存在于平行宇宙。", "once": true, "priority": 50,
     "trigger": {"type": "location", "location": "library", "days": [], "slots": []}, "requirements": [],
     "choices": [
       {"id": "wait", "label": "排队等一个靠谱位置", "outcome": "等待消耗了耐心，但坐下后效率不错。", "effects": [{"type": "stat", "target": "study", "amount": 9}, {"type": "stat", "target": "energy", "amount": -8}, {"type": "stat", "target": "stress", "amount": 3}]},
@@ -96,7 +96,7 @@
     ]
   },
   {
-    "id": "loc_library_phone", "kind": "location", "title": "手机只看一分钟", "speaker": "旁白", "body": "你准备查一个公式，手指却熟练地滑进了消息流。再抬头时，隔壁同学已经翻完一章。", "once": true, "priority": 50,
+    "id": "loc_library_phone", "kind": "location", "title": "蒋震图书馆里“只看一分钟”", "speaker": "旁白", "body": "你准备查一个损失函数，手指却熟练地滑进了消息流。再抬头时，隔壁同学已经翻完一章。", "once": true, "priority": 50,
     "trigger": {"type": "location", "location": "library", "days": [], "slots": []}, "requirements": [{"type": "day_min", "value": 3}],
     "choices": [
       {"id": "focus", "label": "开启专注模式继续复习", "outcome": "世界暂时安静下来，公式也开始说人话。", "effects": [{"type": "stat", "target": "study", "amount": 10}, {"type": "stat", "target": "energy", "amount": -8}]},
@@ -104,7 +104,7 @@
     ]
   },
   {
-    "id": "loc_teaching_empty", "kind": "location", "title": "寻找传说中的空教室", "speaker": "旁白", "body": "第一间有社团开会，第二间在调设备，第三间门上写着“空闲”，里面坐满了和你一样相信这两个字的人。", "once": true, "priority": 50,
+    "id": "loc_teaching_empty", "kind": "location", "title": "中心校区寻找空教室", "speaker": "旁白", "body": "你在知新楼、理综楼和董明珠楼之间查看安排：第一间有社团开会，第二间在调设备，第三间门上写着“空闲”，里面坐满了和你一样相信这两个字的人。", "once": true, "priority": 50,
     "trigger": {"type": "location", "location": "teaching", "days": [], "slots": []}, "requirements": [],
     "choices": [
       {"id": "stairs", "label": "去顶层继续找", "outcome": "你找到一间小教室，也顺便完成了今日爬楼。", "effects": [{"type": "stat", "target": "study", "amount": 9}, {"type": "stat", "target": "energy", "amount": -9}]},
@@ -120,7 +120,7 @@
     ]
   },
   {
-    "id": "loc_lab_bug", "kind": "location", "title": "截图里缺少的那一行", "speaker": "周启明", "body": "组员发来一张报错截图：“帮我看看。”截图完美地避开了文件名、行号和上下文。", "once": true, "priority": 50,
+    "id": "loc_lab_bug", "kind": "location", "title": "机房截图里缺少的那一行", "speaker": "周启明", "body": "人工智能学院机房里，组员发来一张报错截图：“帮我看看。”截图完美地避开了数据版本、报错行号和运行环境。", "once": true, "priority": 50,
     "trigger": {"type": "location", "location": "lab", "days": [], "slots": []}, "requirements": [],
     "choices": [
       {"id": "context", "label": "先让他补齐复现步骤和日志", "outcome": "完整信息一到，问题十分钟内定位。", "effects": [{"type": "stat", "target": "project", "amount": 10}, {"type": "relationship", "target": "teammate", "amount": 5}, {"type": "flag", "target": "debug_method", "value": true, "message": "团队形成了调试规范"}]},
@@ -129,7 +129,7 @@
     ]
   },
   {
-    "id": "loc_lab_crash", "kind": "location", "title": "演示前的电脑更新", "speaker": "旁白", "body": "电脑弹出重启提示，倒计时比项目 DDL 更有执行力。你们还有几个文件没有推到共享目录。", "once": true, "priority": 50,
+    "id": "loc_lab_crash", "kind": "location", "title": "机房电脑突然更新", "speaker": "旁白", "body": "机房电脑弹出重启提示，倒计时比项目 DDL 更有执行力。你们还有模型权重、环境说明和评价结果没有备份。", "once": true, "priority": 50,
     "trigger": {"type": "location", "location": "lab", "days": [], "slots": []}, "requirements": [{"type": "day_min", "value": 4}],
     "choices": [
       {"id": "backup", "label": "先备份并记录当前版本", "outcome": "重启没有带走进度，版本说明还救了之后的彩排。", "effects": [{"type": "stat", "target": "project", "amount": 9}, {"type": "task", "target": "presentation", "amount": 8}, {"type": "flag", "target": "backup_ready", "value": true, "message": "演示版本已备份"}]},
@@ -137,7 +137,7 @@
     ]
   },
   {
-    "id": "loc_canteen_queue", "kind": "location", "title": "排队长度预测失败", "speaker": "旁白", "body": "你选择了看起来最短的队，事实证明大家都选择了看起来最短的队。隔壁窗口已经移动了三轮。", "once": true, "priority": 50,
+    "id": "loc_canteen_queue", "kind": "location", "title": "齐园队列预测失败", "speaker": "旁白", "body": "你在齐园餐厅选择了看起来最短的队，事实证明大家都选择了看起来最短的队。隔壁窗口已经移动了三轮。", "once": true, "priority": 50,
     "trigger": {"type": "location", "location": "canteen", "days": [], "slots": []}, "requirements": [],
     "choices": [
       {"id": "stay", "label": "接受选择，顺便整理待办", "outcome": "饭来得慢，计划倒是清楚了。", "effects": [{"type": "stat", "target": "energy", "amount": 12}, {"type": "stat", "target": "stress", "amount": -5}, {"type": "task", "target": "presentation", "amount": 3}]},
@@ -145,7 +145,7 @@
     ]
   },
   {
-    "id": "loc_canteen_lunch", "kind": "location", "title": "一顿饭聊掉一个时段", "speaker": "宋小雨", "body": "你本来只想吃饭，拼桌后话题从考试一路跑到学院趣事。班长顺口提到展示教室临时调整。", "once": true, "priority": 50,
+    "id": "loc_canteen_lunch", "kind": "location", "title": "齐园一顿饭聊掉一个时段", "speaker": "宋小雨", "body": "你本来只想在齐园吃饭，拼桌后话题从核心课考试一路跑到人工智能学院趣事。班长顺口提到展示教室临时调整。", "once": true, "priority": 50,
     "trigger": {"type": "location", "location": "canteen", "days": [], "slots": []}, "requirements": [{"type": "day_min", "value": 3}],
     "choices": [
       {"id": "listen", "label": "放慢一点，认真听完消息", "outcome": "时间花掉了，但你提前知道了重要安排。", "effects": [{"type": "relationship", "target": "monitor", "amount": 7}, {"type": "task", "target": "presentation", "amount": 7}, {"type": "stat", "target": "energy", "amount": 9}, {"type": "flag", "target": "room_change_known", "value": true, "message": "已知展示教室调整"}]},
@@ -186,10 +186,10 @@
     ]
   },
   {
-    "id": "npc_teammate_log", "kind": "npc", "title": "“我这里可以运行”", "speaker": "周启明", "body": "组员的电脑上功能正常，你这里却持续报错。你们终于意识到，两个人使用的配置并不完全相同。", "once": true, "priority": 70,
+    "id": "npc_teammate_log", "kind": "npc", "title": "“我这里可以复现”", "speaker": "周启明", "body": "组员的电脑上指标正常，你这里却持续漂移。你们终于意识到，两个人使用的数据版本、依赖和随机种子并不完全相同。", "once": true, "priority": 70,
     "trigger": {"type": "location", "location": "lab", "days": [], "slots": []}, "requirements": [{"type": "event_fired", "target": "loc_lab_bug", "value": true}],
     "choices": [
-      {"id": "document", "label": "一起整理环境和复现步骤", "outcome": "一份短文档解决了之后三次“我这里可以”。", "effects": [{"type": "stat", "target": "project", "amount": 11}, {"type": "relationship", "target": "teammate", "amount": 8}, {"type": "flag", "target": "environment_documented", "value": true, "message": "项目环境已记录"}]},
+      {"id": "document", "label": "记录数据版本、环境和随机种子", "outcome": "一份短文档解决了之后三次“我这里可以复现”。", "effects": [{"type": "stat", "target": "project", "amount": 11}, {"type": "relationship", "target": "teammate", "amount": 8}, {"type": "flag", "target": "environment_documented", "value": true, "message": "项目环境已记录"}]},
       {"id": "his_machine", "label": "决定展示时只用他的电脑", "outcome": "眼前问题被绕过，新的单点风险悄悄出现。", "effects": [{"type": "stat", "target": "project", "amount": 7}, {"type": "task", "target": "presentation", "amount": 5}, {"type": "stat", "target": "stress", "amount": 5}]}
     ]
   },
@@ -202,7 +202,7 @@
     ]
   },
   {
-    "id": "npc_scholar_exchange", "kind": "npc", "title": "两种复习地图", "speaker": "林知夏", "body": "林知夏的笔记按概念联系整理，你的笔记按题型分类。两种方法没有谁绝对正确，放在一起却刚好互补。", "once": true, "priority": 70,
+    "id": "npc_scholar_exchange", "kind": "npc", "title": "蒋震图书馆里的两种复习地图", "speaker": "林知夏", "body": "蒋震图书馆里，林知夏的笔记按模型与概念联系整理，你的笔记按题型分类。两种方法没有谁绝对正确，放在一起却刚好互补。", "once": true, "priority": 70,
     "trigger": {"type": "location", "location": "library", "days": [], "slots": []}, "requirements": [{"type": "event_fired", "target": "loc_library_seat", "value": true}],
     "choices": [
       {"id": "compare", "label": "一起解释各自最薄弱的一章", "outcome": "解释给别人听，让你发现了自己真正没懂的地方。", "effects": [{"type": "stat", "target": "study", "amount": 12}, {"type": "relationship", "target": "scholar", "amount": 8}, {"type": "flag", "target": "peer_review", "value": true, "message": "完成同伴互评"}]},
@@ -235,16 +235,16 @@
   },
 
   {
-    "id": "ai_summary", "kind": "ai", "title": "总结里多出来的重点", "speaker": "AI 学伴", "body": "AI 用几十秒总结完三章资料，其中一条写得格外肯定。你翻遍课件，却找不到老师讲过这个结论。", "once": true, "priority": 80,
+    "id": "ai_summary", "kind": "ai", "title": "总结里多出来的论文", "speaker": "AI 学伴", "body": "AI 用几十秒总结完三章资料，还给出一篇标题、作者和年份都很完整的论文。你翻遍课程资料和本地文献，却找不到它真正存在过的证据。", "once": true, "priority": 80,
     "trigger": {"type": "location", "location": "library", "days": [], "slots": []}, "requirements": [{"type": "day_min", "value": 2}],
     "choices": [
-      {"id": "verify", "label": "回到课件和教材核验", "outcome": "那条结论来自错误拼接。核验花了时间，却保住了理解。", "effects": [{"type": "stat", "target": "study", "amount": 9}, {"type": "stat", "target": "ai_dependence", "amount": 3}, {"type": "flag", "target": "verified_ai", "value": true, "message": "你核验了 AI 总结"}]},
-      {"id": "trust", "label": "先背下来，AI 应该不会乱说", "outcome": "记忆进度很快，错误也被一起装进了脑子。", "effects": [{"type": "stat", "target": "study", "amount": 5}, {"type": "stat", "target": "ai_dependence", "amount": 13}], "delayed": [{"after_slots": 5, "title": "错误重点回来了", "message": "练习题与 AI 总结矛盾，你不得不重新梳理。", "effects": [{"type": "stat", "target": "study", "amount": -7}, {"type": "stat", "target": "stress", "amount": 8}]}]},
+      {"id": "verify", "label": "回到课件、教材和原始来源核验", "outcome": "那篇论文和结论来自错误拼接。核验花了时间，却保住了理解和引用可信度。", "effects": [{"type": "stat", "target": "study", "amount": 9}, {"type": "stat", "target": "ai_dependence", "amount": 3}, {"type": "flag", "target": "verified_ai", "value": true, "message": "你核验了 AI 总结"}]},
+      {"id": "trust", "label": "先放进笔记，AI 应该不会编论文", "outcome": "整理进度很快，虚构来源也被一起装进了笔记。", "effects": [{"type": "stat", "target": "study", "amount": 5}, {"type": "stat", "target": "ai_dependence", "amount": 13}], "delayed": [{"after_slots": 5, "title": "虚构引用回来了", "message": "同学追问论文出处，你不得不重新核对整段内容。", "effects": [{"type": "stat", "target": "study", "amount": -7}, {"type": "stat", "target": "stress", "amount": 8}]}]},
       {"id": "discard", "label": "因为一处错误就完全不用 AI", "outcome": "你避开了错误，也放弃了原本可验证的效率工具。", "effects": [{"type": "stat", "target": "ai_dependence", "amount": -8}, {"type": "stat", "target": "energy", "amount": -8}, {"type": "stat", "target": "study", "amount": 6}]}
     ]
   },
   {
-    "id": "ai_bugfix", "kind": "ai", "title": "不存在的接口", "speaker": "AI 学伴", "body": "AI 给出一段结构漂亮的修复代码，解释也很完整。唯一的问题是，它调用的接口在当前引擎版本里根本不存在。", "once": true, "priority": 80,
+    "id": "ai_bugfix", "kind": "ai", "title": "不存在的接口", "speaker": "AI 学伴", "body": "人工智能学院机房里，AI 给出一段结构漂亮的修复代码，解释也很完整。唯一的问题是，它调用的接口在当前引擎版本里根本不存在。", "once": true, "priority": 80,
     "trigger": {"type": "location", "location": "lab", "days": [], "slots": []}, "requirements": [{"type": "day_min", "value": 3}],
     "choices": [
       {"id": "docs", "label": "查本地文档，再改成真实接口", "outcome": "AI 提供了思路，文档负责把思路拉回现实。", "effects": [{"type": "stat", "target": "project", "amount": 11}, {"type": "stat", "target": "ai_dependence", "amount": 4}, {"type": "flag", "target": "verified_ai", "value": true, "message": "你验证了 AI 代码"}]},
@@ -262,7 +262,7 @@
     ]
   },
   {
-    "id": "ai_outline", "kind": "ai", "title": "完美得不像你们的讲稿", "speaker": "AI 学伴", "body": "AI 生成了一份术语密集、逻辑流畅的展示提纲。组员读完问：“这段我们真的做了吗？”", "once": true, "priority": 80,
+    "id": "ai_outline", "kind": "ai", "title": "完美得不像你们的讲稿", "speaker": "AI 学伴", "body": "AI 生成了一份术语密集、逻辑流畅的展示提纲，声称模型已经解决泛化、偏差与可解释性问题。组员读完问：“这些实验我们真的做了吗？”", "once": true, "priority": 80,
     "trigger": {"type": "location", "location": "lab", "days": [], "slots": []}, "requirements": [{"type": "day_min", "value": 5}],
     "choices": [
       {"id": "ground", "label": "逐段对应真实功能和证据", "outcome": "提纲变短了，却终于属于你们自己的项目。", "effects": [{"type": "task", "target": "presentation", "amount": 14}, {"type": "stat", "target": "project", "amount": 7}, {"type": "relationship", "target": "teammate", "amount": 5}, {"type": "flag", "target": "verified_ai", "value": true, "message": "展示内容已与真实成果核对"}]},

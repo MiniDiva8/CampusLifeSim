@@ -10,7 +10,7 @@ corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
 [sub_resource type="StyleBoxFlat" id="StyleFill"]
-bg_color = Color(0.333, 0.761, 0.639, 1)
+bg_color = Color(0.721569, 0.282353, 0.313726, 1)
 corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_right = 10
@@ -31,13 +31,19 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 
 [node name="Box" type="VBoxContainer" parent="Center"]
-custom_minimum_size = Vector2(520, 160)
+custom_minimum_size = Vector2(520, 190)
 theme_override_constants/separation = 18
 
 [node name="Title" type="Label" parent="Center/Box"]
 theme_override_colors/font_color = Color(0.918, 0.957, 0.945, 1)
 theme_override_font_sizes/font_size = 30
 text = "惊魂期末周"
+horizontal_alignment = 1
+
+[node name="CampusLabel" type="Label" parent="Center/Box"]
+theme_override_colors/font_color = Color(0.721569, 0.282353, 0.313726, 1)
+theme_override_font_sizes/font_size = 15
+text = "山东大学中心校区 · 人工智能学院"
 horizontal_alignment = 1
 
 [node name="ProgressLabel" type="Label" parent="Center/Box"]

@@ -11,6 +11,7 @@ const TEAL := Color("#63DDB8")
 const GOLD := Color("#F4C45E")
 const CORAL := Color("#FF8580")
 const BLUE := Color("#7CB9E8")
+const SDU_RED := Color("#B84850")
 
 var photo_rect: OrientedPhotoRect
 var interaction_panel: PanelContainer
@@ -59,14 +60,14 @@ func _build_background() -> void:
 	add_child(base)
 
 	var upper_glow := ColorRect.new()
-	upper_glow.color = Color("#1531374A")
+	upper_glow.color = Color("#3E1D224A")
 	upper_glow.position = Vector2(0, 0)
 	upper_glow.size = Vector2(1280, 190)
 	upper_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(upper_glow)
 
 	var rule := ColorRect.new()
-	rule.color = Color("#5DDDB82B")
+	rule.color = Color("#B8485038")
 	rule.position = Vector2(24, 74)
 	rule.size = Vector2(1232, 1)
 	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -90,7 +91,7 @@ func _build_hud(data: Dictionary) -> void:
 	brand.add_theme_constant_override("separation", -2)
 	row.add_child(brand)
 	brand.add_child(_label("惊魂期末周", 18, INK))
-	brand.add_child(_label("FINAL WEEK · CAMPUS LIFE", 9, Color("#6FA59A")))
+	brand.add_child(_label("SDU · CENTER CAMPUS · AI", 9, SDU_RED))
 
 	row.add_child(_divider())
 	row.add_child(_compact_pair("日期", str(data.get("time", "第 1 天 · 清晨")), TEAL, 178))

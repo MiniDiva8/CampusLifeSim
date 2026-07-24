@@ -1,10 +1,10 @@
 [
   {
     "id": "dorm",
-    "name": "海风宿舍",
+    "name": "中心校区学生公寓",
     "icon": "▣",
     "subtitle": "休息、夜聊与赶工",
-    "description": "床铺是最可靠的充电器，室友则是最不可预测的消息源。",
+    "description": "山大南路 27 号的夜深下来，宿舍既是恢复精力的地方，也是期末消息最密集的一站。",
     "color": "#7C6FB2",
     "actions": [
       {"id": "sleep", "label": "补个好觉", "description": "恢复精力，也让脑子停止冒烟。", "effects": [{"type": "stat", "target": "energy", "amount": 22}, {"type": "stat", "target": "stress", "amount": -12}]},
@@ -13,10 +13,10 @@
   },
   {
     "id": "library",
-    "name": "星海图书馆",
+    "name": "蒋震图书馆",
     "icon": "▤",
     "subtitle": "复习、资料与偶遇",
-    "description": "这里很安静，除了翻书声、键盘声和心里倒计时的声音。",
+    "description": "蒋震图书馆里很安静，除了翻书声、键盘声和心里倒计时的声音。",
     "color": "#4C8F78",
     "actions": [
       {"id": "review", "label": "专注复习", "description": "稳定提高知识掌握。", "effects": [{"type": "stat", "target": "study", "amount": 10}, {"type": "stat", "target": "energy", "amount": -10}, {"type": "stat", "target": "stress", "amount": 3}]},
@@ -25,10 +25,10 @@
   },
   {
     "id": "teaching",
-    "name": "明德教学楼",
+    "name": "中心校区教学区",
     "icon": "▥",
-    "subtitle": "课程、答疑与考试",
-    "description": "每一间教室都可能藏着重点，也可能藏着临时通知。",
+    "subtitle": "知新楼、理综楼与董明珠楼",
+    "description": "不同楼宇承担着课程、答疑、自习与考试；照片会显示你真正抵达的场景。",
     "color": "#D08A57",
     "actions": [
       {"id": "self_study", "label": "找空教室自习", "description": "没有抢座压力的复习。", "effects": [{"type": "stat", "target": "study", "amount": 8}, {"type": "stat", "target": "energy", "amount": -8}]},
@@ -37,10 +37,10 @@
   },
   {
     "id": "lab",
-    "name": "启智实验室",
+    "name": "人工智能学院机房",
     "icon": "▦",
     "subtitle": "代码、协作与 AI",
-    "description": "显示器亮着，希望也亮着；至于测试为什么红了，另说。",
+    "description": "人工智能学院的机房里，显示器和模型都亮着；至于验证集为什么又掉点，另说。",
     "color": "#477FA8",
     "actions": [
       {"id": "code", "label": "推进核心功能", "description": "扎实完成自己负责的部分。", "effects": [{"type": "stat", "target": "project", "amount": 11}, {"type": "task", "target": "presentation", "amount": 5}, {"type": "stat", "target": "energy", "amount": -12}, {"type": "stat", "target": "stress", "amount": 5}]},
@@ -49,10 +49,10 @@
   },
   {
     "id": "canteen",
-    "name": "齐园食堂",
+    "name": "齐园餐厅",
     "icon": "▧",
     "subtitle": "吃饭、闲聊与情报",
-    "description": "一顿热饭能解决很多问题，至少在下一道 DDL 之前。",
+    "description": "齐园的一顿热饭能解决很多问题，至少在下一道 DDL 之前。",
     "color": "#C96767",
     "actions": [
       {"id": "meal", "label": "认真吃顿饭", "description": "补充精力，暂停内耗。", "effects": [{"type": "stat", "target": "energy", "amount": 14}, {"type": "stat", "target": "stress", "amount": -7}]},
@@ -61,10 +61,10 @@
   },
   {
     "id": "field",
-    "name": "青春操场",
+    "name": "风雨操场",
     "icon": "◇",
-    "subtitle": "运动、散步与整理心情",
-    "description": "跑道不问你复习了多少，只提醒你先把气喘匀。",
+    "subtitle": "运动、散步与综合体育馆",
+    "description": "从风雨操场到室外田径场，场地不问你复习了多少，只提醒你先把气喘匀。",
     "color": "#5D9B66",
     "actions": [
       {"id": "walk", "label": "沿校园路散步", "description": "把脑内弹窗一个个关掉。", "effects": [{"type": "stat", "target": "stress", "amount": -14}, {"type": "stat", "target": "energy", "amount": 4}]},

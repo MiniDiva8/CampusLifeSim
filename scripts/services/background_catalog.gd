@@ -8,6 +8,7 @@ var locations: Dictionary = {}
 var scenes: Dictionary = {}
 var orientations: Dictionary = {}
 var event_locations: Dictionary = {}
+var event_scenes: Dictionary = {}
 var roads: Dictionary = {}
 var effects: Dictionary = {}
 var errors: Array[String] = []
@@ -20,6 +21,7 @@ func load_all() -> bool:
 	scenes.clear()
 	orientations.clear()
 	event_locations.clear()
+	event_scenes.clear()
 	roads.clear()
 	effects.clear()
 	var data = _read_json(MANIFEST_PATH)
@@ -64,6 +66,17 @@ func load_all() -> bool:
 				errors.append("Event background references an unknown location: %s -> %s" % [event_id, location_id])
 			else:
 				event_locations[event_id] = location_id
+	var raw_event_scenes = data.get("event_scenes", {})
+	if raw_event_scenes is Dictionary:
+		for event_id_value in raw_event_scenes:
+			var event_id := str(event_id_value)
+			var scene_path := str(raw_event_scenes[event_id_value])
+			if not ResourceLoader.exists(scene_path):
+				errors.append("Event scene references a missing background: %s -> %s" % [event_id, scene_path])
+			elif not event_locations.has(event_id):
+				errors.append("Event scene needs a matching event location: %s" % event_id)
+			else:
+				event_scenes[event_id] = scene_path
 	var raw_roads = data.get("roads", {})
 	if raw_roads is Dictionary:
 		for period in raw_roads:
@@ -129,6 +142,12 @@ func ensure_event_background(event_id: String, session: GameSession) -> String:
 	if not session.current_background_path.is_empty():
 		return session.current_background_path
 	var location_id := str(event_locations.get(event_id, "teaching"))
+	var scene_path := str(event_scenes.get(event_id, ""))
+	if not scene_path.is_empty():
+		session.current_location_id = location_id
+		session.current_background_path = scene_path
+		session.last_location_backgrounds[location_id] = scene_path
+		return scene_path
 	return choose_location_background(location_id, session)
 
 
@@ -160,32 +179,32 @@ func _default_scene_context(location_id: String, background_path: String) -> Dic
 	var activity_label := ""
 	match location_id:
 		"dorm":
-			display_name = "海风宿舍"
-			arrival_text = "你回到海风宿舍，准备在自己的生活空间里安排这个时段。"
+			display_name = "中心校区学生公寓"
+			arrival_text = "你回到山东大学中心校区学生公寓，准备在自己的生活空间里安排这个时段。"
 		"library":
-			display_name = "星海图书馆"
-			arrival_text = "你来到星海图书馆，准备在安静的阅览空间里推进复习。"
+			display_name = "蒋震图书馆"
+			arrival_text = "你来到蒋震图书馆，准备在安静的阅览空间里推进人工智能核心课复习。"
 		"teaching":
-			display_name = "教学楼"
-			arrival_text = "你来到教学区，准备处理课程、答疑或复习安排。"
+			display_name = "中心校区教学区"
+			arrival_text = "你来到山东大学中心校区教学区，准备处理课程、答疑或复习安排。"
 		"lab":
-			display_name = "启智实验室"
-			arrival_text = "你来到启智实验室，显示器和项目进度都在等你。"
+			display_name = "人工智能学院机房"
+			arrival_text = "你来到人工智能学院机房，显示器、模型和项目进度都在等你。"
 		"canteen":
-			display_name = "齐园食堂"
-			arrival_text = "你来到齐园食堂，准备用一顿饭给身体和情绪补充能量。"
+			display_name = "齐园餐厅"
+			arrival_text = "你来到齐园餐厅，准备用一顿饭给身体和情绪补充能量。"
 			if background_path.contains("/水果/"):
-				display_name = "齐园食堂 · 水果区"
-				arrival_text = "你来到齐园食堂的水果区，准备挑些水果补充能量。"
+				display_name = "齐园餐厅 · 水果区"
+				arrival_text = "你来到齐园餐厅的水果区，准备挑些水果补充能量。"
 			elif background_path.contains("/早餐/"):
-				display_name = "齐园食堂 · 早餐"
-				arrival_text = "你来到齐园食堂吃早餐，先让新的一天有足够的能量。"
+				display_name = "齐园餐厅 · 早餐"
+				arrival_text = "你来到齐园餐厅吃早餐，先让新的一天有足够的能量。"
 			elif background_path.contains("/正餐/"):
-				display_name = "齐园食堂 · 正餐"
-				arrival_text = "你来到齐园食堂，准备认真吃一顿正餐，暂停脑内的倒计时。"
+				display_name = "齐园餐厅 · 正餐"
+				arrival_text = "你来到齐园餐厅，准备认真吃一顿正餐，暂停脑内的倒计时。"
 		"field":
-			display_name = "青春操场"
-			arrival_text = "你来到运动区，准备活动身体，让紧绷的思绪换个节奏。"
+			display_name = "中心校区风雨操场"
+			arrival_text = "你来到中心校区风雨操场与体育活动区，准备活动身体，让紧绷的思绪换个节奏。"
 			activity_text = "运动"
 			activity_label = "认真运动一会儿"
 	return {

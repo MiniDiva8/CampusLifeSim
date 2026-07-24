@@ -9,6 +9,8 @@ const COLOR_ACCENT := Color("#F4C45E")
 const COLOR_TEAL := Color("#63DDB8")
 const COLOR_CORAL := Color("#FF8580")
 const COLOR_BLUE := Color("#7CB9E8")
+# Screen-accessible derivative of SDU's official print color C26 M100 Y100 K28.
+const COLOR_SDU_RED := Color("#B84850")
 const TRAVEL_DURATION_SECONDS := 2.0
 
 var repository := ContentRepository.new()
@@ -161,7 +163,7 @@ func _base_scene_data(scene_context: Dictionary, background_path: String) -> Dic
 		"energy": int(session.stats.energy) if session != null else 0,
 		"stress": int(session.stats.stress) if session != null else 0,
 		"exam": int(session.tasks.exam) if session != null else 0,
-		"footer_hint": "离线运行 · 自动存档",
+		"footer_hint": "山东大学中心校区 · 离线运行 · 自动存档",
 	}
 
 
@@ -241,11 +243,11 @@ func show_main_menu() -> void:
 	var root := _reset_screen("main_menu", Color("#284246"), background_catalog.get_menu_background(), Color("#050C0EE0"))
 	var top := HBoxContainer.new()
 	root.add_child(top)
-	top.add_child(_make_badge("CAMPUS LIFE · INTERACTIVE DEMO", COLOR_TEAL))
+	top.add_child(_make_badge("山东大学中心校区 · 人工智能学院", COLOR_SDU_RED))
 	var top_space := Control.new()
 	top_space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(top_space)
-	top.add_child(_make_label("BUILD  0.4 · OFFLINE", 11, Color("#71837F")))
+	top.add_child(_make_label("BUILD  0.5 · OFFLINE", 11, Color("#71837F")))
 
 	var main := HBoxContainer.new()
 	main.add_theme_constant_override("separation", 54)
@@ -258,13 +260,13 @@ func show_main_menu() -> void:
 	identity.add_theme_constant_override("separation", 13)
 	main.add_child(identity)
 	var marker := ColorRect.new()
-	marker.color = COLOR_TEAL
+	marker.color = COLOR_SDU_RED
 	marker.custom_minimum_size = Vector2(72, 3)
 	identity.add_child(marker)
-	identity.add_child(_make_label("FINAL WEEK", 16, COLOR_TEAL))
+	identity.add_child(_make_label("SHANDONG UNIVERSITY · FINAL WEEK", 16, COLOR_SDU_RED))
 	var title := _make_label("惊魂期末周", 70, COLOR_INK)
 	identity.add_child(title)
-	var subtitle := _make_label("七天、五个时段，以及没有标准答案的校园生活。", 23, Color("#D3DDD8"))
+	var subtitle := _make_label("山大南路 27 号，七天、五个时段，以及没有标准答案的校园生活。", 23, Color("#D3DDD8"))
 	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	identity.add_child(subtitle)
 	var statement := _make_label("在考试、项目、关系与身体状态之间做选择。\n每一次取舍都会留下痕迹，并在之后重新出现。", 16, COLOR_MUTED)
@@ -273,6 +275,7 @@ func show_main_menu() -> void:
 	var feature_row := HBoxContainer.new()
 	feature_row.add_theme_constant_override("separation", 8)
 	identity.add_child(feature_row)
+	feature_row.add_child(_make_badge("中心校区", COLOR_SDU_RED))
 	feature_row.add_child(_make_badge("7 天", COLOR_TEAL))
 	feature_row.add_child(_make_badge("5 时段 / 天", COLOR_BLUE))
 	feature_row.add_child(_make_badge("6 个地点", COLOR_ACCENT))
@@ -304,16 +307,16 @@ func show_main_menu() -> void:
 
 	var footer := HBoxContainer.new()
 	root.add_child(footer)
-	footer.add_child(_make_label("CAMPUSLIFESIM", 10, Color("#61736F")))
+	footer.add_child(_make_label("SDU · 1901 · CAMPUSLIFESIM", 10, COLOR_SDU_RED))
 	var footer_space := Control.new()
 	footer_space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	footer.add_child(footer_space)
-	footer.add_child(_make_label("时间管理 × 选择叙事 × 校园摄影", 10, Color("#71837F")))
+	footer.add_child(_make_label("学无止境，气有浩然", 10, Color("#8F9F9B")))
 
 
 func show_setup() -> void:
 	var root := _reset_screen("setup", Color("#244046"), "", Color("#07101388"))
-	root.add_child(_make_header("新生档案", "在期末周开始前，给自己一个名字和起点", show_main_menu))
+	root.add_child(_make_header("人工智能学院 · 期末周档案", "在山大期末周开始前，给自己一个名字和起点", show_main_menu))
 	var center := HBoxContainer.new()
 	center.alignment = BoxContainer.ALIGNMENT_CENTER
 	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -457,9 +460,9 @@ func _make_game_header() -> Control:
 	var title_box := VBoxContainer.new()
 	title_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(title_box)
-	title_box.add_child(_make_label("惊魂期末周", 23, COLOR_INK))
-	title_box.add_child(_make_label("%s  /  %s  /  %s难度" % [session.player_name, session.clock.get_display_text(), DifficultyRules.get_display_name(session.difficulty_id)], 13, COLOR_MUTED))
-	var exam_badge := _make_badge("考试：第 5 天上午", COLOR_TEAL)
+	title_box.add_child(_make_label("惊魂期末周 · 山东大学中心校区", 23, COLOR_INK))
+	title_box.add_child(_make_label("%s  /  %s  /  %s难度  /  人工智能学院" % [session.player_name, session.clock.get_display_text(), DifficultyRules.get_display_name(session.difficulty_id)], 13, COLOR_MUTED))
+	var exam_badge := _make_badge("核心课考试：第 5 天上午", COLOR_TEAL)
 	row.add_child(exam_badge)
 	var project_badge := _make_badge("展示：第 7 天下午", COLOR_ACCENT)
 	row.add_child(project_badge)
@@ -527,8 +530,8 @@ func _build_schedule_panel() -> Control:
 	box.add_theme_constant_override("separation", 10)
 	panel.add_child(box)
 	box.add_child(_make_label("DEADLINES / 日程", 18, COLOR_INK))
-	box.add_child(_make_progress_card("算法考试", int(session.tasks.exam), "第 5 天上午"))
-	box.add_child(_make_progress_card("项目展示", int(session.tasks.presentation), "第 7 天下午"))
+	box.add_child(_make_progress_card("人工智能核心课", int(session.tasks.exam), "第 5 天上午"))
+	box.add_child(_make_progress_card("AI 课程项目展示", int(session.tasks.presentation), "第 7 天下午"))
 	box.add_child(_make_separator())
 	box.add_child(_make_label("AI 学伴", 18, COLOR_BLUE))
 	var advice := AIAdvisor.new(repository.ai_advice).choose_advice(session)
@@ -589,7 +592,7 @@ func show_travel(location: Dictionary, road_background: String, duration: float 
 
 	var top := HBoxContainer.new()
 	root.add_child(top)
-	top.add_child(_make_badge("CAMPUS TRANSIT", COLOR_TEAL))
+	top.add_child(_make_badge("SDU · CAMPUS TRANSIT", COLOR_SDU_RED))
 	var top_space := Control.new()
 	top_space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(top_space)
@@ -615,7 +618,7 @@ func show_travel(location: Dictionary, road_background: String, duration: float 
 	route.add_child(_make_label("约 2 秒", 11, COLOR_MUTED))
 	var title := _make_label("前往  %s" % location.get("name", "新地点"), 31, COLOR_INK)
 	box.add_child(title)
-	box.add_child(_make_label("路上的片刻，也属于你的期末周。", 14, COLOR_MUTED))
+	box.add_child(_make_label("路上的片刻，也属于山大期末周。学无止境，先从下一步开始。", 14, COLOR_MUTED))
 	var progress := ProgressBar.new()
 	progress.name = "TravelProgress"
 	progress.show_percentage = false
@@ -651,7 +654,7 @@ func show_location(location_id: String) -> void:
 			"detail": str(presented_action.get("description", "")),
 			"effect": _effect_preview(action.get("effects", [])),
 			"effect_color": str(location.get("color", "#63DDB8")),
-			"action": _resolve_fallback_action.bind(action),
+			"action": _resolve_fallback_action.bind(presented_action),
 		})
 	var data := _base_scene_data(scene_context, session.current_background_path)
 	data.merge({
@@ -706,14 +709,20 @@ func _format_scene_text(text_value: String, scene_context: Dictionary) -> String
 
 func _present_action_for_scene(action: Dictionary, location_id: String, scene_context: Dictionary) -> Dictionary:
 	var presented := action.duplicate(true)
+	var action_id := str(action.get("id", ""))
+	var action_overrides = scene_context.get("action_overrides", {})
+	if action_overrides is Dictionary and action_overrides.has(action_id):
+		var override = action_overrides[action_id]
+		if override is Dictionary:
+			presented.merge(override, true)
 	if location_id != "field":
 		return presented
-	if str(action.get("id", "")) == "exercise":
+	if action_id == "exercise":
 		var activity_label := str(scene_context.get("activity_label", ""))
 		if not activity_label.is_empty():
 			presented.label = activity_label
 			presented.description = "按照照片中的真实场地活动身体，缓解压力并消耗少量精力。"
-	elif str(action.get("id", "")) == "walk":
+	elif action_id == "walk":
 		presented.label = "在场边放松调整"
 		presented.description = "先观察和舒展，让呼吸与心态慢慢稳定下来。"
 	return presented
@@ -1077,7 +1086,7 @@ func show_credits() -> void:
 	box.add_theme_constant_override("separation", 15)
 	panel.add_child(box)
 	box.add_child(_make_label("惊魂期末周 · CampusLifeSim", 28, COLOR_INK))
-	var text := _make_label("策划、程序与事件文本：CampusLifeSim 项目\n校园场景摄影：项目所有者提供的校园照片\n\n引擎：Godot 4.7.1（MIT License）\n菜单、加载、暂停及音频基础参考：Maaack/Godot-Game-Template v1.4.7（MIT License）\n上游作者：Marek Belski\n\n本项目未使用 Maaack 品牌 Logo、Godot Logo、Git Logo或来源不明的第三方美术。完整许可证与素材记录随项目分发。", 17, COLOR_MUTED)
+	var text := _make_label("参赛场景：山东大学中心校区 · 人工智能学院\n策划、程序与事件文本：CampusLifeSim 项目\n校园场景摄影：项目所有者提供的校园照片\n\n引擎：Godot 4.7.1（MIT License）\n菜单、加载、暂停及音频基础参考：Maaack/Godot-Game-Template v1.4.7（MIT License）\n上游作者：Marek Belski\n\n本项目未使用山东大学校徽、Maaack 品牌 Logo、Godot Logo、Git Logo或来源不明的第三方美术。完整许可证、学校信息来源与素材记录随项目分发。", 17, COLOR_MUTED)
 	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	text.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(text)
@@ -1175,7 +1184,7 @@ func show_ending() -> void:
 	summary.add_child(_make_summary_cell("精力", int(session.stats.energy), COLOR_ACCENT))
 	summary.add_child(_make_summary_cell("压力", int(session.stats.stress), COLOR_CORAL))
 	report.add_child(_make_separator())
-	var reflection := _make_label("没有唯一最优路线。\n这份报告记录的是你如何在有限时间里取舍、求助、核验并继续前进。", 14, COLOR_MUTED)
+	var reflection := _make_label("没有唯一最优路线。\n这份报告记录的是你如何在有限时间里取舍、求助、核验并继续前进。\n\n学无止境，气有浩然。", 14, COLOR_MUTED)
 	reflection.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	reflection.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	report.add_child(reflection)

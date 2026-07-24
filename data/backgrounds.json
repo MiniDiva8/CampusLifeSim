@@ -12,6 +12,14 @@
     "fixed_rehearsal": "lab",
     "fixed_presentation": "teaching"
   },
+  "event_scenes": {
+    "fixed_arrival": "res://assets/backgrounds/locations/teaching/知新楼.jpg",
+    "fixed_schedule": "res://assets/backgrounds/locations/teaching/理综楼走廊.jpg",
+    "fixed_qa": "res://assets/backgrounds/locations/teaching/理综楼.jpg",
+    "fixed_midweek": "res://assets/backgrounds/locations/teaching/蒋震图书馆.jpg",
+    "fixed_exam": "res://assets/backgrounds/locations/teaching/董明珠楼.jpg",
+    "fixed_presentation": "res://assets/backgrounds/locations/teaching/青年会客厅.jpg"
+  },
   "locations": {
     "dorm": [
       "res://assets/backgrounds/locations/dorm/dbcf09ccccce30aff69900d491efebc2.jpg",
@@ -21,16 +29,16 @@
       "res://assets/backgrounds/locations/library/16c10d9b4c034e0cd48821b096564588.jpg",
       "res://assets/backgrounds/locations/library/33adc7d69faede7c94112ac5dbab4112.jpg",
       "res://assets/backgrounds/locations/library/52168f75445cb7a56f92829d6d3e1dcb.jpg",
-      "res://assets/backgrounds/locations/library/f83f9a20e29f8804a51641d408a08fe5.jpg"
+      "res://assets/backgrounds/locations/library/f83f9a20e29f8804a51641d408a08fe5.jpg",
+      "res://assets/backgrounds/locations/teaching/蒋震图书馆.jpg",
+      "res://assets/backgrounds/locations/teaching/阅读馆.jpg"
     ],
     "teaching": [
       "res://assets/backgrounds/locations/teaching/董明珠楼.jpg",
-      "res://assets/backgrounds/locations/teaching/蒋震图书馆.jpg",
       "res://assets/backgrounds/locations/teaching/理综楼.jpg",
       "res://assets/backgrounds/locations/teaching/理综楼走廊.jpg",
       "res://assets/backgrounds/locations/teaching/青年会客厅.jpg",
       "res://assets/backgrounds/locations/teaching/学校咖啡馆.jpg",
-      "res://assets/backgrounds/locations/teaching/阅读馆.jpg",
       "res://assets/backgrounds/locations/teaching/知新楼.jpg"
     ],
     "lab": [
@@ -75,81 +83,105 @@
   "scenes": {
     "res://assets/backgrounds/locations/teaching/学校咖啡馆.jpg": {
       "display_name": "学校咖啡馆",
-      "arrival_text": "你来到学校咖啡馆，在咖啡香和低声交谈中找了一个位置。"
+      "arrival_text": "你来到中心校区的学校咖啡馆，在咖啡香和低声交谈中找了一个位置。",
+      "action_overrides": {
+        "self_study": {"label": "找位置整理课程资料", "description": "借一张桌子把人工智能核心课的知识框架重新接起来。"},
+        "ask_teacher": {"label": "和同学核对问题清单", "description": "在交流中筛出最值得带去答疑的问题。"}
+      }
     },
     "res://assets/backgrounds/locations/teaching/理综楼.jpg": {
       "display_name": "理综楼",
-      "arrival_text": "你来到理综楼，课程、答疑和期末复习都在这栋楼里交汇。"
+      "arrival_text": "你来到中心校区理综楼，课程、答疑和期末复习都在这栋楼里交汇。",
+      "action_overrides": {
+        "self_study": {"label": "在理综楼找空教室", "description": "找一间暂时空闲的教室梳理课程重点。"},
+        "ask_teacher": {"label": "整理答疑问题", "description": "把模型、算法和实验中没弄懂的地方列成清单。"}
+      }
     },
     "res://assets/backgrounds/locations/teaching/理综楼走廊.jpg": {
       "display_name": "理综楼走廊",
-      "arrival_text": "你走进理综楼走廊，教室门牌和来往脚步提醒着你期末仍在继续。"
+      "arrival_text": "你走进中心校区理综楼走廊，教室门牌和来往脚步提醒着你期末仍在继续。",
+      "action_overrides": {
+        "self_study": {"label": "沿走廊寻找空教室", "description": "核对门牌和课程安排，找一处能安静复习的位置。"},
+        "ask_teacher": {"label": "在答疑前重排问题", "description": "把宽泛的“不会”改成三道能问清楚的具体问题。"}
+      }
     },
     "res://assets/backgrounds/locations/teaching/知新楼.jpg": {
       "display_name": "知新楼",
-      "arrival_text": "你来到知新楼，准备找一处安静的位置处理今天的学习任务。"
+      "arrival_text": "你来到中心校区知新楼，准备找一处安静的位置处理今天的学习任务。",
+      "action_overrides": {
+        "self_study": {"label": "在知新楼安静自习", "description": "按知识联系整理人工智能核心课内容。"},
+        "ask_teacher": {"label": "梳理课程疑问", "description": "把散乱的困惑整理成可以验证和讨论的问题。"}
+      }
     },
     "res://assets/backgrounds/locations/teaching/董明珠楼.jpg": {
       "display_name": "董明珠楼",
-      "arrival_text": "你来到董明珠楼，在下一项安排开始前重新确认自己的学习计划。"
+      "arrival_text": "你来到中心校区董明珠楼，在下一项安排开始前重新确认教室和学习计划。",
+      "action_overrides": {
+        "self_study": {"label": "在董明珠楼考前复习", "description": "确认考场后，把最容易混淆的概念再过一遍。"},
+        "ask_teacher": {"label": "核对考试问题清单", "description": "把考前最后的疑问按重要程度排好。"}
+      }
     },
     "res://assets/backgrounds/locations/teaching/蒋震图书馆.jpg": {
       "display_name": "蒋震图书馆",
-      "arrival_text": "你来到蒋震图书馆，准备借这里的安静梳理课程重点。"
+      "arrival_text": "你来到中心校区蒋震图书馆，准备借这里的安静梳理人工智能核心课重点。"
     },
     "res://assets/backgrounds/locations/teaching/阅读馆.jpg": {
       "display_name": "阅读馆",
-      "arrival_text": "你来到阅读馆，翻开资料，准备把零散知识重新连起来。"
+      "arrival_text": "你来到蒋震图书馆的阅读空间，翻开资料，准备把零散知识重新连起来。"
     },
     "res://assets/backgrounds/locations/teaching/青年会客厅.jpg": {
       "display_name": "青年会客厅",
-      "arrival_text": "你来到青年会客厅，这里适合短暂交流，也适合重新整理思路。"
+      "arrival_text": "你来到中心校区青年会客厅，这里适合项目交流，也适合重新整理展示思路。",
+      "action_overrides": {
+        "self_study": {"label": "整理项目展示材料", "description": "把模型结果、失败案例和验证过程整理成清楚的叙事。"},
+        "ask_teacher": {"label": "和同学模拟答辩", "description": "提前接受追问，找出讲稿里站不住脚的地方。"}
+      }
     },
     "res://assets/backgrounds/locations/field/体育馆.jpg": {
-      "display_name": "校体育馆",
-      "arrival_text": "你走进校体育馆，准备进行一段室内训练，让注意力离开截止日期一会儿。",
+      "display_name": "中心校区综合体育馆",
+      "arrival_text": "你走进中心校区综合体育馆，准备进行一段室内训练，让注意力离开截止日期一会儿。",
       "activity_text": "在体育馆训练",
       "activity_label": "进行室内训练"
     },
     "res://assets/backgrounds/locations/field/散步.jpg": {
-      "display_name": "校园步道",
-      "arrival_text": "你来到校园步道，准备慢慢散步，让紧绷的思绪松开一些。",
+      "display_name": "中心校区校园步道",
+      "arrival_text": "你走上中心校区的校园步道，准备慢慢散步，让紧绷的思绪松开一些。",
       "activity_text": "沿校园步道散步",
       "activity_label": "沿校园步道散步"
     },
     "res://assets/backgrounds/locations/field/游泳.jpg": {
-      "display_name": "游泳馆",
-      "arrival_text": "你来到游泳馆，换好装备，准备下水游泳。",
+      "display_name": "中心校区综合体育馆 · 游泳馆",
+      "arrival_text": "你来到中心校区综合体育馆的游泳馆，换好装备，准备下水游泳。",
       "activity_text": "游泳",
       "activity_label": "下水游泳"
     },
     "res://assets/backgrounds/locations/field/篮球 (2).jpg": {
-      "display_name": "篮球场",
-      "arrival_text": "你来到篮球场，准备运球、投篮，让身体接管这段时间。",
+      "display_name": "中心校区风雨操场 · 篮球场",
+      "arrival_text": "你来到中心校区风雨操场的篮球场，准备运球、投篮，让身体接管这段时间。",
       "activity_text": "打篮球",
       "activity_label": "去打篮球"
     },
     "res://assets/backgrounds/locations/field/篮球.jpg": {
-      "display_name": "篮球场",
-      "arrival_text": "你来到篮球场，准备运球、投篮，让身体接管这段时间。",
+      "display_name": "中心校区风雨操场 · 篮球场",
+      "arrival_text": "你来到中心校区风雨操场的篮球场，准备运球、投篮，让身体接管这段时间。",
       "activity_text": "打篮球",
       "activity_label": "去打篮球"
     },
     "res://assets/backgrounds/locations/field/网球.jpg": {
-      "display_name": "网球场",
-      "arrival_text": "你来到网球场，握好球拍，准备打一场网球。",
+      "display_name": "中心校区室外网球场",
+      "arrival_text": "你来到中心校区室外网球场，握好球拍，准备打一场网球。",
       "activity_text": "打网球",
       "activity_label": "去打网球"
     },
     "res://assets/backgrounds/locations/field/羽毛球.jpg": {
-      "display_name": "羽毛球场",
-      "arrival_text": "你来到羽毛球场，活动肩膀，准备挥拍打羽毛球。",
+      "display_name": "中心校区风雨操场 · 羽毛球场",
+      "arrival_text": "你来到中心校区风雨操场的羽毛球场，活动肩膀，准备挥拍打羽毛球。",
       "activity_text": "打羽毛球",
       "activity_label": "去打羽毛球"
     },
     "res://assets/backgrounds/locations/field/跑步.jpg": {
-      "display_name": "校园跑道",
-      "arrival_text": "你来到校园跑道，系紧鞋带，准备跑上几圈。",
+      "display_name": "中心校区室外田径场",
+      "arrival_text": "你来到中心校区室外田径场，系紧鞋带，准备跑上几圈。",
       "activity_text": "沿跑道跑步",
       "activity_label": "沿跑道跑步"
     }
