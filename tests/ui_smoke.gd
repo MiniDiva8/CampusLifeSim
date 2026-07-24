@@ -115,6 +115,8 @@ func _run() -> void:
 	app.show_settings("pause")
 	await process_frame
 	_expect(app.current_screen == "settings", "settings should open from pause")
+	_expect(app.find_child("MusicVolume", true, false) != null and app.find_child("SFXVolume", true, false) != null and app.find_child("AmbienceVolume", true, false) != null, "settings should expose separate music, interaction, and ambience volumes")
+	_expect(app.find_child("PressureAudio", true, false) != null, "settings should expose the optional pressure-audio control")
 	app.session.difficulty_id = "medium"
 	app.session.stats.stress = DifficultyRules.get_crisis_threshold("medium")
 	app._advance_after_action()
@@ -130,6 +132,11 @@ func _run() -> void:
 	app.queue_free()
 	await process_frame
 	await create_timer(0.1).timeout
+	var audio_director := root.get_node_or_null("ProjectUISoundController") as AudioDirector
+	if audio_director != null:
+		await create_timer(0.25).timeout
+		audio_director.prepare_for_shutdown()
+		await process_frame
 
 	if failures.is_empty():
 		print("[PASS] UI smoke: %d checks passed" % checks)

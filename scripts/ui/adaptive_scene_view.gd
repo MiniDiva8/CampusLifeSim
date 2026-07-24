@@ -116,6 +116,7 @@ func _build_hud(data: Dictionary) -> void:
 		pause_button.add_theme_stylebox_override("hover", _style(Color("#20383C"), 9, TEAL, 1, 8))
 		pause_button.add_theme_stylebox_override("pressed", _style(Color("#0B1518"), 9, GOLD, 1, 8))
 		pause_button.add_theme_color_override("font_color", MUTED)
+		pause_button.set_meta("audio_cue", &"press")
 		pause_button.pressed.connect(pause_action)
 		row.add_child(pause_button)
 
@@ -261,6 +262,7 @@ func _choice_card(index: int, choice_value, accent: Color) -> Button:
 	button.add_theme_stylebox_override("focus", _style(Color("#1C3336"), 12, accent, 1, 12))
 	button.add_theme_stylebox_override("disabled", _style(Color("#111C1E"), 12, Color("#2D3B3D"), 1, 12))
 	button.disabled = bool(choice.get("disabled", false))
+	button.set_meta("audio_cue", &"choice")
 
 	var row := HBoxContainer.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE

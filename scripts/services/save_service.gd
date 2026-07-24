@@ -38,17 +38,36 @@ func delete_save() -> Error:
 	return DirAccess.remove_absolute(ProjectSettings.globalize_path(save_path))
 
 
+func delete_settings() -> Error:
+	if not FileAccess.file_exists(settings_path):
+		return OK
+	return DirAccess.remove_absolute(ProjectSettings.globalize_path(settings_path))
+
+
 func save_settings(settings: Dictionary) -> Error:
 	return _write_json_atomic(settings_path, settings)
 
 
 func load_settings() -> Dictionary:
-	var defaults := {"master_volume": 0.8, "fullscreen": false, "reduced_motion": false}
+	var defaults := {
+		"master_volume": 0.8,
+		"music_volume": 0.65,
+		"sfx_volume": 0.8,
+		"ambience_volume": 0.65,
+		"pressure_audio": true,
+		"fullscreen": false,
+		"reduced_motion": false,
+	}
 	var data = _read_json(settings_path)
 	if data is Dictionary:
 		for key in defaults:
 			if data.has(key):
 				defaults[key] = data[key]
+	for volume_key in ["master_volume", "music_volume", "sfx_volume", "ambience_volume"]:
+		defaults[volume_key] = clampf(float(defaults[volume_key]), 0.0, 1.0)
+	defaults.pressure_audio = bool(defaults.pressure_audio)
+	defaults.fullscreen = bool(defaults.fullscreen)
+	defaults.reduced_motion = bool(defaults.reduced_motion)
 	return defaults
 
 

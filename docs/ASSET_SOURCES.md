@@ -9,12 +9,14 @@
 - 父级目录根部的长曝光光轨照片由用户明确指定为高压“头晕眼花”显化背景，项目副本为 `assets/backgrounds/effects/stress_overload.jpg`。
 - 照片由用户提供并指定用于本项目；公开分发前，项目所有者仍应确认照片中可识别人物及场所的肖像权、隐私和拍摄许可。
 - 未下载或使用来源不明的图片、音乐、字体或音效。
+- 0.6.0 的悬停、点击、确认、返回、选择、地点进入、状态变化和 AI 提示音均由项目运行时根据固定波形参数原创生成，不包含外部采样文件。
+- 后续校园环境声和音乐尚未加入；加入前必须登记录音者、录制地点、日期、使用授权或第三方许可证。
 
 ## 第三方代码
 
 - Maaack/Godot-Game-Template v1.4.7，MIT License。
 - 上游仓库：https://github.com/Maaack/Godot-Game-Template
-- 仅选择性复用通用菜单、加载、暂停与音频代码；许可证全文保存在 `third_party/Maaack-Godot-Game-Template/LICENSE.txt`。
+- 仅选择性复用通用菜单、加载、暂停与音乐持久化代码；原 Maaack 按钮音控制器已由项目自己的语义化音频服务替代，许可证全文保存在 `third_party/Maaack-Godot-Game-Template/LICENSE.txt`。
 
 ## 图片导入方式
 

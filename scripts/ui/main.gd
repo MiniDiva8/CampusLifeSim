@@ -359,6 +359,7 @@ func show_setup() -> void:
 		trait_button.add_theme_font_size_override("font_size", 17)
 		_style_button(trait_button, Color("#21464F"), COLOR_TEAL)
 		trait_button.set_meta("trait_id", trait_entry.id)
+		trait_button.set_meta("audio_cue", &"select")
 		trait_row.add_child(trait_button)
 		if trait_entry.id == "study":
 			trait_button.button_pressed = true
@@ -380,6 +381,7 @@ func show_setup() -> void:
 		difficulty_button.add_theme_font_size_override("font_size", 14)
 		_style_button(difficulty_button, Color("#21464F"), Color(str(config.color)))
 		difficulty_button.set_meta("difficulty_id", difficulty_id)
+		difficulty_button.set_meta("audio_cue", &"select")
 		difficulty_row.add_child(difficulty_button)
 		if difficulty_id == DifficultyRules.DEFAULT_NEW_GAME:
 			difficulty_button.button_pressed = true
@@ -560,6 +562,7 @@ func _make_location_button(location: Dictionary) -> Button:
 	var accent := Color(str(location.get("color", "#55C2A3")))
 	_style_button(button, Color("#142326F2"), Color(accent, 0.72))
 	button.tooltip_text = str(location.get("description", ""))
+	button.set_meta("audio_cue", &"location_enter")
 	button.pressed.connect(_travel_to_location.bind(str(location.get("id", ""))))
 	return button
 
@@ -996,55 +999,88 @@ func _manual_save() -> void:
 func show_settings(return_screen: String) -> void:
 	settings_return_screen = return_screen
 	var root := _reset_screen("settings", Color("#1B343A"), "", Color("#07101388"))
-	root.add_child(_make_header("设置", "设置数据与游戏进度分开保存", _return_from_settings))
+	root.add_child(_make_header("设置", "声音、显示与辅助选项单独保存", _return_from_settings))
 	var center := HBoxContainer.new()
 	center.alignment = BoxContainer.ALIGNMENT_CENTER
 	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(center)
 	var panel := _make_panel(COLOR_PANEL, 20, Color("#36545A"))
-	panel.custom_minimum_size = Vector2(720, 430)
+	panel.custom_minimum_size = Vector2(960, 510)
 	panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	center.add_child(panel)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 18)
+	box.add_theme_constant_override("separation", 14)
 	panel.add_child(box)
-	box.add_child(_make_label("主音量", 18, COLOR_INK))
-	var volume_row := HBoxContainer.new()
-	box.add_child(volume_row)
-	var volume_slider := HSlider.new()
-	volume_slider.name = "MasterVolume"
-	volume_slider.min_value = 0.0
-	volume_slider.max_value = 1.0
-	volume_slider.step = 0.05
-	volume_slider.value = float(settings.get("master_volume", 0.8))
-	volume_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	volume_row.add_child(volume_slider)
-	var volume_value := _make_label("%d%%" % int(volume_slider.value * 100.0), 16, COLOR_MUTED)
-	volume_value.custom_minimum_size.x = 70
-	volume_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	volume_row.add_child(volume_value)
-	volume_slider.value_changed.connect(func(value): volume_value.text = "%d%%" % int(value * 100.0))
+	var intro := _make_label("AUDIO MIX / 声音混合", 13, COLOR_TEAL)
+	box.add_child(intro)
+
+	var columns := HBoxContainer.new()
+	columns.add_theme_constant_override("separation", 32)
+	box.add_child(columns)
+	var audio_box := VBoxContainer.new()
+	audio_box.custom_minimum_size.x = 570
+	audio_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	audio_box.add_theme_constant_override("separation", 11)
+	columns.add_child(audio_box)
+	var audio_controls := {}
+	var audio_specs := [
+		{"key": "master", "name": "MasterVolume", "label": "总音量", "bus": &"Master", "value": float(settings.get("master_volume", 0.8))},
+		{"key": "music", "name": "MusicVolume", "label": "音乐", "bus": &"Music", "value": float(settings.get("music_volume", 0.65))},
+		{"key": "sfx", "name": "SFXVolume", "label": "交互与事件", "bus": &"SFX", "value": float(settings.get("sfx_volume", 0.8))},
+		{"key": "ambience", "name": "AmbienceVolume", "label": "校园环境", "bus": &"Ambience", "value": float(settings.get("ambience_volume", 0.65))},
+	]
+	for spec_value in audio_specs:
+		var spec: Dictionary = spec_value
+		var control := _make_volume_control(str(spec.label), str(spec.name), float(spec.value))
+		audio_controls[spec.key] = control.slider
+		control.slider.value_changed.connect(_preview_bus_volume.bind(StringName(spec.bus)))
+		audio_box.add_child(control.root)
+
+	var option_box := VBoxContainer.new()
+	option_box.custom_minimum_size.x = 280
+	option_box.add_theme_constant_override("separation", 12)
+	columns.add_child(option_box)
+	option_box.add_child(_make_label("DISPLAY & ACCESS / 显示与辅助", 13, COLOR_BLUE))
 
 	var fullscreen := CheckButton.new()
 	fullscreen.name = "Fullscreen"
 	fullscreen.text = "全屏显示"
 	fullscreen.button_pressed = bool(settings.get("fullscreen", false))
 	fullscreen.custom_minimum_size.y = 48
-	box.add_child(fullscreen)
+	option_box.add_child(fullscreen)
 	var reduced_motion := CheckButton.new()
 	reduced_motion.name = "ReducedMotion"
 	reduced_motion.text = "减少界面动效"
 	reduced_motion.button_pressed = bool(settings.get("reduced_motion", false))
 	reduced_motion.custom_minimum_size.y = 48
-	box.add_child(reduced_motion)
-	var note := _make_label("本 Demo 不采集遥测数据，也不会上传设置或存档。", 14, COLOR_MUTED)
+	option_box.add_child(reduced_motion)
+	var pressure_audio := CheckButton.new()
+	pressure_audio.name = "PressureAudio"
+	pressure_audio.text = "启用压力状态音效"
+	pressure_audio.button_pressed = bool(settings.get("pressure_audio", true))
+	pressure_audio.custom_minimum_size.y = 48
+	pressure_audio.toggled.connect(_preview_pressure_audio)
+	option_box.add_child(pressure_audio)
+	var preview := _make_button("试听确认音", func(): pass)
+	preview.set_meta("audio_cue", &"confirm")
+	option_box.add_child(preview)
+
+	var note := _make_label("交互音效采用原创程序化声音；本 Demo 不采集遥测数据，也不会上传设置或存档。", 13, COLOR_MUTED)
 	box.add_child(note)
-	box.add_child(_make_button("保存设置", _save_settings.bind(volume_slider, fullscreen, reduced_motion), true))
+	box.add_child(_make_button("保存设置", _save_settings.bind(audio_controls, fullscreen, reduced_motion, pressure_audio), true))
 
 
-func _save_settings(volume: HSlider, fullscreen: CheckButton, reduced_motion: CheckButton) -> void:
+func _save_settings(audio_controls: Dictionary, fullscreen: CheckButton, reduced_motion: CheckButton, pressure_audio: CheckButton) -> void:
+	var master_slider := audio_controls.get("master") as HSlider
+	var music_slider := audio_controls.get("music") as HSlider
+	var sfx_slider := audio_controls.get("sfx") as HSlider
+	var ambience_slider := audio_controls.get("ambience") as HSlider
 	settings = {
-		"master_volume": volume.value,
+		"master_volume": master_slider.value,
+		"music_volume": music_slider.value,
+		"sfx_volume": sfx_slider.value,
+		"ambience_volume": ambience_slider.value,
+		"pressure_audio": pressure_audio.button_pressed,
 		"fullscreen": fullscreen.button_pressed,
 		"reduced_motion": reduced_motion.button_pressed,
 	}
@@ -1056,15 +1092,40 @@ func _save_settings(volume: HSlider, fullscreen: CheckButton, reduced_motion: Ch
 
 
 func _apply_settings() -> void:
-	var volume := maxf(float(settings.get("master_volume", 0.8)), 0.001)
-	AudioServer.set_bus_volume_db(0, linear_to_db(volume))
-	AudioServer.set_bus_mute(0, volume <= 0.001)
+	var audio_director := get_node_or_null("/root/ProjectUISoundController")
+	if audio_director != null and audio_director.has_method("apply_mixer_settings"):
+		audio_director.apply_mixer_settings(settings)
+	else:
+		_apply_fallback_bus_volume(&"Master", float(settings.get("master_volume", 0.8)))
+		_apply_fallback_bus_volume(&"Music", float(settings.get("music_volume", 0.65)))
+		_apply_fallback_bus_volume(&"SFX", float(settings.get("sfx_volume", 0.8)))
+		_apply_fallback_bus_volume(&"Ambience", float(settings.get("ambience_volume", 0.65)))
 	if not OS.has_feature("headless"):
 		var mode := DisplayServer.WINDOW_MODE_FULLSCREEN if bool(settings.get("fullscreen", false)) else DisplayServer.WINDOW_MODE_WINDOWED
 		DisplayServer.window_set_mode(mode)
 
 
+func _apply_fallback_bus_volume(bus_name: StringName, value: float) -> void:
+	var bus_index := AudioServer.get_bus_index(bus_name)
+	if bus_index < 0:
+		return
+	var level := clampf(value, 0.0, 1.0)
+	AudioServer.set_bus_mute(bus_index, level <= 0.0001)
+	AudioServer.set_bus_volume_db(bus_index, linear_to_db(maxf(level, 0.0001)))
+
+
+func _preview_bus_volume(value: float, bus_name: StringName) -> void:
+	_apply_fallback_bus_volume(bus_name, value)
+
+
+func _preview_pressure_audio(enabled: bool) -> void:
+	var bus_index := AudioServer.get_bus_index(&"Stress")
+	if bus_index >= 0:
+		AudioServer.set_bus_mute(bus_index, not enabled)
+
+
 func _return_from_settings() -> void:
+	_apply_settings()
 	if settings_return_screen == "pause" and session != null:
 		show_pause_menu()
 	else:
@@ -1114,7 +1175,18 @@ func show_exit_confirmation() -> void:
 	desc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(desc)
 	box.add_child(_make_button("取消", show_main_menu))
-	box.add_child(_make_button("退出", func(): get_tree().quit(), false, true))
+	box.add_child(_make_button("退出", _quit_game, false, true))
+
+
+func _quit_game() -> void:
+	var audio_director := get_node_or_null("/root/ProjectUISoundController")
+	if audio_director != null and audio_director.has_method("play_cue"):
+		audio_director.play_cue(&"danger", true)
+	await get_tree().create_timer(0.17).timeout
+	if audio_director != null and audio_director.has_method("prepare_for_shutdown"):
+		audio_director.prepare_for_shutdown()
+	await get_tree().process_frame
+	get_tree().quit()
 
 
 func show_ending() -> void:
@@ -1211,7 +1283,7 @@ func _show_fatal_error(message: String) -> void:
 	details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	details.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(details)
-	box.add_child(_make_button("退出", func(): get_tree().quit(), false, true))
+	box.add_child(_make_button("退出", _quit_game, false, true))
 
 
 func _make_header(title_text: String, subtitle_text: String, back_action: Callable) -> Control:
@@ -1220,7 +1292,9 @@ func _make_header(title_text: String, subtitle_text: String, back_action: Callab
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 14)
 	panel.add_child(row)
-	row.add_child(_make_button("← 返回", back_action, false, false, 110))
+	var back_button := _make_button("← 返回", back_action, false, false, 110)
+	back_button.set_meta("audio_cue", &"back")
+	row.add_child(back_button)
 	var box := VBoxContainer.new()
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(box)
@@ -1273,8 +1347,32 @@ func _make_button(text_value: String, action: Callable, accent: bool = false, da
 		color = Color("#522D33")
 		border = COLOR_CORAL
 	_style_button(button, color, border)
+	button.set_meta("audio_cue", &"danger" if danger else (&"confirm" if accent else &"press"))
 	button.pressed.connect(action)
 	return button
+
+
+func _make_volume_control(label_text: String, node_name: String, value: float) -> Dictionary:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	var label := _make_label(label_text, 16, COLOR_INK)
+	label.custom_minimum_size.x = 128
+	row.add_child(label)
+	var slider := HSlider.new()
+	slider.name = node_name
+	slider.min_value = 0.0
+	slider.max_value = 1.0
+	slider.step = 0.05
+	slider.value = clampf(value, 0.0, 1.0)
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.custom_minimum_size.y = 40
+	row.add_child(slider)
+	var value_label := _make_label("%d%%" % int(slider.value * 100.0), 15, COLOR_MUTED)
+	value_label.custom_minimum_size.x = 58
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	row.add_child(value_label)
+	slider.value_changed.connect(func(new_value: float): value_label.text = "%d%%" % int(new_value * 100.0))
+	return {"root": row, "slider": slider}
 
 
 func _style_button(button: Button, base_color: Color, border_color: Color) -> void:

@@ -13,6 +13,7 @@ func _init() -> void:
 	_test_difficulty_rules()
 	_test_event_conditions_and_delays()
 	_test_ai_determinism()
+	_test_audio_foundation()
 	_test_save_round_trip()
 	_test_endings_reachable()
 	if failures.is_empty():
@@ -162,6 +163,34 @@ func _test_ai_determinism() -> void:
 	var first := advisor.choose_advice(session)
 	var second := advisor.choose_advice(session)
 	_expect(first.get("id") == second.get("id"), "AI advice should be deterministic for the same saved state")
+
+
+func _test_audio_foundation() -> void:
+	var expected_buses := [&"Master", &"Music", &"SFX", &"UI", &"Event", &"Stress", &"Ambience"]
+	for bus_name in expected_buses:
+		_expect(AudioServer.get_bus_index(bus_name) >= 0, "audio bus %s should exist" % bus_name)
+	var master_bus := AudioServer.get_bus_index(&"Master")
+	_expect(master_bus >= 0 and AudioServer.get_bus_effect_count(master_bus) == 1, "master bus should contain the safety limiter")
+	if master_bus >= 0 and AudioServer.get_bus_effect_count(master_bus) == 1:
+		_expect(AudioServer.get_bus_effect(master_bus, 0) is AudioEffectLimiter, "master bus effect should be a limiter")
+	_expect(AudioDirector.CUE_PROFILES.size() >= 14, "semantic audio library should expose the planned interaction cues")
+	_expect(AudioDirector.CUE_PROFILES.has(&"choice") and AudioDirector.CUE_PROFILES.has(&"location_enter"), "choices and location travel should have distinct cues")
+
+	var settings_service := SaveService.new("user://unused_audio_save.json", "user://campus_audio_settings_test.json")
+	settings_service.delete_settings()
+	var defaults := settings_service.load_settings()
+	_expect(defaults.has_all(["master_volume", "music_volume", "sfx_volume", "ambience_volume", "pressure_audio"]), "settings should expose the full audio mix")
+	settings_service.save_settings({
+		"master_volume": 1.4,
+		"music_volume": -0.2,
+		"sfx_volume": 0.55,
+		"ambience_volume": 0.45,
+		"pressure_audio": false,
+	})
+	var restored := settings_service.load_settings()
+	_expect(restored.master_volume == 1.0 and restored.music_volume == 0.0, "loaded audio volumes should clamp to safe bounds")
+	_expect(is_equal_approx(float(restored.sfx_volume), 0.55) and not bool(restored.pressure_audio), "audio settings should round-trip independently")
+	settings_service.delete_settings()
 
 
 func _test_save_round_trip() -> void:

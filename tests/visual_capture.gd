@@ -40,6 +40,10 @@ func _capture() -> void:
 	for _frame in 5:
 		await process_frame
 	_save_viewport("res://reports/pause_menu.png")
+	app.show_settings("pause")
+	for _frame in 5:
+		await process_frame
+	_save_viewport("res://reports/audio_settings.png")
 	app.session = GameSession.new()
 	app.session.clock.slot = 1
 	app.background_catalog.choose_location_background("library", app.session)
@@ -98,6 +102,10 @@ func _capture() -> void:
 	for _frame in 5:
 		await process_frame
 	_save_viewport("res://reports/ending_report.png")
+	var audio_director := root.get_node_or_null("ProjectUISoundController") as AudioDirector
+	if audio_director != null:
+		audio_director.prepare_for_shutdown()
+		await process_frame
 	if capture_failures == 0:
 		print("[PASS] visual captures written to reports/")
 		quit(0)
