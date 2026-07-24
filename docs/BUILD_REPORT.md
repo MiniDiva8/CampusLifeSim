@@ -30,7 +30,8 @@
 - EXE 元数据：产品名“惊魂期末周”，版本 `0.5.0.0`，文件说明“山东大学中心校区期末周选择叙事游戏”。
 - 导出 PCK 使用 Godot 4.7.1 `--disable-crash-handler --headless --main-pack` 成功离线加载并运行 120 帧，退出码为 0。
 - SHA-256：`CampusLifeSim.exe` 为 `55D9FDE74EBEA42A5BB22B30CF516DEA7EF8B301852B41817736D9FD4EA0D729`；`CampusLifeSim.pck` 为 `618BAE49BE0BE63B061EE6D3699E5D8B826B7175B5B0B91C8431D0A6F16019C7`。
-- 当前自动化环境直接启动新 EXE 时被 Windows Application Control 拦截，程序没有进入运行阶段；该文件属于未签名的 Godot debug 导出，因此本轮不声称完成独立 EXE 启动验证。
+- 当前自动化环境直接启动新 EXE 时被 Windows App Control for Business 拦截。Code Integrity 事件 `3033/3077` 显示该文件未达到 Enterprise signing level，关联策略 ID 为 `{0283ac0f-fff1-49ae-ada1-8a933130cad6}`；文件没有网络来源标记，程序也没有进入运行阶段。
+- 已验证项目根目录的 `启动游戏（安全方式）.cmd` 能调用本机官方签名 Godot 4.7.1，通过 `--main-pack` 加载同一 PCK。图形进程成功运行并生成日志，日志中没有脚本或资源错误。
 - 按项目约束未创建安装程序、未进行代码签名，也未修改系统安全策略。
 
-请由项目所有者双击 EXE 进行人工验证；若同样出现 Application Control 阻止，应先确认本机组织或 Windows 安全策略，不要通过关闭安全功能绕过。PCK 已通过同一 Godot 4.7.1 运行时验证。
+当前开发电脑请使用项目根目录的安全启动器。正式对外分发时，应使用受比赛设备策略信任的证书签署 release 构建，或由比赛主办方/设备管理员通过补充策略允许该构建，不要通过关闭安全功能绕过。
