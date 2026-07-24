@@ -22,3 +22,18 @@
 - 导入脚本不覆盖、改名或删除父级原图。
 - Godot 不会自动应用这些 JPEG 的 EXIF 方向，因此原文件保持不变，游戏显示层依据 `data/backgrounds.json` 中的方向元数据旋转画面。
 - 运行时清单同时记录图片分类、真实场景名称和方向；新增或移除照片时需要同步更新清单。
+
+## 山东大学地点与文化信息来源
+
+以下页面仅用于核对地点名称、学院背景和学校视觉信息；项目没有下载或复制这些网页中的图片：
+
+- 山东大学人工智能学院简介：https://www.ai.sdu.edu.cn/xxgk/xyjj.htm
+- 山东大学图书馆“蒋震图书馆”：https://library.sdu.edu.cn/page/id-270.html
+- 山东大学图书馆“中心校区图书馆”：https://library.sdu.edu.cn/page/id-269.html
+- 山东大学体育学院中心校区场馆说明：https://tyb.sdu.edu.cn/info/1116/5347.htm
+- 山东大学新闻网“食在山大”：https://view.sdu.edu.cn/info/1413/121712.htm
+- 山东大学中心校区学生公寓简介：https://www.jj.sdu.edu.cn/info/1002/1968.htm
+- 山东大学简介：https://www.sdu.edu.cn/sdgk/sdjj.htm
+- 山东大学章程：https://www.sdu.edu.cn/sdgk/sdzc.htm
+
+界面中的山大红为依据学校章程印刷色 `C26 M100 Y100 K28` 制作的屏幕可读衍生色，不宣称是官方 RGB 标准值。项目目前没有使用山东大学校徽、标准字或官网下载图片；如比赛材料需要加入正式视觉标识，应先核对赛事规则和学校标识使用要求。
