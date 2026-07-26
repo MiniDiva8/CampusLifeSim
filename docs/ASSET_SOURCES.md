@@ -11,6 +11,7 @@
 - 未下载或使用来源不明的图片、音乐、字体或音效。
 - 0.6.0 的悬停、点击、确认、返回、选择、地点进入、状态变化和 AI 提示音均由项目运行时根据固定波形参数原创生成，不包含外部采样文件。
 - 0.7.0 的主菜单、校园、道路、宿舍、图书馆、教学区、机房、餐厅和操场声景也由项目运行时原创生成，使用固定种子的滤波噪声、设备底噪、脚步、翻页、键盘、餐具、球声和风声模型，不包含外部采样文件。
+- 0.8.0 的毛玻璃着色器、鼠标聚光、网格背景和悬停动画均为项目内原创 GDScript/Godot Shader 实现，没有下载界面模板、图标、字体、纹理或二进制依赖。
 - 当前尚未加入外部音乐或实地录音；未来以现场录音替换程序化声景前，必须登记录音者、地点、日期、隐私处理和使用授权。
 
 ## 第三方代码
@@ -18,6 +19,16 @@
 - Maaack/Godot-Game-Template v1.4.7，MIT License。
 - 上游仓库：https://github.com/Maaack/Godot-Game-Template
 - 仅选择性复用通用菜单、加载、暂停与音乐持久化代码；原 Maaack 按钮音控制器已由项目自己的语义化音频服务替代，许可证全文保存在 `third_party/Maaack-Godot-Game-Template/LICENSE.txt`。
+
+## 0.8.0 界面设计研究参考
+
+以下开源项目仅用于研究组件层级、卡片聚光和状态变体；本项目没有复制它们的源码或素材，也没有把 Web 框架带入 Godot：
+
+- Magic UI（MIT）：https://github.com/magicuidesign/magicui
+- shadcn/ui（MIT）：https://github.com/shadcn-ui/ui
+- Godot Demo Projects（MIT）：https://github.com/godotengine/godot-demo-projects
+
+屏幕取样方式依据 Godot 4 官方 `hint_screen_texture` 文档自行实现。着色器采用受控的单层屏幕模糊与程序化边缘高光，没有引入第三方 shader 文件。
 
 ## 图片导入方式
 

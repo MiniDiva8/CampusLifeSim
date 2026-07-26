@@ -23,12 +23,24 @@ func _has_label_containing(node: Node, fragment: String) -> bool:
 	return false
 
 
+func _count_nodes_with_script(node: Node, script_path: String) -> int:
+	var count := 0
+	var attached_script: Script = node.get_script() as Script
+	if attached_script != null and attached_script.resource_path == script_path:
+		count += 1
+	for child in node.get_children():
+		count += _count_nodes_with_script(child, script_path)
+	return count
+
+
 func _run() -> void:
 	var packed := load("res://scenes/main.tscn") as PackedScene
 	var app = packed.instantiate()
 	root.add_child(app)
 	await process_frame
 	_expect(app.current_screen == "main_menu", "application should open on main menu")
+	_expect(_count_nodes_with_script(app, "res://scripts/ui/glass_panel.gd") >= 1, "main menu should use the shared screen-reading glass surface")
+	_expect(_count_nodes_with_script(app, "res://scripts/ui/glass_hover_controller.gd") >= 4, "main menu actions should have cursor-responsive glass hover controllers")
 	var ambience := root.get_node_or_null("ProjectAmbientSoundController")
 	_expect(ambience != null and ambience.get_current_context() == &"menu", "main menu should start the restrained campus soundscape")
 	_expect(app.repository.events.size() == 32, "main UI should load validated content")
@@ -65,11 +77,19 @@ func _run() -> void:
 	await process_frame
 	_expect(app.current_screen == "map", "continuing should reach the campus map")
 	_expect(app.session.clock.get_index() == 1, "first choice should consume one slot")
+	var library_location_button := app.find_child("Location_library", true, false) as Button
+	_expect(library_location_button != null and library_location_button.get_node_or_null("GlassHoverController") != null, "campus location cards should expose the shared hover lift treatment")
+	library_location_button.mouse_entered.emit()
+	await create_timer(0.18).timeout
+	_expect(library_location_button.scale.x > 1.0, "location hover should visibly lift the card when reduced motion is disabled")
+	library_location_button.mouse_exited.emit()
 
 	app._travel_to_location("library", 0.05)
 	_expect(app.current_screen == "travel", "selecting a location should open the travel transition")
 	_expect(ambience != null and ambience.get_current_context() == &"road", "travel transition should crossfade to the road soundscape")
 	_expect(app.active_photo_background != null, "travel transition should use a road photograph")
+	var travel_progress := app.find_child("TravelProgress", true, false) as ProgressBar
+	_expect(travel_progress != null and travel_progress.has_theme_stylebox_override("fill"), "travel transition should use the luminous progress treatment")
 	await create_timer(0.08).timeout
 	_expect(app.current_screen == "event", "library should present an eligible location event")
 	_expect(ambience != null and ambience.get_current_context() == &"library", "arrival should crossfade from the road into the library")
@@ -120,6 +140,8 @@ func _run() -> void:
 	_expect(app.current_screen == "settings", "settings should open from pause")
 	_expect(app.find_child("MusicVolume", true, false) != null and app.find_child("SFXVolume", true, false) != null and app.find_child("AmbienceVolume", true, false) != null, "settings should expose separate music, interaction, and ambience volumes")
 	_expect(app.find_child("PressureAudio", true, false) != null, "settings should expose the optional pressure-audio control")
+	var music_volume := app.find_child("MusicVolume", true, false) as HSlider
+	_expect(music_volume != null and music_volume.has_theme_stylebox_override("grabber_area"), "settings sliders should use the unified luminous glass rail")
 	app.session.difficulty_id = "medium"
 	app.session.stats.stress = DifficultyRules.get_crisis_threshold("medium")
 	app._advance_after_action()

@@ -1,6 +1,8 @@
 class_name AdaptiveSceneView
 extends Control
 
+const GlassPanelScript = preload("res://scripts/ui/glass_panel.gd")
+const GlassHoverControllerScript = preload("res://scripts/ui/glass_hover_controller.gd")
 const INK := Color("#F4F2E9")
 const MUTED := Color("#9BAAA7")
 const BACKGROUND := Color("#071013")
@@ -14,13 +16,16 @@ const BLUE := Color("#7CB9E8")
 const SDU_RED := Color("#B84850")
 
 var photo_rect: OrientedPhotoRect
+var photo_stage: PanelContainer
 var interaction_panel: PanelContainer
+var _reduced_motion := false
 
 
 func configure(data: Dictionary) -> void:
 	for child in get_children():
 		child.queue_free()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_reduced_motion = bool(data.get("reduced_motion", false))
 	_build_background()
 	_build_hud(data)
 	var media_width := _recommended_media_width(data)
@@ -30,6 +35,7 @@ func configure(data: Dictionary) -> void:
 	var content_size := Vector2(1238 - content_position.x, 612)
 	_build_photo_stage(data, media_position, media_size)
 	_build_interaction_panel(data, content_position, content_size)
+	_animate_entrance()
 
 
 func _recommended_media_width(data: Dictionary) -> float:
@@ -75,11 +81,10 @@ func _build_background() -> void:
 
 
 func _build_hud(data: Dictionary) -> void:
-	var hud := PanelContainer.new()
+	var hud := _glass_surface(Color("#0D191C"), Color("#527B80A0"), 13, 2.2, Vector4(12, 8, 12, 8))
 	hud.name = "SceneHUD"
 	hud.position = Vector2(24, 16)
 	hud.size = Vector2(1232, 48)
-	hud.add_theme_stylebox_override("panel", _style(Color("#0D191CD9"), 13, Color("#2D4C50"), 1, 12))
 	add_child(hud)
 
 	var row := HBoxContainer.new()
@@ -113,25 +118,33 @@ func _build_hud(data: Dictionary) -> void:
 		pause_button.custom_minimum_size = Vector2(62, 34)
 		pause_button.add_theme_font_size_override("font_size", 11)
 		pause_button.add_theme_stylebox_override("normal", _style(Color("#142326"), 9, Color("#36545A"), 1, 8))
-		pause_button.add_theme_stylebox_override("hover", _style(Color("#20383C"), 9, TEAL, 1, 8))
+		var pause_hover := _style(Color("#20383CDD"), 9, TEAL, 1, 8)
+		pause_hover.shadow_color = Color(TEAL, 0.16)
+		pause_hover.shadow_size = 7
+		pause_button.add_theme_stylebox_override("hover", pause_hover)
 		pause_button.add_theme_stylebox_override("pressed", _style(Color("#0B1518"), 9, GOLD, 1, 8))
 		pause_button.add_theme_color_override("font_color", MUTED)
 		pause_button.set_meta("audio_cue", &"press")
 		pause_button.pressed.connect(pause_action)
+		_attach_hover(pause_button, TEAL, 1.025, 0.12)
 		row.add_child(pause_button)
 
 
 func _build_photo_stage(data: Dictionary, stage_position: Vector2, stage_size: Vector2) -> void:
-	var stage := PanelContainer.new()
-	stage.name = "PhotoStage"
-	stage.position = stage_position
-	stage.size = stage_size
-	stage.add_theme_stylebox_override("panel", _style(Color("#0B1518"), 18, Color("#36545A"), 1, 8))
-	add_child(stage)
+	photo_stage = PanelContainer.new()
+	photo_stage.name = "PhotoStage"
+	photo_stage.position = stage_position
+	photo_stage.size = stage_size
+	var stage_style := _style(Color("#071013F2"), 18, Color("#52757A"), 1, 8)
+	stage_style.shadow_color = Color("#00000070")
+	stage_style.shadow_size = 14
+	stage_style.shadow_offset = Vector2(0, 7)
+	photo_stage.add_theme_stylebox_override("panel", stage_style)
+	add_child(photo_stage)
 
 	var media := Control.new()
 	media.clip_contents = true
-	stage.add_child(media)
+	photo_stage.add_child(media)
 
 	var image_backdrop := ColorRect.new()
 	image_backdrop.color = Color("#10191B")
@@ -157,11 +170,10 @@ func _build_photo_stage(data: Dictionary, stage_position: Vector2, stage_size: V
 	index_label.add_theme_constant_override("shadow_offset_y", 1)
 	media.add_child(index_label)
 
-	var caption := PanelContainer.new()
+	var caption := _glass_surface(Color("#081113"), Color("#79A39F88"), 12, 2.0, Vector4(14, 10, 14, 10))
 	caption.name = "PhotoCaption"
 	caption.position = Vector2(14, stage_size.y - 82)
 	caption.size = Vector2(stage_size.x - 28, 66)
-	caption.add_theme_stylebox_override("panel", _style(Color("#081113E8"), 12, Color("#517076AA"), 1, 14))
 	media.add_child(caption)
 	var caption_row := HBoxContainer.new()
 	caption_row.add_theme_constant_override("separation", 10)
@@ -177,11 +189,11 @@ func _build_photo_stage(data: Dictionary, stage_position: Vector2, stage_size: V
 
 
 func _build_interaction_panel(data: Dictionary, panel_position: Vector2, panel_size: Vector2) -> void:
-	interaction_panel = PanelContainer.new()
+	var accent := Color(str(data.get("accent", "#63DDB8")))
+	interaction_panel = _glass_surface(Color("#0B171A"), Color(accent, 0.68), 18, 3.0, Vector4(22, 18, 22, 18))
 	interaction_panel.name = str(data.get("panel_name", "InteractionPanel"))
 	interaction_panel.position = panel_position
 	interaction_panel.size = panel_size
-	interaction_panel.add_theme_stylebox_override("panel", _style(Color("#0E191CF7"), 18, BORDER, 1, 22))
 	add_child(interaction_panel)
 
 	var content := VBoxContainer.new()
@@ -190,7 +202,6 @@ func _build_interaction_panel(data: Dictionary, panel_position: Vector2, panel_s
 
 	var eyebrow_row := HBoxContainer.new()
 	content.add_child(eyebrow_row)
-	var accent := Color(str(data.get("accent", "#63DDB8")))
 	eyebrow_row.add_child(_badge(str(data.get("section", "校园事件")), accent))
 	var eyebrow_spacer := Control.new()
 	eyebrow_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -256,10 +267,21 @@ func _choice_card(index: int, choice_value, accent: Color) -> Button:
 	button.name = str(choice.get("name", "Choice_%02d" % index))
 	button.custom_minimum_size.y = float(choice.get("height", 76))
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.add_theme_stylebox_override("normal", _style(Color("#152528"), 12, Color(accent, 0.52), 1, 12))
-	button.add_theme_stylebox_override("hover", _style(Color("#1C3336"), 12, accent, 1, 12))
-	button.add_theme_stylebox_override("pressed", _style(Color("#0C1719"), 12, GOLD, 1, 12))
-	button.add_theme_stylebox_override("focus", _style(Color("#1C3336"), 12, accent, 1, 12))
+	var normal_style := _style(Color("#102024C4"), 12, Color(accent, 0.42), 1, 12)
+	normal_style.shadow_color = Color("#00000040")
+	normal_style.shadow_size = 4
+	normal_style.shadow_offset = Vector2(0, 2)
+	var hover_style := _style(Color("#173338E0"), 12, accent.lightened(0.12), 1, 12)
+	hover_style.shadow_color = Color(accent, 0.20)
+	hover_style.shadow_size = 12
+	hover_style.shadow_offset = Vector2(0, 5)
+	var pressed_style := _style(Color("#0C1719ED"), 12, GOLD, 1, 12)
+	pressed_style.shadow_color = Color(GOLD, 0.14)
+	pressed_style.shadow_size = 5
+	button.add_theme_stylebox_override("normal", normal_style)
+	button.add_theme_stylebox_override("hover", hover_style)
+	button.add_theme_stylebox_override("pressed", pressed_style)
+	button.add_theme_stylebox_override("focus", hover_style)
 	button.add_theme_stylebox_override("disabled", _style(Color("#111C1E"), 12, Color("#2D3B3D"), 1, 12))
 	button.disabled = bool(choice.get("disabled", false))
 	button.set_meta("audio_cue", &"choice")
@@ -299,7 +321,38 @@ func _choice_card(index: int, choice_value, accent: Color) -> Button:
 	var action = choice.get("action")
 	if action is Callable and not action.is_null():
 		button.pressed.connect(action)
+	_attach_hover(button, accent, 1.012, 0.13)
 	return button
+
+
+func _glass_surface(tint: Color, accent: Color, radius: int, blur_lod: float, padding: Vector4) -> PanelContainer:
+	var panel = GlassPanelScript.new()
+	panel.configure(tint, accent, radius, blur_lod, 0.76, padding)
+	return panel
+
+
+func _attach_hover(control: Control, accent: Color, scale_amount: float, light_strength: float) -> void:
+	var controller = GlassHoverControllerScript.new()
+	controller.name = "GlassHoverController"
+	controller.configure(accent, scale_amount, _reduced_motion, light_strength)
+	control.add_child(controller)
+
+
+func _animate_entrance() -> void:
+	if _reduced_motion or photo_stage == null or interaction_panel == null:
+		return
+	var photo_rest := photo_stage.position
+	var panel_rest := interaction_panel.position
+	photo_stage.position.x -= 12.0
+	interaction_panel.position.x += 14.0
+	photo_stage.modulate.a = 0.0
+	interaction_panel.modulate.a = 0.0
+	var tween := create_tween().set_parallel(true)
+	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(photo_stage, "position", photo_rest, 0.24)
+	tween.tween_property(photo_stage, "modulate:a", 1.0, 0.20)
+	tween.tween_property(interaction_panel, "position", panel_rest, 0.26).set_delay(0.035)
+	tween.tween_property(interaction_panel, "modulate:a", 1.0, 0.22).set_delay(0.035)
 
 
 func _compact_pair(key: String, value: String, accent: Color, width: float) -> Control:

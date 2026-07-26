@@ -1,5 +1,7 @@
 extends Control
 
+const GlassPanelScript = preload("res://scripts/ui/glass_panel.gd")
+const GlassHoverControllerScript = preload("res://scripts/ui/glass_hover_controller.gd")
 const COLOR_INK := Color("#F4F2E9")
 const COLOR_MUTED := Color("#9BAAA7")
 const COLOR_DARK := Color("#071013")
@@ -122,6 +124,14 @@ func _reset_screen(screen_name: String, backdrop_tint: Color = Color.WHITE, back
 	var content := VBoxContainer.new()
 	content.add_theme_constant_override("separation", 16)
 	margin.add_child(content)
+	if not bool(settings.get("reduced_motion", false)):
+		var resting_position := margin.position
+		margin.position.y += 9.0
+		margin.modulate.a = 0.0
+		var entrance := create_tween().set_parallel(true)
+		entrance.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		entrance.tween_property(margin, "position", resting_position, 0.24)
+		entrance.tween_property(margin, "modulate:a", 1.0, 0.20)
 	return content
 
 
@@ -164,6 +174,7 @@ func _base_scene_data(scene_context: Dictionary, background_path: String) -> Dic
 		"stress": int(session.stats.stress) if session != null else 0,
 		"exam": int(session.tasks.exam) if session != null else 0,
 		"footer_hint": "山东大学中心校区 · 离线运行 · 自动存档",
+		"reduced_motion": bool(settings.get("reduced_motion", false)),
 	}
 
 
@@ -582,14 +593,39 @@ func _build_schedule_panel() -> Control:
 
 func _make_location_button(location: Dictionary) -> Button:
 	var button := Button.new()
-	button.text = "%s   %s\n%s" % [location.get("icon", "◆"), location.get("name", "地点"), location.get("subtitle", "")]
+	button.name = "Location_%s" % str(location.get("id", "unknown"))
+	button.text = ""
 	button.custom_minimum_size = Vector2(260, 126)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	button.add_theme_font_size_override("font_size", 18)
-	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	var accent := Color(str(location.get("color", "#55C2A3")))
 	_style_button(button, Color("#142326F2"), Color(accent, 0.72))
+
+	var content := VBoxContainer.new()
+	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	content.add_theme_constant_override("separation", 5)
+	button.add_child(content)
+	var heading := HBoxContainer.new()
+	heading.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(heading)
+	var identity := _make_label("%s   %s" % [location.get("icon", "◆"), location.get("name", "地点")], 18, COLOR_INK)
+	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	identity.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	heading.add_child(identity)
+	var arrow := _make_label("↗", 18, accent.lightened(0.18))
+	arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	heading.add_child(arrow)
+	var subtitle := _make_label(str(location.get("subtitle", "")), 15, Color("#D2DDDA"))
+	subtitle.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(subtitle)
+	var spacer := Control.new()
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_child(spacer)
+	var route_hint := _make_label("进入地点  ·  消耗 1 个时段", 11, Color(accent, 0.82))
+	route_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(route_hint)
 	button.tooltip_text = str(location.get("description", ""))
 	button.set_meta("audio_cue", &"location_enter")
 	button.pressed.connect(_travel_to_location.bind(str(location.get("id", ""))))
@@ -657,9 +693,12 @@ func show_travel(location: Dictionary, road_background: String, duration: float 
 	box.add_child(_make_label("路上的片刻，也属于山大期末周。学无止境，先从下一步开始。", 14, COLOR_MUTED))
 	var progress := ProgressBar.new()
 	progress.name = "TravelProgress"
+	progress.min_value = 0.0
+	progress.max_value = 100.0
 	progress.show_percentage = false
 	progress.value = 0.0
 	progress.custom_minimum_size.y = 10
+	_style_progress_bar(progress, Color(str(location.get("color", "#63DDB8"))), 5)
 	box.add_child(progress)
 	var progress_tween := create_tween()
 	progress_tween.set_trans(Tween.TRANS_LINEAR)
@@ -990,7 +1029,7 @@ func show_ai_advice(advice: Dictionary) -> void:
 	message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	message.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(message)
-	var risk_panel := _make_panel(Color("#4B3034E8"), 12, COLOR_CORAL)
+	var risk_panel := _make_panel(Color("#4B3034E8"), 12, COLOR_CORAL, false)
 	box.add_child(risk_panel)
 	var risk := _make_label("核验提醒：%s" % advice.get("risk", "建议可能不完整。"), 15, Color("#FFD4CE"))
 	risk.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1346,7 +1385,14 @@ func _make_header(title_text: String, subtitle_text: String, back_action: Callab
 	return panel
 
 
-func _make_panel(color: Color, radius: int = 14, border_color: Color = Color.TRANSPARENT) -> PanelContainer:
+func _make_panel(color: Color, radius: int = 14, border_color: Color = Color.TRANSPARENT, glass: bool = true, blur_lod: float = 2.8) -> PanelContainer:
+	if glass:
+		var glass_panel = GlassPanelScript.new()
+		var tint := color
+		tint.a = 1.0
+		var accent := border_color if border_color.a > 0.0 else Color("#54777B80")
+		glass_panel.configure(tint, accent, radius, blur_lod, clampf(color.a * 0.76, 0.62, 0.82))
+		return glass_panel
 	var panel := PanelContainer.new()
 	var style := StyleBoxFlat.new()
 	style.bg_color = color
@@ -1409,6 +1455,7 @@ func _make_volume_control(label_text: String, node_name: String, value: float) -
 	slider.value = clampf(value, 0.0, 1.0)
 	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	slider.custom_minimum_size.y = 40
+	_style_slider(slider)
 	row.add_child(slider)
 	var value_label := _make_label("%d%%" % int(slider.value * 100.0), 15, COLOR_MUTED)
 	value_label.custom_minimum_size.x = 58
@@ -1419,10 +1466,13 @@ func _make_volume_control(label_text: String, node_name: String, value: float) -
 
 
 func _style_button(button: Button, base_color: Color, border_color: Color) -> void:
-	var normal := _button_style(base_color, border_color, 10)
-	var hover := _button_style(base_color.lightened(0.12), border_color.lightened(0.12), 10)
-	var pressed := _button_style(base_color.darkened(0.08), COLOR_ACCENT, 10)
-	var disabled := _button_style(Color("#27383B"), Color("#405154"), 10)
+	var normal_color := Color(base_color, minf(base_color.a, 0.78))
+	var hover_color := Color(base_color.lightened(0.13), minf(maxf(base_color.a, 0.82), 0.90))
+	var pressed_color := Color(base_color.darkened(0.08), 0.92)
+	var normal := _button_style(normal_color, Color(border_color, 0.58), 11, 4, Color("#00000042"))
+	var hover := _button_style(hover_color, border_color.lightened(0.16), 11, 11, Color(border_color, 0.23))
+	var pressed := _button_style(pressed_color, COLOR_ACCENT, 11, 5, Color("#00000055"))
+	var disabled := _button_style(Color("#27383B99"), Color("#40515470"), 11, 2, Color("#00000030"))
 	button.add_theme_stylebox_override("normal", normal)
 	button.add_theme_stylebox_override("hover", hover)
 	button.add_theme_stylebox_override("pressed", pressed)
@@ -1431,9 +1481,14 @@ func _style_button(button: Button, base_color: Color, border_color: Color) -> vo
 	button.add_theme_color_override("font_color", COLOR_INK)
 	button.add_theme_color_override("font_disabled_color", Color("#738381"))
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	if button.get_node_or_null("GlassHoverController") == null:
+		var hover_controller = GlassHoverControllerScript.new()
+		hover_controller.name = "GlassHoverController"
+		hover_controller.configure(border_color, 1.018, bool(settings.get("reduced_motion", false)), 0.14)
+		button.add_child(hover_controller)
 
 
-func _button_style(color: Color, border_color: Color, radius: int) -> StyleBoxFlat:
+func _button_style(color: Color, border_color: Color, radius: int, shadow_size: int = 0, shadow_color: Color = Color.TRANSPARENT) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = color
 	style.corner_radius_top_left = radius
@@ -1449,7 +1504,73 @@ func _button_style(color: Color, border_color: Color, radius: int) -> StyleBoxFl
 	style.content_margin_right = 16
 	style.content_margin_top = 10
 	style.content_margin_bottom = 10
+	style.shadow_size = shadow_size
+	style.shadow_color = shadow_color
+	style.shadow_offset = Vector2(0, 3 if shadow_size > 0 else 0)
+	style.anti_aliasing = true
 	return style
+
+
+func _style_slider(slider: HSlider) -> void:
+	var rail := StyleBoxFlat.new()
+	rail.bg_color = Color("#102429C8")
+	rail.corner_radius_top_left = 4
+	rail.corner_radius_top_right = 4
+	rail.corner_radius_bottom_left = 4
+	rail.corner_radius_bottom_right = 4
+	rail.content_margin_top = 4
+	rail.content_margin_bottom = 4
+	rail.border_width_top = 1
+	rail.border_width_bottom = 1
+	rail.border_color = Color("#47626866")
+	var fill := rail.duplicate() as StyleBoxFlat
+	fill.bg_color = Color("#55C9ABCC")
+	fill.border_color = Color("#80EDD0B8")
+	fill.shadow_size = 6
+	fill.shadow_color = Color("#55D8B733")
+	var highlight := fill.duplicate() as StyleBoxFlat
+	highlight.bg_color = Color("#69E2C2E8")
+	highlight.border_color = Color("#B7FFEC")
+	slider.add_theme_stylebox_override("slider", rail)
+	slider.add_theme_stylebox_override("grabber_area", fill)
+	slider.add_theme_stylebox_override("grabber_area_highlight", highlight)
+	slider.add_theme_icon_override("grabber", _make_slider_grabber(Color("#D8FFF5")))
+	slider.add_theme_icon_override("grabber_highlight", _make_slider_grabber(Color.WHITE))
+
+
+func _make_slider_grabber(color: Color) -> GradientTexture2D:
+	var gradient := Gradient.new()
+	gradient.offsets = PackedFloat32Array([0.0, 0.58, 1.0])
+	gradient.colors = PackedColorArray([Color.WHITE, color, Color(color, 0.0)])
+	var texture := GradientTexture2D.new()
+	texture.gradient = gradient
+	texture.width = 22
+	texture.height = 22
+	texture.fill = GradientTexture2D.FILL_RADIAL
+	texture.fill_from = Vector2(0.5, 0.5)
+	texture.fill_to = Vector2(1.0, 0.5)
+	return texture
+
+
+func _style_progress_bar(bar: ProgressBar, color: Color, radius: int = 4) -> void:
+	var background := StyleBoxFlat.new()
+	background.bg_color = Color("#07191DD6")
+	background.corner_radius_top_left = radius
+	background.corner_radius_top_right = radius
+	background.corner_radius_bottom_left = radius
+	background.corner_radius_bottom_right = radius
+	background.border_width_left = 1
+	background.border_width_right = 1
+	background.border_width_top = 1
+	background.border_width_bottom = 1
+	background.border_color = Color("#47626866")
+	var fill := background.duplicate() as StyleBoxFlat
+	fill.bg_color = Color(color, 0.94)
+	fill.border_color = color.lightened(0.22)
+	fill.shadow_size = 7
+	fill.shadow_color = Color(color, 0.30)
+	bar.add_theme_stylebox_override("background", background)
+	bar.add_theme_stylebox_override("fill", fill)
 
 
 func _style_line_edit(line_edit: LineEdit) -> void:
@@ -1482,7 +1603,7 @@ func _make_separator() -> HSeparator:
 func _make_badge(text_value: String, accent: Color) -> PanelContainer:
 	var badge := PanelContainer.new()
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(accent, 0.13)
+	style.bg_color = Color(accent, 0.105)
 	style.corner_radius_top_left = 10
 	style.corner_radius_top_right = 10
 	style.corner_radius_bottom_left = 10
@@ -1491,7 +1612,9 @@ func _make_badge(text_value: String, accent: Color) -> PanelContainer:
 	style.border_width_right = 1
 	style.border_width_top = 1
 	style.border_width_bottom = 1
-	style.border_color = Color(accent, 0.65)
+	style.border_color = Color(accent, 0.52)
+	style.shadow_color = Color(accent, 0.08)
+	style.shadow_size = 4
 	style.content_margin_left = 10
 	style.content_margin_right = 10
 	style.content_margin_top = 6
@@ -1516,16 +1639,7 @@ func _make_stat_bar(label_text: String, value: int, color: Color) -> VBoxContain
 	bar.value = value
 	bar.show_percentage = false
 	bar.custom_minimum_size.y = 8
-	var background := StyleBoxFlat.new()
-	background.bg_color = Color("#0A2026")
-	background.corner_radius_top_left = 4
-	background.corner_radius_top_right = 4
-	background.corner_radius_bottom_left = 4
-	background.corner_radius_bottom_right = 4
-	var fill := background.duplicate()
-	fill.bg_color = color
-	bar.add_theme_stylebox_override("background", background)
-	bar.add_theme_stylebox_override("fill", fill)
+	_style_progress_bar(bar, color, 4)
 	box.add_child(bar)
 	return box
 
@@ -1543,7 +1657,7 @@ func _make_relationship_row(npc: Dictionary) -> HBoxContainer:
 
 
 func _make_progress_card(title_text: String, value: int, deadline: String) -> PanelContainer:
-	var panel := _make_panel(Color("#102A31CC"), 10, Color("#385D62"))
+	var panel := _make_panel(Color("#102A31CC"), 10, Color("#385D62"), false)
 	var box := VBoxContainer.new()
 	panel.add_child(box)
 	var row := HBoxContainer.new()
@@ -1557,7 +1671,7 @@ func _make_progress_card(title_text: String, value: int, deadline: String) -> Pa
 
 
 func _make_summary_cell(title_text: String, value: int, accent: Color) -> PanelContainer:
-	var panel := _make_panel(Color("#17343BDD"), 12, Color(accent, 0.55))
+	var panel := _make_panel(Color("#17343BDD"), 12, Color(accent, 0.55), false)
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var box := VBoxContainer.new()
 	panel.add_child(box)
