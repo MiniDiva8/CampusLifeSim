@@ -3,6 +3,13 @@ extends SceneTree
 var capture_failures := 0
 
 
+func _wait_for_screen(app: Node, expected_screen: String, timeout_ms: int = 3000) -> bool:
+	var deadline := Time.get_ticks_msec() + timeout_ms
+	while str(app.current_screen) != expected_screen and Time.get_ticks_msec() < deadline:
+		await process_frame
+	return str(app.current_screen) == expected_screen
+
+
 func _initialize() -> void:
 	_capture.call_deferred()
 
@@ -28,6 +35,7 @@ func _capture() -> void:
 	_save_viewport("res://reports/campus_map.png")
 	app.session = GameSession.new()
 	app._present_current_state()
+	await _wait_for_screen(app, "event")
 	for _frame in 5:
 		await process_frame
 	_save_viewport("res://reports/event_choice.png")
@@ -48,7 +56,12 @@ func _capture() -> void:
 	app.session.clock.slot = 1
 	app.background_catalog.choose_location_background("library", app.session)
 	var road_background: String = app.background_catalog.choose_road_background(app.session)
-	app.show_travel(app.repository.get_location("library"), road_background, 10.0)
+	var library_location: Dictionary = app.repository.get_location("library")
+	app._show_travel_preparation(library_location)
+	for _frame in 5:
+		await process_frame
+	_save_viewport("res://reports/travel_preparing.png")
+	app.show_travel(library_location, road_background, 10.0)
 	for _frame in 5:
 		await process_frame
 	_save_viewport("res://reports/travel_day.png")
@@ -89,6 +102,7 @@ func _capture() -> void:
 	app.session.difficulty_id = "hard"
 	app.session.stats.stress = 78
 	app.show_stress_crisis(func(): pass)
+	await _wait_for_screen(app, "stress_crisis")
 	for _frame in 5:
 		await process_frame
 	_save_viewport("res://reports/stress_crisis.png")

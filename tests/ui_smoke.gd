@@ -33,6 +33,22 @@ func _count_nodes_with_script(node: Node, script_path: String) -> int:
 	return count
 
 
+func _wait_for_screen(app: Node, expected_screen: String, timeout_ms: int = 3000) -> bool:
+	var deadline := Time.get_ticks_msec() + timeout_ms
+	while str(app.current_screen) != expected_screen and Time.get_ticks_msec() < deadline:
+		await process_frame
+	return str(app.current_screen) == expected_screen
+
+
+func _wait_for_node(app: Node, node_name: String, timeout_ms: int = 3000) -> Node:
+	var deadline := Time.get_ticks_msec() + timeout_ms
+	var found := app.find_child(node_name, true, false)
+	while found == null and Time.get_ticks_msec() < deadline:
+		await process_frame
+		found = app.find_child(node_name, true, false)
+	return found
+
+
 func _run() -> void:
 	var packed := load("res://scenes/main.tscn") as PackedScene
 	var app = packed.instantiate()
@@ -55,8 +71,8 @@ func _run() -> void:
 	var name_input := app.find_child("PlayerName", true, false) as LineEdit
 	var study_button := app.find_child("Trait_study", true, false) as Button
 	app._start_from_setup(name_input, study_button.button_group, medium_button.button_group)
-	await process_frame
-	_expect(app.session.difficulty_id == "medium" and app.current_screen == "event", "starting from setup should save the selected medium difficulty")
+	_expect(await _wait_for_screen(app, "event"), "starting from setup should prepare the first event without blocking")
+	_expect(app.session.difficulty_id == "medium", "starting from setup should save the selected medium difficulty")
 
 	app.save_service = SaveService.new("user://campus_ui_smoke_save.json", "user://campus_ui_smoke_settings.json")
 	app.save_service.delete_save()
@@ -70,12 +86,17 @@ func _run() -> void:
 
 	var first_choice_button := app.find_child("Choice_plan", true, false) as Button
 	_expect(first_choice_button != null, "data-driven event choices should become named interactive cards")
+	var first_photo_texture: Texture2D = app.active_photo_background.texture
+	var choice_click_started := Time.get_ticks_usec()
 	first_choice_button.pressed.emit()
-	await process_frame
-	_expect(app.current_screen == "result", "event choice should show consequences")
-	app._advance_after_action()
-	await process_frame
-	_expect(app.current_screen == "map", "continuing should reach the campus map")
+	var choice_click_ms := float(Time.get_ticks_usec() - choice_click_started) / 1000.0
+	_expect(choice_click_ms < 150.0, "choice callback should yield responsive feedback within 150 ms")
+	_expect(app.find_child("InteractionPending", true, false) != null, "choice clicks should show feedback before any heavier result work")
+	_expect(await _wait_for_screen(app, "result"), "event choice should show consequences")
+	_expect(app.active_photo_background.texture == first_photo_texture, "choice result should reuse the active original photo texture instead of decoding it again")
+	var first_continue := app.find_child("ContinueResult", true, false) as Button
+	first_continue.pressed.emit()
+	_expect(await _wait_for_screen(app, "map"), "continuing should reach the campus map")
 	_expect(app.session.clock.get_index() == 1, "first choice should consume one slot")
 	var library_location_button := app.find_child("Location_library", true, false) as Button
 	_expect(library_location_button != null and library_location_button.get_node_or_null("GlassHoverController") != null, "campus location cards should expose the shared hover lift treatment")
@@ -84,22 +105,27 @@ func _run() -> void:
 	_expect(library_location_button.scale.x > 1.0, "location hover should visibly lift the card when reduced motion is disabled")
 	library_location_button.mouse_exited.emit()
 
+	var travel_click_started := Time.get_ticks_usec()
 	app._travel_to_location("library", 0.05)
+	var travel_click_ms := float(Time.get_ticks_usec() - travel_click_started) / 1000.0
+	_expect(travel_click_ms < 150.0, "location callback should acknowledge the click before original photos finish loading")
 	_expect(app.current_screen == "travel", "selecting a location should open the travel transition")
+	_expect(_has_label_containing(app, "已收到你的选择"), "cold photo loads should first show a responsive travel acknowledgement")
+	var travel_progress := await _wait_for_node(app, "TravelProgress") as ProgressBar
 	_expect(ambience != null and ambience.get_current_context() == &"road", "travel transition should crossfade to the road soundscape")
 	_expect(app.active_photo_background != null, "travel transition should use a road photograph")
-	var travel_progress := app.find_child("TravelProgress", true, false) as ProgressBar
 	_expect(travel_progress != null and travel_progress.has_theme_stylebox_override("fill"), "travel transition should use the luminous progress treatment")
-	await create_timer(0.08).timeout
-	_expect(app.current_screen == "event", "library should present an eligible location event")
+	_expect(await _wait_for_screen(app, "event"), "library should present an eligible location event")
 	_expect(ambience != null and ambience.get_current_context() == &"library", "arrival should crossfade from the road into the library")
 	_expect(app.active_photo_background != null, "location event should retain the selected scene photograph")
 	var library_event: Dictionary = app.event_engine.get_location_event("library", app.session)
-	app._resolve_event_choice(library_event, library_event.choices[0])
-	app._advance_after_action()
-	await process_frame
+	var library_choice := app.find_child("Choice_%s" % str(library_event.choices[0].id), true, false) as Button
+	library_choice.pressed.emit()
+	_expect(await _wait_for_screen(app, "result"), "library choice should resolve after responsive feedback")
+	var library_continue := app.find_child("ContinueResult", true, false) as Button
+	library_continue.pressed.emit()
+	_expect(await _wait_for_screen(app, "event"), "day-one schedule notice should trigger on its fixed slot")
 	_expect(app.session.clock.get_index() == 2, "location event should consume one slot")
-	_expect(app.current_screen == "event", "day-one schedule notice should trigger on its fixed slot")
 
 	app.session.current_location_id = "field"
 	app.session.current_background_path = "res://assets/backgrounds/locations/field/网球.jpg"
@@ -145,15 +171,16 @@ func _run() -> void:
 	app.session.difficulty_id = "medium"
 	app.session.stats.stress = DifficultyRules.get_crisis_threshold("medium")
 	app._advance_after_action()
-	await process_frame
-	_expect(app.current_screen == "stress_crisis", "high stress should automatically open the disorientation choice screen after an action")
+	_expect(await _wait_for_screen(app, "stress_crisis"), "high stress should automatically open the disorientation choice screen after an action")
 	_expect(ambience != null and ambience.is_stress_layer_playing(), "stress crisis should add the optional body-feedback sound layer")
 	_expect(app.active_photo_background != null, "stress crisis should use the long-exposure photograph")
 	var stress_before := int(app.session.stats.stress)
 	var recover_button := app.find_child("StressRecover", true, false) as Button
 	_expect(recover_button != null, "stress crisis responses should use interactive choice cards")
 	recover_button.pressed.emit()
+	await process_frame
 	_expect(int(app.session.stats.stress) < stress_before, "choosing to recover should lower stress")
+	_expect(app._photo_texture_cache.size() <= 4, "photo cache should remain bounded after visiting several original-resolution scenes")
 	app.save_service.delete_save()
 	app.queue_free()
 	await process_frame
@@ -169,6 +196,7 @@ func _run() -> void:
 		await create_timer(0.25).timeout
 
 	if failures.is_empty():
+		print("[METRIC] immediate choice feedback %.2f ms; immediate travel acknowledgement %.2f ms" % [choice_click_ms, travel_click_ms])
 		print("[PASS] UI smoke: %d checks passed" % checks)
 		quit(0)
 	else:

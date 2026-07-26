@@ -14,6 +14,7 @@ const COLOR_BLUE := Color("#7CB9E8")
 # Screen-accessible derivative of SDU's official print color C26 M100 Y100 K28.
 const COLOR_SDU_RED := Color("#B84850")
 const TRAVEL_DURATION_SECONDS := 2.0
+const PHOTO_TEXTURE_CACHE_LIMIT := 4
 
 var repository := ContentRepository.new()
 var background_catalog := BackgroundCatalog.new()
@@ -27,6 +28,9 @@ var screen_layer: Control
 var active_photo_background: TextureRect
 var active_photo_fill: TextureRect
 var notice_text := ""
+var _photo_texture_cache: Dictionary = {}
+var _photo_texture_lru: Array[String] = []
+var _interaction_pending := false
 
 
 func _ready() -> void:
@@ -84,6 +88,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _reset_screen(screen_name: String, backdrop_tint: Color = Color.WHITE, background_path: String = "", shade_color: Color = Color("#07161CB8")) -> VBoxContainer:
+	_finish_interaction_feedback()
 	current_screen = screen_name
 	active_photo_background = null
 	active_photo_fill = null
@@ -94,7 +99,7 @@ func _reset_screen(screen_name: String, backdrop_tint: Color = Color.WHITE, back
 	add_child(screen_layer)
 
 	if not background_path.is_empty() and ResourceLoader.exists(background_path):
-		var photo_texture := load(background_path) as Texture2D
+		var photo_texture := _load_photo_texture(background_path)
 		var photo_orientation := background_catalog.get_photo_orientation(background_path)
 		active_photo_background = OrientedPhotoRect.new()
 		active_photo_background.name = "PhotoFrame"
@@ -136,6 +141,7 @@ func _reset_screen(screen_name: String, backdrop_tint: Color = Color.WHITE, back
 
 
 func _show_adaptive_scene(screen_name: String, data: Dictionary) -> AdaptiveSceneView:
+	_finish_interaction_feedback()
 	current_screen = screen_name
 	active_photo_background = null
 	active_photo_fill = null
@@ -156,15 +162,26 @@ func _show_adaptive_scene(screen_name: String, data: Dictionary) -> AdaptiveScen
 func _base_scene_data(scene_context: Dictionary, background_path: String) -> Dictionary:
 	var scene_name := str(scene_context.get("display_name", "校园场景"))
 	var photo_shape := "原图比例"
+	var media_width := 560.0
+	var image_texture: Texture2D
 	if not background_path.is_empty() and ResourceLoader.exists(background_path):
-		var image_texture := load(background_path) as Texture2D
+		image_texture = _load_photo_texture(background_path)
 		if image_texture != null:
 			var image_size := image_texture.get_size()
 			if background_catalog.get_photo_orientation(background_path) in [6, 8]:
 				image_size = Vector2(image_size.y, image_size.x)
 			photo_shape = "竖幅原图" if image_size.x < image_size.y else "横幅原图"
+			var aspect := image_size.x / maxf(image_size.y, 1.0)
+			if aspect < 0.86:
+				media_width = 474.0
+			elif aspect > 1.45:
+				media_width = 704.0
+			else:
+				media_width = 652.0
 	return {
 		"image_path": background_path,
+		"image_texture": image_texture,
+		"media_width": media_width,
 		"orientation": background_catalog.get_photo_orientation(background_path),
 		"time": session.clock.get_display_text() if session != null else "期末周",
 		"scene_name": scene_name,
@@ -176,6 +193,88 @@ func _base_scene_data(scene_context: Dictionary, background_path: String) -> Dic
 		"footer_hint": "山东大学中心校区 · 离线运行 · 自动存档",
 		"reduced_motion": bool(settings.get("reduced_motion", false)),
 	}
+
+
+func _load_photo_texture(path: String) -> Texture2D:
+	if path.is_empty() or not ResourceLoader.exists(path):
+		return null
+	if _photo_texture_cache.has(path):
+		_touch_photo_cache(path)
+		return _photo_texture_cache[path] as Texture2D
+	var texture := load(path) as Texture2D
+	return _remember_photo_texture(path, texture)
+
+
+func _request_photo_texture(path: String) -> void:
+	if path.is_empty() or _photo_texture_cache.has(path) or not ResourceLoader.exists(path):
+		return
+	var status := ResourceLoader.load_threaded_get_status(path)
+	if status == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+		var request_error := ResourceLoader.load_threaded_request(path, "Texture2D", true, ResourceLoader.CACHE_MODE_REUSE)
+		if request_error != OK:
+			push_warning("Cannot start threaded photo load for %s: %s" % [path, error_string(request_error)])
+
+
+func _await_photo_texture(path: String) -> Texture2D:
+	if path.is_empty() or not ResourceLoader.exists(path):
+		return null
+	if _photo_texture_cache.has(path):
+		_touch_photo_cache(path)
+		return _photo_texture_cache[path] as Texture2D
+	_request_photo_texture(path)
+	var status := ResourceLoader.load_threaded_get_status(path)
+	while status == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+		await get_tree().process_frame
+		status = ResourceLoader.load_threaded_get_status(path)
+	if status == ResourceLoader.THREAD_LOAD_LOADED:
+		var resource: Resource = ResourceLoader.load_threaded_get(path)
+		return _remember_photo_texture(path, resource as Texture2D)
+	return _load_photo_texture(path)
+
+
+func _remember_photo_texture(path: String, texture: Texture2D) -> Texture2D:
+	if texture == null:
+		return null
+	_photo_texture_cache[path] = texture
+	_touch_photo_cache(path)
+	while _photo_texture_lru.size() > PHOTO_TEXTURE_CACHE_LIMIT:
+		var expired_path := str(_photo_texture_lru.pop_front())
+		_photo_texture_cache.erase(expired_path)
+	return texture
+
+
+func _touch_photo_cache(path: String) -> void:
+	_photo_texture_lru.erase(path)
+	_photo_texture_lru.append(path)
+
+
+func _begin_interaction_feedback(message: String = "正在结算选择…") -> bool:
+	if _interaction_pending:
+		return false
+	_interaction_pending = true
+	Input.set_default_cursor_shape(Input.CURSOR_BUSY)
+	if screen_layer == null:
+		return true
+	for node in screen_layer.find_children("*", "Button", true, false):
+		var button := node as Button
+		if button != null:
+			button.disabled = true
+	var indicator := _make_badge(message, COLOR_TEAL)
+	indicator.name = "InteractionPending"
+	indicator.position = Vector2(1024, 82)
+	indicator.size = Vector2(220, 38)
+	var label := indicator.get_child(0) as Label
+	if label != null:
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	screen_layer.add_child(indicator)
+	return true
+
+
+func _finish_interaction_feedback() -> void:
+	if not _interaction_pending:
+		return
+	_interaction_pending = false
+	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
 
 
 func _scene_state_tags() -> Array:
@@ -471,6 +570,23 @@ func _present_current_state() -> void:
 		return
 	var fixed_event := event_engine.get_fixed_event(session)
 	if not fixed_event.is_empty():
+		var expected_index := session.clock.get_index()
+		var event_background := background_catalog.ensure_event_background(str(fixed_event.get("id", "")), session)
+		if not event_background.is_empty() and not _photo_texture_cache.has(event_background):
+			_request_photo_texture(event_background)
+			_show_scene_preparation(
+				"event_loading",
+				"下一幕正在准备",
+				str(fixed_event.get("title", "校园事件")),
+				"正在后台读取对应校园原图，事件内容与选择不会因此延迟结算。",
+				COLOR_TEAL
+			)
+			await get_tree().process_frame
+			var event_texture: Texture2D = await _await_photo_texture(event_background)
+			if event_texture == null:
+				push_warning("Event background could not be prepared: %s" % event_background)
+			if session == null or session.clock.get_index() != expected_index or current_screen != "event_loading":
+				return
 		show_event(fixed_event)
 	else:
 		show_map()
@@ -636,15 +752,108 @@ func _travel_to_location(location_id: String, duration: float = TRAVEL_DURATION_
 	var location := repository.get_location(location_id)
 	if location.is_empty() or session == null:
 		return
-	background_catalog.choose_location_background(location_id, session)
+	var destination_background := background_catalog.choose_location_background(location_id, session)
 	var road_background := background_catalog.choose_road_background(session)
+	_request_photo_texture(destination_background)
+	_request_photo_texture(road_background)
+	_show_travel_preparation(location)
+	await get_tree().process_frame
 	var save_error := save_service.save_game(session)
 	if save_error != OK:
 		notice_text = "自动存档失败：%s" % error_string(save_error)
+	var road_texture: Texture2D = await _await_photo_texture(road_background)
+	if road_texture == null:
+		push_warning("Road background could not be prepared: %s" % road_background)
+	if current_screen != "travel" or session == null or session.current_location_id != location_id:
+		return
 	show_travel(location, road_background, duration)
 	await get_tree().create_timer(maxf(duration, 0.01)).timeout
 	if current_screen == "travel" and session != null and session.current_location_id == location_id:
+		var destination_texture: Texture2D = await _await_photo_texture(destination_background)
+		if destination_texture == null:
+			push_warning("Destination background could not be prepared: %s" % destination_background)
+	if current_screen == "travel" and session != null and session.current_location_id == location_id:
 		show_location(location_id)
+
+
+func _show_travel_preparation(location: Dictionary) -> void:
+	var root := _reset_screen("travel", Color("#24464B"), "", Color("#0710136E"))
+	var top := HBoxContainer.new()
+	root.add_child(top)
+	top.add_child(_make_badge("SDU · CAMPUS TRANSIT", COLOR_SDU_RED))
+	var top_space := Control.new()
+	top_space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(top_space)
+	top.add_child(_make_badge(session.clock.get_display_text(), COLOR_BLUE))
+	var vertical_space := Control.new()
+	vertical_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(vertical_space)
+	var center := HBoxContainer.new()
+	center.alignment = BoxContainer.ALIGNMENT_CENTER
+	root.add_child(center)
+	var accent := Color(str(location.get("color", "#63DDB8")))
+	var panel := _make_panel(Color("#091619E8"), 18, accent, true, 2.2)
+	panel.custom_minimum_size = Vector2(620, 136)
+	center.add_child(panel)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	panel.add_child(box)
+	box.add_child(_make_label("已收到你的选择", 12, accent))
+	box.add_child(_make_label("正在准备前往  %s" % str(location.get("name", "校园地点")), 25, COLOR_INK))
+	box.add_child(_make_label("照片在后台读取，界面不会因为原图解码而失去响应。", 13, COLOR_MUTED))
+	var progress := ProgressBar.new()
+	progress.show_percentage = false
+	progress.value = 62.0
+	progress.custom_minimum_size.y = 8
+	_style_progress_bar(progress, accent, 4)
+	box.add_child(progress)
+	var progress_tween := create_tween()
+	progress_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	progress_tween.tween_property(progress, "value", 88.0, 1.2)
+
+
+func _show_scene_preparation(
+	screen_name: String,
+	eyebrow: String,
+	title_text: String,
+	detail: String,
+	accent: Color
+) -> void:
+	var root := _reset_screen(screen_name, Color("#24464B"), "", Color("#0710136E"))
+	var top := HBoxContainer.new()
+	root.add_child(top)
+	top.add_child(_make_badge("SDU · RESPONSIVE TRANSITION", COLOR_SDU_RED))
+	var top_space := Control.new()
+	top_space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(top_space)
+	if session != null:
+		top.add_child(_make_badge(session.clock.get_display_text(), COLOR_BLUE))
+	var vertical_space := Control.new()
+	vertical_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(vertical_space)
+	var center := HBoxContainer.new()
+	center.alignment = BoxContainer.ALIGNMENT_CENTER
+	root.add_child(center)
+	var panel := _make_panel(Color("#091619E8"), 18, accent, true, 2.2)
+	panel.custom_minimum_size = Vector2(660, 150)
+	center.add_child(panel)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	panel.add_child(box)
+	box.add_child(_make_label(eyebrow, 12, accent))
+	box.add_child(_make_label(title_text, 25, COLOR_INK))
+	var detail_label := _make_label(detail, 13, COLOR_MUTED)
+	detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(detail_label)
+	var progress := ProgressBar.new()
+	progress.show_percentage = false
+	progress.value = 24.0
+	progress.custom_minimum_size.y = 8
+	_style_progress_bar(progress, accent, 4)
+	box.add_child(progress)
+	var progress_tween := create_tween()
+	progress_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	progress_tween.tween_property(progress, "value", 88.0, 1.25)
 
 
 func show_travel(location: Dictionary, road_background: String, duration: float = TRAVEL_DURATION_SECONDS) -> void:
@@ -806,6 +1015,9 @@ func _present_action_for_scene(action: Dictionary, location_id: String, scene_co
 
 
 func _resolve_event_choice(event: Dictionary, choice: Dictionary) -> void:
+	if not _begin_interaction_feedback():
+		return
+	await get_tree().process_frame
 	var effects := event_engine.apply_choice(event, choice, session)
 	var scene_context := background_catalog.get_active_scene_context(session)
 	var outcome := _format_scene_text(str(choice.get("outcome", "你的选择产生了影响。")), scene_context)
@@ -814,6 +1026,9 @@ func _resolve_event_choice(event: Dictionary, choice: Dictionary) -> void:
 
 
 func _resolve_fallback_action(action: Dictionary) -> void:
+	if not _begin_interaction_feedback():
+		return
+	await get_tree().process_frame
 	var effects := event_engine.apply_fallback_action(action, session)
 	show_result(str(action.get("label", "行动完成")), str(action.get("description", "这个时段结束了。")), _visible_effects(effects), _advance_after_action)
 
@@ -861,6 +1076,9 @@ func show_result(title_text: String, description: String, effects: Array[String]
 
 
 func _advance_after_action() -> void:
+	if not _begin_interaction_feedback("正在推进时间…"):
+		return
+	await get_tree().process_frame
 	var transition := session.clock.advance()
 	var day_messages: Array[String] = []
 	if bool(transition.get("day_changed", false)) and not session.clock.is_finished():
@@ -909,8 +1127,23 @@ func _complete_advance(consequences: Array[Dictionary], day_messages: Array[Stri
 
 
 func show_stress_crisis(continue_action: Callable) -> void:
-	_set_soundscape(_session_soundscape_context(), 0.35)
 	var background_path := background_catalog.get_stress_background()
+	if not background_path.is_empty() and not _photo_texture_cache.has(background_path):
+		_request_photo_texture(background_path)
+		_show_scene_preparation(
+			"stress_crisis_loading",
+			"身体状态正在显现",
+			"压力过载",
+			"长曝光原图正在后台读取。你的危机选项会在画面准备好后立即出现。",
+			COLOR_CORAL
+		)
+		await get_tree().process_frame
+		var stress_texture: Texture2D = await _await_photo_texture(background_path)
+		if stress_texture == null:
+			push_warning("Stress background could not be prepared: %s" % background_path)
+		if current_screen != "stress_crisis_loading":
+			return
+	_set_soundscape(_session_soundscape_context(), 0.35)
 	var config := DifficultyRules.get_config(session.difficulty_id)
 	var focus_target := "考试准备" if not bool(session.flags.get("exam_completed", false)) else "展示准备"
 	var scene_context := {
@@ -971,6 +1204,9 @@ func show_stress_crisis(continue_action: Callable) -> void:
 
 
 func _resolve_stress_crisis(response_id: String, continue_action: Callable) -> void:
+	if not _begin_interaction_feedback("正在恢复状态…"):
+		return
+	await get_tree().process_frame
 	var config := DifficultyRules.get_config(session.difficulty_id)
 	match response_id:
 		"focus":

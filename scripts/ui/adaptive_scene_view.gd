@@ -44,7 +44,9 @@ func _recommended_media_width(data: Dictionary) -> float:
 	var image_path := str(data.get("image_path", ""))
 	if image_path.is_empty() or not ResourceLoader.exists(image_path):
 		return 560.0
-	var image_texture := load(image_path) as Texture2D
+	var image_texture := data.get("image_texture") as Texture2D
+	if image_texture == null:
+		image_texture = load(image_path) as Texture2D
 	if image_texture == null:
 		return 560.0
 	var image_size := image_texture.get_size()
@@ -155,8 +157,8 @@ func _build_photo_stage(data: Dictionary, stage_position: Vector2, stage_size: V
 	photo_rect = OrientedPhotoRect.new()
 	photo_rect.name = "PhotoFrame"
 	var image_path := str(data.get("image_path", ""))
-	var image_texture: Texture2D
-	if not image_path.is_empty() and ResourceLoader.exists(image_path):
+	var image_texture := data.get("image_texture") as Texture2D
+	if image_texture == null and not image_path.is_empty() and ResourceLoader.exists(image_path):
 		image_texture = load(image_path) as Texture2D
 	photo_rect.configure(image_texture, int(data.get("orientation", 1)), false)
 	photo_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
