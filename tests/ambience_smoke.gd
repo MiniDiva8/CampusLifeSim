@@ -26,6 +26,7 @@ func _run() -> void:
 	ambience.soundscape_changed.connect(func(context: StringName, period: StringName): transitions.append("%s:%s" % [context, period]))
 	_expect(ambience.get_supported_contexts().size() == 9, "soundscape service should expose menu, campus, road, and six locations")
 	_expect(AmbientSoundControllerScript.period_from_slot(0) == &"day" and AmbientSoundControllerScript.period_from_slot(3) == &"evening" and AmbientSoundControllerScript.period_from_slot(4) == &"night", "five time slots should map to three audible periods")
+	_expect(not AmbientSoundControllerScript.PERIODIC_PITCHED_CUES_ENABLED, "ambient loops should not contain repeating chimes, bells, pings, or synthetic whistles")
 
 	ambience.transition_to(&"menu", &"evening", 0.01, 20)
 	await create_timer(0.04).timeout

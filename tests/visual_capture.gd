@@ -124,6 +124,25 @@ func _capture() -> void:
 		await process_frame
 	await create_timer(0.45).timeout
 	_save_viewport("res://reports/building_editorial_event.png")
+	app.session.current_location_id = "canteen"
+	app.session.current_background_path = "res://assets/backgrounds/locations/canteen/水果/30c11daead283879b3c1714fad9a425e.jpg"
+	var canteen_context: Dictionary = app.background_catalog.get_active_scene_context(app.session)
+	var canteen_data: Dictionary = app._base_scene_data(canteen_context, app.session.current_background_path)
+	canteen_data.merge({
+		"panel_name": "LocationCard",
+		"section": "齐园餐厅 · 地点行动",
+		"title": "抵达 · 齐园餐厅 · 水果区",
+		"body": "你来到齐园餐厅的水果区，准备挑些水果补充能量。",
+		"question": "这个时段，你准备做什么？",
+		"cost_text": "行动后推进 1 个时段",
+		"state_tags": [],
+		"choices": [],
+	}, true)
+	app._show_adaptive_scene("location", canteen_data)
+	for _frame in 5:
+		await process_frame
+	await create_timer(0.30).timeout
+	_save_viewport("res://reports/location_photo_clean.png")
 	app.session.difficulty_id = "hard"
 	app.session.stats.stress = 78
 	app.show_stress_crisis(func(): pass)

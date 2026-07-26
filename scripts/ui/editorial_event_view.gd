@@ -104,24 +104,6 @@ func _build_canvas(data: Dictionary) -> void:
 		left_veil.size = Vector2(440, 720)
 		add_child(left_veil)
 		add_child(_localized_choice_veil())
-	else:
-		var caption := _label(
-			"%s  /  %s" % [
-				str(data.get("photo_shape", "原图完整比例")),
-				str(data.get("scene_name", "校园场景")),
-			],
-			11,
-			MIST_BLUE
-		)
-		caption.name = "PhotoPresentationLabel"
-		caption.position = Vector2(stage_rect.position.x, stage_rect.end.y + 7)
-		caption.size = Vector2(stage_rect.size.x, 20)
-		caption.horizontal_alignment = (
-			HORIZONTAL_ALIGNMENT_RIGHT
-			if str(_layout.get("side", "left")) == "right"
-			else HORIZONTAL_ALIGNMENT_LEFT
-		)
-		add_child(caption)
 
 	var top_wash := ColorRect.new()
 	top_wash.color = Color("#F4F1E8B8") if _layout_mode != "cinematic" else Color("#F4F1E866")

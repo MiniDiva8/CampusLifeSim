@@ -152,7 +152,8 @@ func _run() -> void:
 	_expect(editorial_view != null and photo_stage != null and event_narrative != null and choice_list != null, "event screen should use the full-canvas editorial composition")
 	_expect(editorial_view.get_meta("photo_layout_mode") == "portrait", "vertical originals should select the portrait event layout")
 	_expect(photo_stage.position.x > 640.0 and photo_stage.size == Vector2(456, 540), "right-hand vertical originals should occupy only their dedicated magazine page")
-	_expect(app.find_child("PhotoPresentationLabel", true, false) != null, "non-cinematic originals should identify their complete-ratio presentation")
+	_expect(app.find_child("PhotoPresentationLabel", true, false) == null, "event photos should not expose internal presentation terminology")
+	_expect(not _has_label_containing(app, "完整比例"), "event UI should not show photo-layout debug copy to players")
 	var editorial_choice := app.find_child("Choice_continue", true, false) as Button
 	_expect(editorial_choice != null and editorial_choice.get_node_or_null("GlassHoverController") == null, "editorial choices should use text-and-rule focus rather than card lift")
 	if editorial_choice != null:
@@ -191,6 +192,25 @@ func _run() -> void:
 	var editorial_building_stage := app.find_child("PhotoStage", true, false) as Control
 	_expect(editorial_building_view != null and editorial_building_view.get_meta("photo_layout_mode") == "editorial", "four-by-three building photos should select the editorial spread")
 	_expect(editorial_building_stage != null and editorial_building_stage.size == Vector2(640, 480), "editorial building photos should retain a four-by-three display plate")
+	app.session.current_location_id = "canteen"
+	app.session.current_background_path = "res://assets/backgrounds/locations/canteen/水果/30c11daead283879b3c1714fad9a425e.jpg"
+	var canteen_context: Dictionary = app.background_catalog.get_active_scene_context(app.session)
+	var canteen_data: Dictionary = app._base_scene_data(canteen_context, app.session.current_background_path)
+	canteen_data.merge({
+		"panel_name": "LocationCard",
+		"section": "地点行动",
+		"title": "抵达 · 齐园餐厅 · 水果区",
+		"body": "你准备挑些水果补充能量。",
+		"question": "这个时段，你准备做什么？",
+		"cost_text": "行动后推进 1 个时段",
+		"state_tags": [],
+		"choices": [],
+	}, true)
+	app._show_adaptive_scene("location", canteen_data)
+	await process_frame
+	_expect(app.current_screen == "location", "canteen should open its location action screen")
+	_expect(not _has_label_containing(app, "SCENE") and not _has_label_containing(app, "完整比例"), "location photo stage should hide internal scene and aspect-ratio labels")
+	_expect(_has_label_containing(app, "齐园餐厅 · 水果区"), "location photo stage should retain the real player-facing place name")
 
 	app.show_pause_menu()
 	await process_frame

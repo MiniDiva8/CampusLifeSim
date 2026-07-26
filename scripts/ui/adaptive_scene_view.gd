@@ -164,14 +164,6 @@ func _build_photo_stage(data: Dictionary, stage_position: Vector2, stage_size: V
 	photo_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	media.add_child(photo_rect)
 
-	var index_label := _label("SCENE  %s" % str(data.get("scene_index", "LIVE")), 10, TEAL)
-	index_label.position = Vector2(18, 16)
-	index_label.size = Vector2(170, 24)
-	index_label.add_theme_color_override("font_shadow_color", Color("#000000CC"))
-	index_label.add_theme_constant_override("shadow_offset_x", 1)
-	index_label.add_theme_constant_override("shadow_offset_y", 1)
-	media.add_child(index_label)
-
 	var caption := _glass_surface(Color("#081113"), Color("#79A39F88"), 12, 2.0, Vector4(14, 10, 14, 10))
 	caption.name = "PhotoCaption"
 	caption.position = Vector2(14, stage_size.y - 82)
@@ -186,8 +178,6 @@ func _build_photo_stage(data: Dictionary, stage_position: Vector2, stage_size: V
 	caption_row.add_child(caption_copy)
 	caption_copy.add_child(_label(str(data.get("scene_name", "校园场景")), 19, INK))
 	caption_copy.add_child(_label(str(data.get("activity", "安排当前时段")), 12, MUTED))
-	var image_shape := str(data.get("photo_shape", "原图比例"))
-	caption_row.add_child(_badge(image_shape, TEAL))
 
 
 func _build_interaction_panel(data: Dictionary, panel_position: Vector2, panel_size: Vector2) -> void:

@@ -181,7 +181,6 @@ func _show_editorial_event(data: Dictionary, screen_name: String = "event") -> C
 
 func _base_scene_data(scene_context: Dictionary, background_path: String) -> Dictionary:
 	var scene_name := str(scene_context.get("display_name", "校园场景"))
-	var photo_shape := "原图比例"
 	var media_width := 560.0
 	var image_size := Vector2.ZERO
 	var image_texture: Texture2D
@@ -191,9 +190,6 @@ func _base_scene_data(scene_context: Dictionary, background_path: String) -> Dic
 			image_size = image_texture.get_size()
 			if background_catalog.get_photo_orientation(background_path) in [6, 8]:
 				var display_size := Vector2(image_size.y, image_size.x)
-				photo_shape = "竖幅原图" if display_size.x < display_size.y else "横幅原图"
-			else:
-				photo_shape = "竖幅原图" if image_size.x < image_size.y else "横幅原图"
 			var presentation := background_catalog.get_photo_presentation(background_path, image_size)
 			var aspect := float(presentation.get("photo_aspect", 1.0))
 			if aspect < 0.86:
@@ -210,7 +206,6 @@ func _base_scene_data(scene_context: Dictionary, background_path: String) -> Dic
 		"time": session.clock.get_display_text() if session != null else "期末周",
 		"scene_name": scene_name,
 		"activity": str(scene_context.get("activity_text", "安排当前时段")),
-		"photo_shape": photo_shape,
 		"energy": int(session.stats.energy) if session != null else 0,
 		"stress": int(session.stats.stress) if session != null else 0,
 		"exam": int(session.tasks.exam) if session != null else 0,

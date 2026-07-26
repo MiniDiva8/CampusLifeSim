@@ -11,6 +11,7 @@ const MIX_RATE := 22050
 const LOOP_SECONDS := 8.0
 const STRESS_LOOP_SECONDS := 4.0
 const SILENT_DB := -60.0
+const PERIODIC_PITCHED_CUES_ENABLED := false
 const CONTEXTS: Array[StringName] = [
 	&"menu",
 	&"campus",
@@ -249,20 +250,12 @@ func _sample_context(context: StringName, time: float, slow_left: float, slow_ri
 		&"menu":
 			left = slow_left * 0.09 + fast_left * 0.012 + sin(TAU * 55.0 * time) * 0.008
 			right = slow_right * 0.09 + fast_right * 0.012 + sin(TAU * 55.0 * time + 0.4) * 0.008
-			var menu_chime := _decay_tone(time, 2.35, 523.25, 0.75, 0.035) + _decay_tone(time, 2.62, 659.25, 0.7, 0.026)
-			menu_chime += _decay_tone(time, 6.20, 392.0, 0.75, 0.025)
-			left += menu_chime * 0.82
-			right += menu_chime
 		&"campus":
 			left = slow_left * 0.20 + fast_left * 0.022
 			right = slow_right * 0.20 + fast_right * 0.022
 			var steps := _footstep_train(time, 0.63, 0.72, 0.060 * activity)
 			left += steps
 			right += _footstep_train(time, 0.63, 1.035, 0.054 * activity)
-			var bird := _chirp(time, 2.85, 1650.0, 2550.0, 0.18, 0.026 * activity)
-			bird += _chirp(time, 6.35, 1950.0, 2850.0, 0.15, 0.020 * activity)
-			left += bird
-			right += bird * 0.72
 			left += _night_insects(time, night) * 0.7
 			right += _night_insects(time + 0.11, night)
 		&"road":
@@ -272,10 +265,6 @@ func _sample_context(context: StringName, time: float, slow_left: float, slow_ri
 			right = wind_right + fast_right * 0.028
 			left += _footstep_train(time, 0.51, 0.18, 0.085 * activity)
 			right += _footstep_train(time, 0.51, 0.435, 0.080 * activity)
-			var bicycle_bell := _decay_tone(time, 5.15, 1250.0, 0.55, 0.032 * activity)
-			bicycle_bell += _decay_tone(time, 5.23, 1680.0, 0.48, 0.020 * activity)
-			left += bicycle_bell * 0.65
-			right += bicycle_bell
 			left += _night_insects(time, night) * 0.75
 			right += _night_insects(time + 0.16, night) * 0.9
 		&"dorm":
@@ -302,10 +291,6 @@ func _sample_context(context: StringName, time: float, slow_left: float, slow_ri
 			right = slow_right * 0.085 + fast_right * 0.015 + sin(TAU * 51.7 * time) * 0.005
 			left += _footstep_train(time, 0.72, 1.15, 0.065 * activity)
 			right += _footstep_train(time, 0.72, 1.51, 0.060 * activity)
-			var distant_bell := _decay_tone(time, 6.10, 740.0, 0.8, 0.020 * activity)
-			distant_bell += _decay_tone(time, 6.20, 990.0, 0.7, 0.014 * activity)
-			left += distant_bell
-			right += distant_bell * 0.72
 		&"lab":
 			var machine_left := sin(TAU * 94.0 * time) * 0.020 + sin(TAU * 188.0 * time) * 0.009
 			var machine_right := sin(TAU * 96.0 * time + 0.6) * 0.020 + sin(TAU * 192.0 * time) * 0.009
@@ -313,10 +298,6 @@ func _sample_context(context: StringName, time: float, slow_left: float, slow_ri
 			right = slow_right * 0.115 + fast_right * 0.022 + machine_right
 			left += _keyboard_cluster(time, 0.78 + activity * 0.30, fast_left)
 			right += _keyboard_cluster(time + 0.04, 0.72 + activity * 0.28, fast_right) * 0.82
-			var status_ping := _decay_tone(time, 6.82, 880.0, 0.35, 0.018)
-			status_ping += _decay_tone(time, 6.91, 1174.0, 0.32, 0.012)
-			left += status_ping * 0.78
-			right += status_ping
 		&"canteen":
 			var murmur_left := sin(TAU * 142.0 * time + sin(TAU * 0.35 * time)) * 0.020
 			murmur_left += sin(TAU * 214.0 * time + sin(TAU * 0.27 * time)) * 0.014
@@ -324,12 +305,10 @@ func _sample_context(context: StringName, time: float, slow_left: float, slow_ri
 			murmur_right += sin(TAU * 238.0 * time + sin(TAU * 0.22 * time)) * 0.013
 			left = slow_left * 0.15 + fast_left * 0.032 + murmur_left * activity
 			right = slow_right * 0.15 + fast_right * 0.032 + murmur_right * activity
-			var clinks_left := _decay_tone(time, 1.72, 2350.0, 0.22, 0.035 * activity)
-			clinks_left += _decay_tone(time, 4.46, 1820.0, 0.28, 0.030 * activity)
-			var clinks_right := _decay_tone(time, 3.08, 2700.0, 0.22, 0.030 * activity)
-			clinks_right += _decay_tone(time, 6.52, 2050.0, 0.25, 0.026 * activity)
-			left += clinks_left
-			right += clinks_right
+			left += _noise_burst(time, 1.72, 0.12, fast_left, 0.022 * activity)
+			left += _noise_burst(time, 4.46, 0.14, fast_left, 0.018 * activity)
+			right += _noise_burst(time, 3.08, 0.12, fast_right, 0.020 * activity)
+			right += _noise_burst(time, 6.52, 0.14, fast_right, 0.016 * activity)
 		&"field":
 			left = slow_left * 0.24 + fast_left * 0.025
 			right = slow_right * 0.24 + fast_right * 0.025
@@ -337,9 +316,6 @@ func _sample_context(context: StringName, time: float, slow_left: float, slow_ri
 			var bounce_right := _ball_bounce(time, 2.92, 0.090 * activity) + _ball_bounce(time, 5.36, 0.080 * activity)
 			left += bounce_left
 			right += bounce_right
-			var whistle := _chirp(time, 6.35, 1700.0, 2350.0, 0.25, 0.024 * activity)
-			left += whistle * 0.65
-			right += whistle
 			left += _night_insects(time, night) * 0.75
 			right += _night_insects(time + 0.13, night)
 	return Vector2(left, right)
@@ -371,8 +347,7 @@ func _build_stress_stream() -> AudioStreamWAV:
 func _keyboard_cluster(time: float, density: float, noise: float) -> float:
 	var result := 0.0
 	for start in [0.86, 1.02, 1.19, 3.28, 3.41, 3.62, 5.18, 5.31, 7.02]:
-		result += _decay_tone(time, float(start), 930.0, 0.045, 0.030 * density)
-		result += _noise_burst(time, float(start), 0.025, noise, 0.035 * density)
+		result += _noise_burst(time, float(start), 0.035, noise, 0.050 * density)
 	return result
 
 
@@ -397,16 +372,6 @@ func _local_decay_tone(time: float, start: float, frequency: float, duration: fl
 		return 0.0
 	var envelope := exp(-5.0 * local_time / maxf(duration, 0.0001))
 	return sin(TAU * frequency * local_time) * envelope * gain
-
-
-func _chirp(time: float, start: float, from_frequency: float, to_frequency: float, duration: float, gain: float) -> float:
-	var local_time := time - start
-	if local_time < 0.0 or local_time >= duration:
-		return 0.0
-	var progress := local_time / duration
-	var phase_cycles := from_frequency * local_time + 0.5 * (to_frequency - from_frequency) * local_time * progress
-	var envelope := sin(PI * progress)
-	return sin(TAU * phase_cycles) * envelope * gain
 
 
 func _noise_burst(time: float, start: float, duration: float, noise: float, gain: float) -> float:

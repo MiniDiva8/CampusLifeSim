@@ -223,33 +223,27 @@
   "presentations": {
     "res://assets/backgrounds/locations/teaching/知新楼.jpg": {
       "mode": "portrait",
-      "side": "left",
-      "caption": "竖幅建筑原图 · 知新楼"
+      "side": "left"
     },
     "res://assets/backgrounds/locations/teaching/理综楼.jpg": {
       "mode": "editorial",
-      "side": "left",
-      "caption": "横幅画报 · 理综楼"
+      "side": "left"
     },
     "res://assets/backgrounds/locations/teaching/理综楼走廊.jpg": {
       "mode": "portrait",
-      "side": "right",
-      "caption": "竖幅空间原图 · 理综楼走廊"
+      "side": "right"
     },
     "res://assets/backgrounds/locations/teaching/学校咖啡馆.jpg": {
       "mode": "editorial",
-      "side": "right",
-      "caption": "横幅画报 · 学校咖啡馆"
+      "side": "right"
     },
     "res://assets/backgrounds/locations/field/网球.jpg": {
       "mode": "portrait",
-      "side": "right",
-      "caption": "竖幅运动原图 · 室外网球场"
+      "side": "right"
     },
     "res://assets/backgrounds/effects/stress_overload.jpg": {
       "mode": "portrait",
-      "side": "left",
-      "caption": "竖幅长曝光原图 · 压力显化"
+      "side": "left"
     }
   },
   "roads": {

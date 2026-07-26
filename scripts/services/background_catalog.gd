@@ -148,16 +148,10 @@ func get_photo_presentation(background_path: String, source_size: Vector2 = Vect
 	var side := str(metadata.get("side", "auto"))
 	if side == "auto":
 		side = "left" if posmod(background_path.hash(), 2) == 0 else "right"
-	var shape_label := "电影横幅原图"
-	if mode == "portrait":
-		shape_label = "竖幅原图 · 完整比例"
-	elif mode == "editorial":
-		shape_label = "横幅画报 · 完整比例"
 	metadata.merge({
 		"presentation_mode": mode,
 		"photo_side": side,
 		"photo_aspect": aspect,
-		"photo_shape": str(metadata.get("caption", shape_label)),
 		"source_size": source_size,
 		"display_size": display_size,
 	}, true)
