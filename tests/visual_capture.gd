@@ -38,6 +38,7 @@ func _capture() -> void:
 	await _wait_for_screen(app, "event")
 	for _frame in 5:
 		await process_frame
+	await create_timer(0.45).timeout
 	_save_viewport("res://reports/event_choice.png")
 	var first_event_choice := app.find_child("Choice_plan", true, false) as Button
 	if first_event_choice != null:
@@ -89,6 +90,7 @@ func _capture() -> void:
 	})
 	for _frame in 5:
 		await process_frame
+	await create_timer(0.45).timeout
 	_save_viewport("res://reports/tennis_event.png")
 	app.session.current_location_id = "teaching"
 	app.session.current_background_path = "res://assets/backgrounds/locations/teaching/理综楼走廊.jpg"
@@ -104,13 +106,31 @@ func _capture() -> void:
 	})
 	for _frame in 5:
 		await process_frame
+	await create_timer(0.45).timeout
 	_save_viewport("res://reports/teaching_named_event.png")
+	app.session.current_background_path = "res://assets/backgrounds/locations/teaching/理综楼.jpg"
+	app.show_event({
+		"id": "building_editorial_visual",
+		"title": "理综楼里的考前整理",
+		"speaker": "旁白",
+		"body": "你来到理综楼，把考场信息、课程重点和最后一轮复习顺序重新排好。",
+		"choices": [
+			{"id": "review", "label": "先核对考试范围", "effects": []},
+			{"id": "questions", "label": "整理最后的问题清单", "effects": []},
+			{"id": "rest", "label": "留十分钟让注意力恢复", "effects": []},
+		],
+	})
+	for _frame in 5:
+		await process_frame
+	await create_timer(0.45).timeout
+	_save_viewport("res://reports/building_editorial_event.png")
 	app.session.difficulty_id = "hard"
 	app.session.stats.stress = 78
 	app.show_stress_crisis(func(): pass)
 	await _wait_for_screen(app, "stress_crisis")
 	for _frame in 5:
 		await process_frame
+	await create_timer(0.45).timeout
 	_save_viewport("res://reports/stress_crisis.png")
 	app.session.stats.study = 78
 	app.session.stats.project = 81

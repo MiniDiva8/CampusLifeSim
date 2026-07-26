@@ -160,9 +160,9 @@ func _show_adaptive_scene(screen_name: String, data: Dictionary) -> AdaptiveScen
 	return view
 
 
-func _show_editorial_event(data: Dictionary) -> Control:
+func _show_editorial_event(data: Dictionary, screen_name: String = "event") -> Control:
 	_finish_interaction_feedback()
-	current_screen = "event"
+	current_screen = screen_name
 	active_photo_background = null
 	active_photo_fill = null
 	for child in get_children():
@@ -183,22 +183,26 @@ func _base_scene_data(scene_context: Dictionary, background_path: String) -> Dic
 	var scene_name := str(scene_context.get("display_name", "校园场景"))
 	var photo_shape := "原图比例"
 	var media_width := 560.0
+	var image_size := Vector2.ZERO
 	var image_texture: Texture2D
 	if not background_path.is_empty() and ResourceLoader.exists(background_path):
 		image_texture = _load_photo_texture(background_path)
 		if image_texture != null:
-			var image_size := image_texture.get_size()
+			image_size = image_texture.get_size()
 			if background_catalog.get_photo_orientation(background_path) in [6, 8]:
-				image_size = Vector2(image_size.y, image_size.x)
-			photo_shape = "竖幅原图" if image_size.x < image_size.y else "横幅原图"
-			var aspect := image_size.x / maxf(image_size.y, 1.0)
+				var display_size := Vector2(image_size.y, image_size.x)
+				photo_shape = "竖幅原图" if display_size.x < display_size.y else "横幅原图"
+			else:
+				photo_shape = "竖幅原图" if image_size.x < image_size.y else "横幅原图"
+			var presentation := background_catalog.get_photo_presentation(background_path, image_size)
+			var aspect := float(presentation.get("photo_aspect", 1.0))
 			if aspect < 0.86:
 				media_width = 474.0
 			elif aspect > 1.45:
 				media_width = 704.0
 			else:
 				media_width = 652.0
-	return {
+	var result := {
 		"image_path": background_path,
 		"image_texture": image_texture,
 		"media_width": media_width,
@@ -215,6 +219,8 @@ func _base_scene_data(scene_context: Dictionary, background_path: String) -> Dic
 		"footer_hint": "山东大学中心校区 · 离线运行 · 自动存档",
 		"reduced_motion": bool(settings.get("reduced_motion", false)),
 	}
+	result.merge(background_catalog.get_photo_presentation(background_path, image_size), true)
+	return result
 
 
 func _load_photo_texture(path: String) -> Texture2D:
@@ -1219,7 +1225,7 @@ func show_stress_crisis(continue_action: Callable) -> void:
 		],
 		"choices": choices,
 	}, true)
-	_show_adaptive_scene("stress_crisis", data)
+	_show_editorial_event(data, "stress_crisis")
 	if active_photo_background != null and not bool(settings.get("reduced_motion", false)):
 		var disorient := active_photo_background.create_tween().set_loops()
 		disorient.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)

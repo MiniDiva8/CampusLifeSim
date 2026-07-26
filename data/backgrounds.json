@@ -220,6 +220,38 @@
     "res://assets/backgrounds/roads/night/bad33f1e283c7bf1248a415508073d92.jpg": 6,
     "res://assets/backgrounds/roads/night/e70749735350d968c78e35a486a63975.jpg": 6
   },
+  "presentations": {
+    "res://assets/backgrounds/locations/teaching/知新楼.jpg": {
+      "mode": "portrait",
+      "side": "left",
+      "caption": "竖幅建筑原图 · 知新楼"
+    },
+    "res://assets/backgrounds/locations/teaching/理综楼.jpg": {
+      "mode": "editorial",
+      "side": "left",
+      "caption": "横幅画报 · 理综楼"
+    },
+    "res://assets/backgrounds/locations/teaching/理综楼走廊.jpg": {
+      "mode": "portrait",
+      "side": "right",
+      "caption": "竖幅空间原图 · 理综楼走廊"
+    },
+    "res://assets/backgrounds/locations/teaching/学校咖啡馆.jpg": {
+      "mode": "editorial",
+      "side": "right",
+      "caption": "横幅画报 · 学校咖啡馆"
+    },
+    "res://assets/backgrounds/locations/field/网球.jpg": {
+      "mode": "portrait",
+      "side": "right",
+      "caption": "竖幅运动原图 · 室外网球场"
+    },
+    "res://assets/backgrounds/effects/stress_overload.jpg": {
+      "mode": "portrait",
+      "side": "left",
+      "caption": "竖幅长曝光原图 · 压力显化"
+    }
+  },
   "roads": {
     "day": [
       "res://assets/backgrounds/roads/day/0d4f942f3463c54b6a1f5f81111eae33.jpg",

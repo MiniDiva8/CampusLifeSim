@@ -35,6 +35,23 @@
       "height": 720
     }
   },
+  "photoLayouts": {
+    "cinematic": {
+      "minimumAspect": 1.5,
+      "photoRect": [0, 0, 1280, 720],
+      "behavior": "full canvas without stretching"
+    },
+    "editorial": {
+      "aspectRange": [0.85, 1.5],
+      "photoSize": [640, 480],
+      "behavior": "left or right magazine plate"
+    },
+    "portrait": {
+      "maximumAspect": 0.85,
+      "photoSize": [456, 540],
+      "behavior": "alternating left or right feature page"
+    }
+  },
   "narrative": {
     "thesis": "The campus photograph is the event canvas; no dashboard, split cards, or boxed choices.",
     "story": [

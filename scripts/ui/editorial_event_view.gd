@@ -23,6 +23,9 @@ var _reduced_motion := false
 var _narrative: Control
 var _choice_region: Control
 var _interaction_status: Label
+var _photo_stage: Control
+var _layout: Dictionary = {}
+var _layout_mode := "cinematic"
 
 
 func configure(data: Dictionary) -> void:
@@ -30,6 +33,10 @@ func configure(data: Dictionary) -> void:
 		child.queue_free()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_reduced_motion = bool(data.get("reduced_motion", false))
+	_layout = _resolve_layout(data)
+	_layout_mode = str(_layout.get("mode", "cinematic"))
+	set_meta("photo_layout_mode", _layout_mode)
+	set_meta("photo_side", str(_layout.get("side", "left")))
 	_build_canvas(data)
 	_build_top_margin(data)
 	_build_narrative(data)
@@ -54,11 +61,27 @@ func _build_canvas(data: Dictionary) -> void:
 	paper.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(paper)
 
-	var photo_stage := Control.new()
-	photo_stage.name = "PhotoStage"
-	photo_stage.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	photo_stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(photo_stage)
+	var stage_rect: Rect2 = _layout.get("photo_rect", Rect2(0, 0, 1280, 720))
+	if _layout_mode != "cinematic":
+		var mount := Panel.new()
+		mount.name = "PhotoMount"
+		mount.position = stage_rect.position - Vector2(1, 1)
+		mount.size = stage_rect.size + Vector2(2, 2)
+		mount.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var mount_style := StyleBoxFlat.new()
+		mount_style.bg_color = PAPER_LIGHT
+		mount_style.border_color = Color("#6F787852")
+		mount_style.set_border_width_all(1)
+		mount.add_theme_stylebox_override("panel", mount_style)
+		add_child(mount)
+
+	_photo_stage = Control.new()
+	_photo_stage.name = "PhotoStage"
+	_photo_stage.position = stage_rect.position
+	_photo_stage.size = stage_rect.size
+	_photo_stage.clip_contents = true
+	_photo_stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_photo_stage)
 
 	photo_rect = OrientedPhotoRect.new()
 	photo_rect.name = "PhotoFrame"
@@ -68,22 +91,40 @@ func _build_canvas(data: Dictionary) -> void:
 		image_texture = load(image_path) as Texture2D
 	photo_rect.configure(image_texture, int(data.get("orientation", 1)), false)
 	photo_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	photo_stage.add_child(photo_rect)
+	_photo_stage.add_child(photo_rect)
 
-	var left_veil := _gradient_veil([
-		Color(PAPER_LIGHT, 0.98),
-		Color(PAPER, 0.78),
-		Color(PAPER, 0.16),
-		Color(PAPER, 0.0),
-	])
-	left_veil.position = Vector2(0, 0)
-	left_veil.size = Vector2(440, 720)
-	add_child(left_veil)
-
-	add_child(_localized_choice_veil())
+	if _layout_mode == "cinematic":
+		var left_veil := _gradient_veil([
+			Color(PAPER_LIGHT, 0.98),
+			Color(PAPER, 0.78),
+			Color(PAPER, 0.16),
+			Color(PAPER, 0.0),
+		])
+		left_veil.position = Vector2(0, 0)
+		left_veil.size = Vector2(440, 720)
+		add_child(left_veil)
+		add_child(_localized_choice_veil())
+	else:
+		var caption := _label(
+			"%s  /  %s" % [
+				str(data.get("photo_shape", "原图完整比例")),
+				str(data.get("scene_name", "校园场景")),
+			],
+			11,
+			MIST_BLUE
+		)
+		caption.name = "PhotoPresentationLabel"
+		caption.position = Vector2(stage_rect.position.x, stage_rect.end.y + 7)
+		caption.size = Vector2(stage_rect.size.x, 20)
+		caption.horizontal_alignment = (
+			HORIZONTAL_ALIGNMENT_RIGHT
+			if str(_layout.get("side", "left")) == "right"
+			else HORIZONTAL_ALIGNMENT_LEFT
+		)
+		add_child(caption)
 
 	var top_wash := ColorRect.new()
-	top_wash.color = Color("#F4F1E866")
+	top_wash.color = Color("#F4F1E8B8") if _layout_mode != "cinematic" else Color("#F4F1E866")
 	top_wash.position = Vector2(0, 0)
 	top_wash.size = Vector2(1280, 76)
 	top_wash.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -130,10 +171,11 @@ func _build_top_margin(data: Dictionary) -> void:
 
 
 func _build_narrative(data: Dictionary) -> void:
+	var narrative_rect: Rect2 = _layout.get("narrative_rect", Rect2(56, 318, 308, 334))
 	_narrative = Control.new()
 	_narrative.name = "EventNarrative"
-	_narrative.position = Vector2(56, 318)
-	_narrative.size = Vector2(308, 334)
+	_narrative.position = narrative_rect.position
+	_narrative.size = narrative_rect.size
 	add_child(_narrative)
 
 	var section_line := ColorRect.new()
@@ -148,52 +190,57 @@ func _build_narrative(data: Dictionary) -> void:
 	section.size = Vector2(230, 24)
 	_narrative.add_child(section)
 
-	var title := _label(str(data.get("title", "这个时段发生了什么？")), int(data.get("title_size", 36)), GRAPHITE)
+	var title_size := int(_layout.get("title_size", data.get("title_size", 36)))
+	var title_height := float(_layout.get("title_height", 132))
+	var body_height := float(_layout.get("body_height", 102))
+	var title := _label(str(data.get("title", "这个时段发生了什么？")), title_size, GRAPHITE)
 	title.name = "EventTitle"
 	title.position = Vector2(0, 43)
-	title.size = Vector2(304, 132)
+	title.size = Vector2(narrative_rect.size.x - 4, title_height)
 	title.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY
 	title.clip_text = true
-	title.max_lines_visible = 3
+	title.max_lines_visible = int(_layout.get("title_lines", 3))
 	title.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	_narrative.add_child(title)
 
 	var body := _paragraph(str(data.get("body", "")), 15, GRAPHITE_SOFT)
 	body.name = "EventBody"
-	body.position = Vector2(0, 177)
-	body.size = Vector2(304, 102)
+	body.position = Vector2(0, 55 + title_height)
+	body.size = Vector2(narrative_rect.size.x - 4, body_height)
 	_narrative.add_child(body)
 
 	var state_copy := _state_copy(data.get("state_tags", []))
 	var state_line := _label(state_copy, 13, GRAPHITE_FAINT)
-	state_line.position = Vector2(0, 290)
-	state_line.size = Vector2(304, 24)
+	state_line.position = Vector2(0, narrative_rect.size.y - 26)
+	state_line.size = Vector2(narrative_rect.size.x - 4, 24)
+	state_line.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_narrative.add_child(state_line)
 
 
 func _build_choices(data: Dictionary) -> void:
+	var choice_rect: Rect2 = _layout.get("choice_rect", Rect2(676, 190, 548, 446))
 	_choice_region = Control.new()
 	_choice_region.name = "EditorialChoiceRegion"
-	_choice_region.position = Vector2(676, 190)
-	_choice_region.size = Vector2(548, 446)
+	_choice_region.position = choice_rect.position
+	_choice_region.size = choice_rect.size
 	add_child(_choice_region)
 
 	var question := _label(str(data.get("question", "你准备怎么做？")), 16, GRAPHITE)
 	question.position = Vector2(0, 0)
-	question.size = Vector2(320, 28)
+	question.size = Vector2(choice_rect.size.x * 0.58, 28)
 	_choice_region.add_child(question)
 
 	_interaction_status = _label(str(data.get("cost_text", "选择后推进 1 个时段")), 12, GRAPHITE_FAINT)
 	_interaction_status.name = "InteractionStatus"
-	_interaction_status.position = Vector2(314, 3)
-	_interaction_status.size = Vector2(234, 24)
+	_interaction_status.position = Vector2(choice_rect.size.x * 0.56, 3)
+	_interaction_status.size = Vector2(choice_rect.size.x * 0.44, 24)
 	_interaction_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_choice_region.add_child(_interaction_status)
 
 	var choices := VBoxContainer.new()
 	choices.name = "ChoiceList"
 	choices.position = Vector2(0, 41)
-	choices.size = Vector2(548, 342)
+	choices.size = Vector2(choice_rect.size.x, choice_rect.size.y - 82)
 	choices.add_theme_constant_override("separation", 0)
 	_choice_region.add_child(choices)
 
@@ -203,22 +250,24 @@ func _build_choices(data: Dictionary) -> void:
 		choice_index += 1
 
 	var save_line := _label("自动存档已开启", 12, Color("#526A65"))
-	save_line.position = Vector2(0, 402)
-	save_line.size = Vector2(160, 22)
+	save_line.position = Vector2(0, choice_rect.size.y - 24)
+	save_line.size = Vector2(choice_rect.size.x * 0.38, 22)
 	_choice_region.add_child(save_line)
 
 	var hint := _label(str(data.get("footer_hint", "ESC  暂停")), 11, GRAPHITE_FAINT)
-	hint.position = Vector2(212, 402)
-	hint.size = Vector2(336, 22)
+	hint.position = Vector2(choice_rect.size.x * 0.38, choice_rect.size.y - 24)
+	hint.size = Vector2(choice_rect.size.x * 0.62, 22)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_choice_region.add_child(hint)
 
 
 func _choice_row(index: int, choice_value) -> Button:
 	var choice: Dictionary = choice_value
+	var row_width := float(_layout.get("choice_width", 548.0))
+	var row_height := float(choice.get("height", _layout.get("choice_height", 106.0)))
 	var button := Button.new()
 	button.name = str(choice.get("name", "Choice_%02d" % index))
-	button.custom_minimum_size = Vector2(548, float(choice.get("height", 106)))
+	button.custom_minimum_size = Vector2(row_width, row_height)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.focus_mode = Control.FOCUS_ALL
 	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -230,7 +279,7 @@ func _choice_row(index: int, choice_value) -> Button:
 	var marker := ColorRect.new()
 	marker.name = "ChoiceMarker"
 	marker.color = SDU_RED
-	marker.position = Vector2(0, 28)
+	marker.position = Vector2(0, (row_height - 28.0) * 0.5)
 	marker.size = Vector2(3, 28)
 	marker.modulate.a = 0.0
 	marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -239,26 +288,28 @@ func _choice_row(index: int, choice_value) -> Button:
 	var copy := Control.new()
 	copy.name = "ChoiceCopy"
 	copy.position = Vector2(18, 0)
-	copy.size = Vector2(530, 106)
+	copy.size = Vector2(row_width - 18.0, row_height)
 	copy.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(copy)
 
 	var number := _label("%02d" % index, 25, SDU_RED)
-	number.position = Vector2(0, 25)
+	number.position = Vector2(0, maxf(12.0, (row_height - 40.0) * 0.5))
 	number.size = Vector2(50, 40)
 	number.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	copy.add_child(number)
 
+	var effect_width := clampf(row_width * 0.27, 104.0, 164.0)
+	var text_width := maxf(142.0, row_width - 66.0 - effect_width - 24.0)
 	var title := _label(str(choice.get("title", "选择")), 18, GRAPHITE)
-	title.position = Vector2(66, 17)
-	title.size = Vector2(286, 30)
+	title.position = Vector2(66, 10)
+	title.size = Vector2(text_width, 30)
 	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	copy.add_child(title)
 
 	var detail := _label(str(choice.get("detail", "")), 13, GRAPHITE_SOFT)
-	detail.position = Vector2(66, 50)
-	detail.size = Vector2(298, 42)
+	detail.position = Vector2(66, 40)
+	detail.size = Vector2(text_width, maxf(32.0, row_height - 46.0))
 	detail.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY
 	detail.clip_text = true
 	detail.max_lines_visible = 2
@@ -267,8 +318,8 @@ func _choice_row(index: int, choice_value) -> Button:
 
 	var effect_color := Color(str(choice.get("effect_color", "#527C8A"))).darkened(0.24)
 	var effect := _label(str(choice.get("effect", "查看后果")), 13, effect_color)
-	effect.position = Vector2(364, 27)
-	effect.size = Vector2(164, 36)
+	effect.position = Vector2(row_width - effect_width - 2.0, maxf(14.0, (row_height - 36.0) * 0.5))
+	effect.size = Vector2(effect_width, 36)
 	effect.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	effect.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	effect.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -277,10 +328,12 @@ func _choice_row(index: int, choice_value) -> Button:
 	var rule := ColorRect.new()
 	rule.name = "ChoiceRule"
 	rule.color = RULE
-	rule.position = Vector2(66, 104)
-	rule.size = Vector2(462, 1)
+	rule.position = Vector2(66, row_height - 1.0)
+	rule.size = Vector2(row_width - 86.0, 1)
 	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	copy.add_child(rule)
+	button.set_meta("_rule_rest_width", rule.size.x)
+	button.set_meta("_rule_active_width", rule.size.x + 10.0)
 
 	var action = choice.get("action")
 	if action is Callable and not action.is_null():
@@ -313,7 +366,12 @@ func _set_choice_active(
 	tween.tween_property(copy, "position:x", 28.0 if active else 18.0, duration)
 	tween.tween_property(marker, "modulate:a", 1.0 if active else 0.0, duration)
 	tween.tween_property(rule, "color", Color(SDU_RED, 0.68) if active else RULE, duration)
-	tween.tween_property(rule, "size:x", 472.0 if active else 462.0, duration)
+	tween.tween_property(
+		rule,
+		"size:x",
+		float(button.get_meta("_rule_active_width") if active else button.get_meta("_rule_rest_width")),
+		duration
+	)
 
 
 func _build_day_line(data: Dictionary) -> void:
@@ -351,6 +409,8 @@ func _animate_entrance() -> void:
 	var choice_rest := _choice_region.position
 	_narrative.position.y += 10.0
 	_choice_region.position.x += 12.0
+	if _photo_stage != null:
+		_photo_stage.modulate.a = 0.82
 	_narrative.modulate.a = 0.0
 	_choice_region.modulate.a = 0.0
 	var tween := create_tween().set_parallel(true)
@@ -359,6 +419,74 @@ func _animate_entrance() -> void:
 	tween.tween_property(_narrative, "modulate:a", 1.0, 0.16)
 	tween.tween_property(_choice_region, "position", choice_rest, 0.24).set_delay(0.035)
 	tween.tween_property(_choice_region, "modulate:a", 1.0, 0.19).set_delay(0.035)
+	if _photo_stage != null:
+		tween.tween_property(_photo_stage, "modulate:a", 1.0, 0.42)
+
+
+func _resolve_layout(data: Dictionary) -> Dictionary:
+	var mode := str(data.get("presentation_mode", "auto"))
+	var side := str(data.get("photo_side", "auto"))
+	if mode == "auto":
+		var image_size := Vector2.ZERO
+		var image_texture := data.get("image_texture") as Texture2D
+		if image_texture != null:
+			image_size = image_texture.get_size()
+		if int(data.get("orientation", 1)) in [6, 8]:
+			image_size = Vector2(image_size.y, image_size.x)
+		var aspect := image_size.x / maxf(image_size.y, 1.0)
+		if aspect >= 1.5:
+			mode = "cinematic"
+		elif aspect < 0.85:
+			mode = "portrait"
+		else:
+			mode = "editorial"
+	if side not in ["left", "right"]:
+		side = "left"
+	if mode == "portrait":
+		var portrait_photo_x := 48.0 if side == "left" else 776.0
+		var portrait_copy_x := 552.0 if side == "left" else 56.0
+		return {
+			"mode": mode,
+			"side": side,
+			"photo_rect": Rect2(portrait_photo_x, 100, 456, 540),
+			"narrative_rect": Rect2(portrait_copy_x, 96, 672, 202),
+			"choice_rect": Rect2(portrait_copy_x, 320, 672, 330),
+			"choice_width": 672.0,
+			"choice_height": 86.0,
+			"title_size": 31,
+			"title_height": 72.0,
+			"title_lines": 2,
+			"body_height": 54.0,
+		}
+	if mode == "editorial":
+		var editorial_photo_x := 48.0 if side == "left" else 592.0
+		var editorial_copy_x := 736.0 if side == "left" else 56.0
+		return {
+			"mode": mode,
+			"side": side,
+			"photo_rect": Rect2(editorial_photo_x, 128, 640, 480),
+			"narrative_rect": Rect2(editorial_copy_x, 96, 488, 202),
+			"choice_rect": Rect2(editorial_copy_x, 320, 488, 330),
+			"choice_width": 488.0,
+			"choice_height": 86.0,
+			"title_size": 30,
+			"title_height": 72.0,
+			"title_lines": 2,
+			"body_height": 54.0,
+		}
+	return {
+		"mode": "cinematic",
+		"side": side,
+		"photo_rect": Rect2(0, 0, 1280, 720),
+		"narrative_rect": Rect2(56, 318, 308, 334),
+		"choice_rect": Rect2(676, 190, 548, 446),
+		"choice_width": 548.0,
+		"choice_height": 106.0,
+		"title_size": 36,
+		"title_height": 132.0,
+		"title_lines": 3,
+		"body_height": 102.0,
+	}
 
 
 func _gradient_veil(colors: Array[Color]) -> TextureRect:

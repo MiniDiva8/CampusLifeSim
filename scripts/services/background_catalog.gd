@@ -7,6 +7,7 @@ var menu: Array = []
 var locations: Dictionary = {}
 var scenes: Dictionary = {}
 var orientations: Dictionary = {}
+var presentations: Dictionary = {}
 var event_locations: Dictionary = {}
 var event_scenes: Dictionary = {}
 var roads: Dictionary = {}
@@ -20,6 +21,7 @@ func load_all() -> bool:
 	locations.clear()
 	scenes.clear()
 	orientations.clear()
+	presentations.clear()
 	event_locations.clear()
 	event_scenes.clear()
 	roads.clear()
@@ -57,6 +59,24 @@ func load_all() -> bool:
 				errors.append("Unsupported EXIF orientation %d for: %s" % [orientation, orientation_path])
 			else:
 				orientations[orientation_path] = orientation
+	var raw_presentations = data.get("presentations", {})
+	if raw_presentations is Dictionary:
+		for presentation_path_value in raw_presentations:
+			var presentation_path := str(presentation_path_value)
+			var metadata = raw_presentations[presentation_path_value]
+			if not ResourceLoader.exists(presentation_path):
+				errors.append("Presentation metadata references a missing background: %s" % presentation_path)
+			elif not metadata is Dictionary:
+				errors.append("Presentation metadata must be an object: %s" % presentation_path)
+			else:
+				var mode := str(metadata.get("mode", "auto"))
+				var side := str(metadata.get("side", "auto"))
+				if mode not in ["auto", "cinematic", "editorial", "portrait"]:
+					errors.append("Unsupported photo presentation mode %s for: %s" % [mode, presentation_path])
+				elif side not in ["auto", "left", "right"]:
+					errors.append("Unsupported photo presentation side %s for: %s" % [side, presentation_path])
+				else:
+					presentations[presentation_path] = metadata.duplicate(true)
 	var raw_event_locations = data.get("event_locations", {})
 	if raw_event_locations is Dictionary:
 		for event_id_value in raw_event_locations:
@@ -109,6 +129,39 @@ func get_stress_background() -> String:
 
 func get_photo_orientation(background_path: String) -> int:
 	return int(orientations.get(background_path, 1))
+
+
+func get_photo_presentation(background_path: String, source_size: Vector2 = Vector2.ZERO) -> Dictionary:
+	var display_size := source_size
+	if get_photo_orientation(background_path) in [6, 8]:
+		display_size = Vector2(source_size.y, source_size.x)
+	var aspect := display_size.x / maxf(display_size.y, 1.0)
+	var metadata: Dictionary = presentations.get(background_path, {}).duplicate(true)
+	var mode := str(metadata.get("mode", "auto"))
+	if mode == "auto":
+		if aspect >= 1.5:
+			mode = "cinematic"
+		elif aspect < 0.85:
+			mode = "portrait"
+		else:
+			mode = "editorial"
+	var side := str(metadata.get("side", "auto"))
+	if side == "auto":
+		side = "left" if posmod(background_path.hash(), 2) == 0 else "right"
+	var shape_label := "电影横幅原图"
+	if mode == "portrait":
+		shape_label = "竖幅原图 · 完整比例"
+	elif mode == "editorial":
+		shape_label = "横幅画报 · 完整比例"
+	metadata.merge({
+		"presentation_mode": mode,
+		"photo_side": side,
+		"photo_aspect": aspect,
+		"photo_shape": str(metadata.get("caption", shape_label)),
+		"source_size": source_size,
+		"display_size": display_size,
+	}, true)
+	return metadata
 
 
 func get_scene_context(background_path: String, location_id: String) -> Dictionary:

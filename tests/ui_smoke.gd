@@ -150,19 +150,22 @@ func _run() -> void:
 	var choice_list := app.find_child("ChoiceList", true, false) as VBoxContainer
 	_expect(event_card == null, "event choices should no longer be wrapped in the legacy glass card")
 	_expect(editorial_view != null and photo_stage != null and event_narrative != null and choice_list != null, "event screen should use the full-canvas editorial composition")
-	_expect(photo_stage.size == Vector2(1280, 720), "original photo should use the complete event canvas instead of a framed media card")
+	_expect(editorial_view.get_meta("photo_layout_mode") == "portrait", "vertical originals should select the portrait event layout")
+	_expect(photo_stage.position.x > 640.0 and photo_stage.size == Vector2(456, 540), "right-hand vertical originals should occupy only their dedicated magazine page")
+	_expect(app.find_child("PhotoPresentationLabel", true, false) != null, "non-cinematic originals should identify their complete-ratio presentation")
 	var editorial_choice := app.find_child("Choice_continue", true, false) as Button
 	_expect(editorial_choice != null and editorial_choice.get_node_or_null("GlassHoverController") == null, "editorial choices should use text-and-rule focus rather than card lift")
-	var editorial_marker := editorial_choice.get_node_or_null("ChoiceMarker") as ColorRect
-	var editorial_copy := editorial_choice.get_node_or_null("ChoiceCopy") as Control
-	editorial_choice.mouse_entered.emit()
-	await create_timer(0.18).timeout
-	_expect(editorial_marker != null and editorial_marker.modulate.a > 0.9, "editorial choice hover should reveal the SDU-red margin marker")
-	_expect(editorial_copy != null and editorial_copy.position.x > 18.0, "editorial choice hover should shift typography without lifting a box")
-	editorial_choice.mouse_exited.emit()
-	editorial_choice.grab_focus()
-	await create_timer(0.18).timeout
-	_expect(editorial_marker.modulate.a > 0.9, "keyboard focus should expose the same visible editorial choice marker")
+	if editorial_choice != null:
+		var editorial_marker := editorial_choice.get_node_or_null("ChoiceMarker") as ColorRect
+		var editorial_copy := editorial_choice.get_node_or_null("ChoiceCopy") as Control
+		editorial_choice.mouse_entered.emit()
+		await create_timer(0.18).timeout
+		_expect(editorial_marker != null and editorial_marker.modulate.a > 0.9, "editorial choice hover should reveal the SDU-red margin marker")
+		_expect(editorial_copy != null and editorial_copy.position.x > 18.0, "editorial choice hover should shift typography without lifting a box")
+		editorial_choice.mouse_exited.emit()
+		editorial_choice.grab_focus()
+		await create_timer(0.18).timeout
+		_expect(editorial_marker.modulate.a > 0.9, "keyboard focus should expose the same visible editorial choice marker")
 	app.session.current_location_id = "teaching"
 	app.session.current_background_path = "res://assets/backgrounds/locations/teaching/理综楼走廊.jpg"
 	app.show_event({
@@ -175,6 +178,19 @@ func _run() -> void:
 	await process_frame
 	_expect(_has_label_containing(app, "理综楼走廊"), "teaching event should show the exact building scene name")
 	_expect(is_equal_approx(absf(app.active_photo_background.rotation), PI * 0.5), "EXIF orientation six should rotate the untouched original at display time")
+	app.session.current_background_path = "res://assets/backgrounds/locations/teaching/理综楼.jpg"
+	app.show_event({
+		"id": "editorial_ui_test",
+		"title": "理综楼里的考前整理",
+		"speaker": "旁白",
+		"body": "保留四比三原图，不把建筑裁成伪全屏。",
+		"choices": [{"id": "ok", "label": "确认下一项安排", "effects": []}],
+	})
+	await process_frame
+	var editorial_building_view := app.find_child("EditorialEventView", true, false) as Control
+	var editorial_building_stage := app.find_child("PhotoStage", true, false) as Control
+	_expect(editorial_building_view != null and editorial_building_view.get_meta("photo_layout_mode") == "editorial", "four-by-three building photos should select the editorial spread")
+	_expect(editorial_building_stage != null and editorial_building_stage.size == Vector2(640, 480), "editorial building photos should retain a four-by-three display plate")
 
 	app.show_pause_menu()
 	await process_frame
