@@ -239,7 +239,33 @@ func _choice_detail(choice: Dictionary) -> String:
 	return "根据当前精力、压力和截止日期权衡这项选择。"
 
 
+func _soundscape_period() -> StringName:
+	if session == null or session.clock.is_finished():
+		return &"evening"
+	if session.clock.slot <= 2:
+		return &"day"
+	if session.clock.slot == 3:
+		return &"evening"
+	return &"night"
+
+
+func _session_soundscape_context() -> StringName:
+	if session == null or session.current_location_id.is_empty():
+		return &"campus"
+	return StringName(session.current_location_id)
+
+
+func _set_soundscape(context: StringName, fade_seconds: float = 0.65, period_override: StringName = &"", stress_override: int = -1) -> void:
+	var ambient_controller := get_node_or_null("/root/ProjectAmbientSoundController")
+	if ambient_controller == null or not ambient_controller.has_method("transition_to"):
+		return
+	var period := period_override if period_override != &"" else _soundscape_period()
+	var stress_level := stress_override if stress_override >= 0 else (int(session.stats.stress) if session != null else 0)
+	ambient_controller.transition_to(context, period, fade_seconds, stress_level)
+
+
 func show_main_menu() -> void:
+	_set_soundscape(&"menu", 0.85, &"evening", 0)
 	var root := _reset_screen("main_menu", Color("#284246"), background_catalog.get_menu_background(), Color("#050C0EE0"))
 	var top := HBoxContainer.new()
 	root.add_child(top)
@@ -247,7 +273,8 @@ func show_main_menu() -> void:
 	var top_space := Control.new()
 	top_space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(top_space)
-	top.add_child(_make_label("BUILD  0.5 · OFFLINE", 11, Color("#71837F")))
+	var build_version := str(ProjectSettings.get_setting("application/config/version", "DEV")).trim_suffix("-demo")
+	top.add_child(_make_label("BUILD  %s · OFFLINE" % build_version, 11, Color("#71837F")))
 
 	var main := HBoxContainer.new()
 	main.add_theme_constant_override("separation", 54)
@@ -315,6 +342,7 @@ func show_main_menu() -> void:
 
 
 func show_setup() -> void:
+	_set_soundscape(&"menu", 0.5, &"evening", 0)
 	var root := _reset_screen("setup", Color("#244046"), "", Color("#07101388"))
 	root.add_child(_make_header("人工智能学院 · 期末周档案", "在山大期末周开始前，给自己一个名字和起点", show_main_menu))
 	var center := HBoxContainer.new()
@@ -441,6 +469,7 @@ func show_map() -> void:
 	if session == null:
 		show_main_menu()
 		return
+	_set_soundscape(&"campus", 0.65)
 	var root := _reset_screen("map", Color("#18373A"), "", Color("#07101366"))
 	root.add_child(_make_game_header())
 	var columns := HBoxContainer.new()
@@ -583,6 +612,10 @@ func _travel_to_location(location_id: String, duration: float = TRAVEL_DURATION_
 
 
 func show_travel(location: Dictionary, road_background: String, duration: float = TRAVEL_DURATION_SECONDS) -> void:
+	_set_soundscape(&"road", minf(maxf(duration, 0.01) * 0.32, 0.65))
+	var ambient_controller := get_node_or_null("/root/ProjectAmbientSoundController")
+	if ambient_controller != null and ambient_controller.has_method("prepare_context"):
+		ambient_controller.call_deferred("prepare_context", StringName(location.get("id", "campus")), _soundscape_period())
 	var root := _reset_screen("travel", Color("#416B72"), road_background, Color("#07101372"))
 	if active_photo_background != null:
 		var resting_position := active_photo_background.position
@@ -640,6 +673,7 @@ func show_location(location_id: String) -> void:
 	var location := repository.get_location(location_id)
 	if location.is_empty():
 		return
+	_set_soundscape(StringName(location_id), 0.55)
 	if session.current_location_id != location_id or session.current_background_path.is_empty():
 		background_catalog.choose_location_background(location_id, session)
 	var scene_context := background_catalog.get_active_scene_context(session)
@@ -677,6 +711,7 @@ func show_location(location_id: String) -> void:
 
 func show_event(event: Dictionary) -> void:
 	background_catalog.ensure_event_background(str(event.get("id", "")), session)
+	_set_soundscape(_session_soundscape_context(), 0.55)
 	var scene_context := background_catalog.get_active_scene_context(session)
 	var choices: Array = []
 	for choice in event.get("choices", []):
@@ -755,6 +790,7 @@ func _visible_effects(effects: Array[String]) -> Array[String]:
 
 
 func show_result(title_text: String, description: String, effects: Array[String], continue_action: Callable) -> void:
+	_set_soundscape(_session_soundscape_context(), 0.35)
 	var background_path := session.current_background_path if session != null else ""
 	if background_path.is_empty():
 		background_path = background_catalog.get_menu_background()
@@ -834,6 +870,7 @@ func _complete_advance(consequences: Array[Dictionary], day_messages: Array[Stri
 
 
 func show_stress_crisis(continue_action: Callable) -> void:
+	_set_soundscape(_session_soundscape_context(), 0.35)
 	var background_path := background_catalog.get_stress_background()
 	var config := DifficultyRules.get_config(session.difficulty_id)
 	var focus_target := "考试准备" if not bool(session.flags.get("exam_completed", false)) else "展示准备"
@@ -1065,7 +1102,7 @@ func show_settings(return_screen: String) -> void:
 	preview.set_meta("audio_cue", &"confirm")
 	option_box.add_child(preview)
 
-	var note := _make_label("交互音效采用原创程序化声音；本 Demo 不采集遥测数据，也不会上传设置或存档。", 13, COLOR_MUTED)
+	var note := _make_label("交互音效与校园声景均为原创程序化声音；本 Demo 不采集遥测数据，也不会上传设置或存档。", 13, COLOR_MUTED)
 	box.add_child(note)
 	box.add_child(_make_button("保存设置", _save_settings.bind(audio_controls, fullscreen, reduced_motion, pressure_audio), true))
 
@@ -1133,6 +1170,7 @@ func _return_from_settings() -> void:
 
 
 func show_credits() -> void:
+	_set_soundscape(&"menu", 0.5, &"evening", 0)
 	var root := _reset_screen("credits", Color("#1D3935"), "", Color("#07101388"))
 	root.add_child(_make_header("制作与许可", "原创内容与第三方来源透明记录", show_main_menu))
 	var center := HBoxContainer.new()
@@ -1147,7 +1185,7 @@ func show_credits() -> void:
 	box.add_theme_constant_override("separation", 15)
 	panel.add_child(box)
 	box.add_child(_make_label("惊魂期末周 · CampusLifeSim", 28, COLOR_INK))
-	var text := _make_label("参赛场景：山东大学中心校区 · 人工智能学院\n策划、程序与事件文本：CampusLifeSim 项目\n校园场景摄影：项目所有者提供的校园照片\n\n引擎：Godot 4.7.1（MIT License）\n菜单、加载、暂停及音频基础参考：Maaack/Godot-Game-Template v1.4.7（MIT License）\n上游作者：Marek Belski\n\n本项目未使用山东大学校徽、Maaack 品牌 Logo、Godot Logo、Git Logo或来源不明的第三方美术。完整许可证、学校信息来源与素材记录随项目分发。", 17, COLOR_MUTED)
+	var text := _make_label("参赛场景：山东大学中心校区 · 人工智能学院\n策划、程序与事件文本：CampusLifeSim 项目\n校园场景摄影：项目所有者提供的校园照片\n交互音效与校园声景：项目原创程序化生成\n\n引擎：Godot 4.7.1（MIT License）\n菜单、加载、暂停与音乐持久化基础参考：Maaack/Godot-Game-Template v1.4.7（MIT License）\n上游作者：Marek Belski\n\n本项目未使用山东大学校徽、Maaack 品牌 Logo、Godot Logo、Git Logo或来源不明的第三方美术。完整许可证、学校信息来源与素材记录随项目分发。", 17, COLOR_MUTED)
 	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	text.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(text)
@@ -1180,16 +1218,21 @@ func show_exit_confirmation() -> void:
 
 func _quit_game() -> void:
 	var audio_director := get_node_or_null("/root/ProjectUISoundController")
+	var ambient_controller := get_node_or_null("/root/ProjectAmbientSoundController")
 	if audio_director != null and audio_director.has_method("play_cue"):
 		audio_director.play_cue(&"danger", true)
 	await get_tree().create_timer(0.17).timeout
 	if audio_director != null and audio_director.has_method("prepare_for_shutdown"):
 		audio_director.prepare_for_shutdown()
+	if ambient_controller != null and ambient_controller.has_method("prepare_for_shutdown"):
+		ambient_controller.prepare_for_shutdown()
 	await get_tree().process_frame
+	await get_tree().create_timer(0.12).timeout
 	get_tree().quit()
 
 
 func show_ending() -> void:
+	_set_soundscape(&"menu", 0.9, &"evening")
 	var ending := EndingEvaluator.new().evaluate(session, repository.endings)
 	var ending_color := Color(str(ending.get("color", "#E0B14C")))
 	var root := _reset_screen("ending", ending_color.darkened(0.65), "", Color("#07101388"))

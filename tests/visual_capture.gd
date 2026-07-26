@@ -106,6 +106,11 @@ func _capture() -> void:
 	if audio_director != null:
 		audio_director.prepare_for_shutdown()
 		await process_frame
+	var ambience := root.get_node_or_null("ProjectAmbientSoundController")
+	if ambience != null:
+		ambience.prepare_for_shutdown()
+		await process_frame
+		await create_timer(0.25).timeout
 	if capture_failures == 0:
 		print("[PASS] visual captures written to reports/")
 		quit(0)

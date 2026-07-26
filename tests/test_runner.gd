@@ -1,5 +1,7 @@
 extends SceneTree
 
+const AmbientSoundControllerScript = preload("res://scripts/services/ambient_sound_controller.gd")
+
 var failures: Array[String] = []
 var checks := 0
 
@@ -14,6 +16,7 @@ func _init() -> void:
 	_test_event_conditions_and_delays()
 	_test_ai_determinism()
 	_test_audio_foundation()
+	_test_ambience_contract()
 	_test_save_round_trip()
 	_test_endings_reachable()
 	if failures.is_empty():
@@ -191,6 +194,15 @@ func _test_audio_foundation() -> void:
 	_expect(restored.master_volume == 1.0 and restored.music_volume == 0.0, "loaded audio volumes should clamp to safe bounds")
 	_expect(is_equal_approx(float(restored.sfx_volume), 0.55) and not bool(restored.pressure_audio), "audio settings should round-trip independently")
 	settings_service.delete_settings()
+
+
+func _test_ambience_contract() -> void:
+	_expect(AmbientSoundControllerScript.CONTEXTS.size() == 9, "ambient system should cover menu, campus, road, and six locations")
+	for location_id in [&"dorm", &"library", &"teaching", &"lab", &"canteen", &"field"]:
+		_expect(AmbientSoundControllerScript.CONTEXTS.has(location_id), "ambient system should cover location %s" % location_id)
+	_expect(AmbientSoundControllerScript.period_from_slot(0) == &"day", "morning should use the day soundscape")
+	_expect(AmbientSoundControllerScript.period_from_slot(3) == &"evening", "evening should use the transitional soundscape")
+	_expect(AmbientSoundControllerScript.period_from_slot(4) == &"night", "late night should use the night soundscape")
 
 
 func _test_save_round_trip() -> void:

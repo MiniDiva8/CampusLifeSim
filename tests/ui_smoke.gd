@@ -29,6 +29,8 @@ func _run() -> void:
 	root.add_child(app)
 	await process_frame
 	_expect(app.current_screen == "main_menu", "application should open on main menu")
+	var ambience := root.get_node_or_null("ProjectAmbientSoundController")
+	_expect(ambience != null and ambience.get_current_context() == &"menu", "main menu should start the restrained campus soundscape")
 	_expect(app.repository.events.size() == 32, "main UI should load validated content")
 	_expect(app.background_catalog.locations.size() == 6, "main UI should load all location background pools")
 	app.show_setup()
@@ -65,11 +67,12 @@ func _run() -> void:
 	_expect(app.session.clock.get_index() == 1, "first choice should consume one slot")
 
 	app._travel_to_location("library", 0.05)
-	await process_frame
 	_expect(app.current_screen == "travel", "selecting a location should open the travel transition")
+	_expect(ambience != null and ambience.get_current_context() == &"road", "travel transition should crossfade to the road soundscape")
 	_expect(app.active_photo_background != null, "travel transition should use a road photograph")
 	await create_timer(0.08).timeout
 	_expect(app.current_screen == "event", "library should present an eligible location event")
+	_expect(ambience != null and ambience.get_current_context() == &"library", "arrival should crossfade from the road into the library")
 	_expect(app.active_photo_background != null, "location event should retain the selected scene photograph")
 	var library_event: Dictionary = app.event_engine.get_location_event("library", app.session)
 	app._resolve_event_choice(library_event, library_event.choices[0])
@@ -122,6 +125,7 @@ func _run() -> void:
 	app._advance_after_action()
 	await process_frame
 	_expect(app.current_screen == "stress_crisis", "high stress should automatically open the disorientation choice screen after an action")
+	_expect(ambience != null and ambience.is_stress_layer_playing(), "stress crisis should add the optional body-feedback sound layer")
 	_expect(app.active_photo_background != null, "stress crisis should use the long-exposure photograph")
 	var stress_before := int(app.session.stats.stress)
 	var recover_button := app.find_child("StressRecover", true, false) as Button
@@ -137,6 +141,10 @@ func _run() -> void:
 		await create_timer(0.25).timeout
 		audio_director.prepare_for_shutdown()
 		await process_frame
+	if ambience != null:
+		ambience.prepare_for_shutdown()
+		await process_frame
+		await create_timer(0.25).timeout
 
 	if failures.is_empty():
 		print("[PASS] UI smoke: %d checks passed" % checks)

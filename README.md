@@ -25,6 +25,8 @@
 - 进入地点前约两秒的道路滚动过渡，采用等比放大后的轻微平移，支持“减少界面动效”设置
 - 14 类原创程序化交互音效，区分悬停、普通点击、确认、返回、选择、地点进入、危险操作和状态反馈
 - Master、Music、SFX、UI、Event、Stress、Ambience 七层音频总线，可分别调节音乐、交互和校园环境音量
+- 主菜单、校园总览、道路和六个地点拥有不同的原创程序化声景，并随白天、傍晚、深夜改变活动密度
+- 道路声与目的地声在两秒路途过程中交叉淡化；高压力会叠加可独立关闭的低频身体反馈
 - 主菜单、角色初始化、校园总览、暂停与结局使用统一的竞赛展示视觉体系
 - 学习、项目、精力、压力、人物关系与隐藏 AI 依赖度
 - 简易、中等、困难三档难度；难度会改变压力、精力与学业结算倍率
@@ -40,6 +42,7 @@
 & "C:\Users\24578\Tools\Godot\4.7.1\Godot_v4.7.1-stable_win64_console.exe" --headless --path . --quit-after 180
 & "C:\Users\24578\Tools\Godot\4.7.1\Godot_v4.7.1-stable_win64_console.exe" --headless --path . --script res://tests/test_runner.gd
 & "C:\Users\24578\Tools\Godot\4.7.1\Godot_v4.7.1-stable_win64_console.exe" --headless --path . --script res://tests/audio_smoke.gd
+& "C:\Users\24578\Tools\Godot\4.7.1\Godot_v4.7.1-stable_win64_console.exe" --headless --path . --script res://tests/ambience_smoke.gd
 & "C:\Users\24578\Tools\Godot\4.7.1\Godot_v4.7.1-stable_win64_console.exe" --headless --path . --script res://tests/ui_smoke.gd
 & "C:\Users\24578\Tools\Godot\4.7.1\Godot_v4.7.1-stable_win64_console.exe" --headless --path . --script res://tests/full_run_simulation.gd
 ```
