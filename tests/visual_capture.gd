@@ -39,6 +39,12 @@ func _capture() -> void:
 	for _frame in 5:
 		await process_frame
 	_save_viewport("res://reports/event_choice.png")
+	var first_event_choice := app.find_child("Choice_plan", true, false) as Button
+	if first_event_choice != null:
+		first_event_choice.mouse_entered.emit()
+		await create_timer(0.18).timeout
+		_save_viewport("res://reports/event_choice_hover.png")
+		first_event_choice.mouse_exited.emit()
 	var arrival_event: Dictionary = app.event_engine.get_fixed_event(app.session)
 	app._resolve_event_choice(arrival_event, arrival_event.choices[0])
 	for _frame in 5:

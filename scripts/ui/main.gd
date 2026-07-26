@@ -2,6 +2,7 @@ extends Control
 
 const GlassPanelScript = preload("res://scripts/ui/glass_panel.gd")
 const GlassHoverControllerScript = preload("res://scripts/ui/glass_hover_controller.gd")
+const EditorialEventViewScript = preload("res://scripts/ui/editorial_event_view.gd")
 const COLOR_INK := Color("#F4F2E9")
 const COLOR_MUTED := Color("#9BAAA7")
 const COLOR_DARK := Color("#071013")
@@ -159,6 +160,25 @@ func _show_adaptive_scene(screen_name: String, data: Dictionary) -> AdaptiveScen
 	return view
 
 
+func _show_editorial_event(data: Dictionary) -> Control:
+	_finish_interaction_feedback()
+	current_screen = "event"
+	active_photo_background = null
+	active_photo_fill = null
+	for child in get_children():
+		child.queue_free()
+	screen_layer = Control.new()
+	screen_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(screen_layer)
+	var view = EditorialEventViewScript.new()
+	view.name = "EditorialEventView"
+	view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	screen_layer.add_child(view)
+	view.configure(data)
+	active_photo_background = view.photo_rect
+	return view
+
+
 func _base_scene_data(scene_context: Dictionary, background_path: String) -> Dictionary:
 	var scene_name := str(scene_context.get("display_name", "校园场景"))
 	var photo_shape := "原图比例"
@@ -190,6 +210,8 @@ func _base_scene_data(scene_context: Dictionary, background_path: String) -> Dic
 		"energy": int(session.stats.energy) if session != null else 0,
 		"stress": int(session.stats.stress) if session != null else 0,
 		"exam": int(session.tasks.exam) if session != null else 0,
+		"day": int(session.clock.day) if session != null else 1,
+		"slot_index": int(session.clock.slot) if session != null else 0,
 		"footer_hint": "山东大学中心校区 · 离线运行 · 自动存档",
 		"reduced_motion": bool(settings.get("reduced_motion", false)),
 	}
@@ -259,6 +281,10 @@ func _begin_interaction_feedback(message: String = "正在结算选择…") -> b
 		var button := node as Button
 		if button != null:
 			button.disabled = true
+	var editorial_view := screen_layer.find_child("EditorialEventView", true, false)
+	if editorial_view != null and editorial_view.has_method("show_pending"):
+		editorial_view.call("show_pending", message)
+		return true
 	var indicator := _make_badge(message, COLOR_TEAL)
 	indicator.name = "InteractionPending"
 	indicator.position = Vector2(1024, 82)
@@ -984,7 +1010,7 @@ func show_event(event: Dictionary) -> void:
 		"state_tags": _scene_state_tags(),
 		"choices": choices,
 	}, true)
-	_show_adaptive_scene("event", data)
+	_show_editorial_event(data)
 
 
 func _format_scene_text(text_value: String, scene_context: Dictionary) -> String:

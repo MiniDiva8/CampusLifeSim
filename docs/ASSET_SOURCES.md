@@ -30,6 +30,13 @@
 
 屏幕取样方式依据 Godot 4 官方 `hint_screen_texture` 文档自行实现。着色器采用受控的单层屏幕模糊与程序化边缘高光，没有引入第三方 shader 文件。
 
+## 0.9.0 事件界面方向参考
+
+- 2026-07-26 使用 Codex 内置图像生成工具，以项目自己的 `reports/event_choice.png` 为事实与构图反例，生成三张事件界面构图探针。
+- 构图探针保存在 `.impeccable/mocks/`，只用于开发审查，不被 `project.godot`、场景、脚本或导出预设引用。
+- 运行时继续使用用户提供的原始校园照片与 Godot 原生文字、按钮、渐变和 Tween；生成稿中的照片、文字和装饰没有进入正式游戏。
+- 项目级设计 Skill 的精确仓库、提交和许可证见 `docs/DEVELOPMENT_SKILLS.md`。
+
 ## 图片导入方式
 
 - `tools/import_user_backgrounds.ps1` 从父级 `游戏场景图片/` 读取原图并原样复制到 `assets/backgrounds/`，复制后逐张核对 SHA-256。

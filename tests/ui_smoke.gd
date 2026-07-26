@@ -17,6 +17,8 @@ func _expect(condition: bool, message: String) -> void:
 func _has_label_containing(node: Node, fragment: String) -> bool:
 	if node is Label and str(node.text).contains(fragment):
 		return true
+	if node is RichTextLabel and str(node.text).contains(fragment):
+		return true
 	for child in node.get_children():
 		if _has_label_containing(child, fragment):
 			return true
@@ -142,9 +144,25 @@ func _run() -> void:
 	_expect(app.active_photo_background.stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_CENTERED and app.active_photo_fill == null, "scene photo should fit its original aspect without a duplicate fill layer")
 	_expect(app.active_photo_background.texture.get_size() == Vector2(4284, 5712), "event UI should load the original-resolution tennis photo")
 	var event_card := app.find_child("EventCard", true, false) as PanelContainer
-	var photo_stage := app.find_child("PhotoStage", true, false) as PanelContainer
-	_expect(event_card != null and photo_stage != null and photo_stage.position.x + photo_stage.size.x <= event_card.position.x, "interaction panel should sit beside the photo instead of covering it")
-	_expect(is_equal_approx(photo_stage.size.x, 474.0), "portrait photographs should use the narrow adaptive media stage")
+	var editorial_view := app.find_child("EditorialEventView", true, false) as Control
+	var photo_stage := app.find_child("PhotoStage", true, false) as Control
+	var event_narrative := app.find_child("EventNarrative", true, false) as Control
+	var choice_list := app.find_child("ChoiceList", true, false) as VBoxContainer
+	_expect(event_card == null, "event choices should no longer be wrapped in the legacy glass card")
+	_expect(editorial_view != null and photo_stage != null and event_narrative != null and choice_list != null, "event screen should use the full-canvas editorial composition")
+	_expect(photo_stage.size == Vector2(1280, 720), "original photo should use the complete event canvas instead of a framed media card")
+	var editorial_choice := app.find_child("Choice_continue", true, false) as Button
+	_expect(editorial_choice != null and editorial_choice.get_node_or_null("GlassHoverController") == null, "editorial choices should use text-and-rule focus rather than card lift")
+	var editorial_marker := editorial_choice.get_node_or_null("ChoiceMarker") as ColorRect
+	var editorial_copy := editorial_choice.get_node_or_null("ChoiceCopy") as Control
+	editorial_choice.mouse_entered.emit()
+	await create_timer(0.18).timeout
+	_expect(editorial_marker != null and editorial_marker.modulate.a > 0.9, "editorial choice hover should reveal the SDU-red margin marker")
+	_expect(editorial_copy != null and editorial_copy.position.x > 18.0, "editorial choice hover should shift typography without lifting a box")
+	editorial_choice.mouse_exited.emit()
+	editorial_choice.grab_focus()
+	await create_timer(0.18).timeout
+	_expect(editorial_marker.modulate.a > 0.9, "keyboard focus should expose the same visible editorial choice marker")
 	app.session.current_location_id = "teaching"
 	app.session.current_background_path = "res://assets/backgrounds/locations/teaching/理综楼走廊.jpg"
 	app.show_event({

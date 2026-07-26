@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 2,
+  "updatedAt": "2026-07-26T19:14:45+08:00",
+  "scope": "event-choice-screen",
+  "conceptSeed": "user-pinned/no-roll",
+  "colorMeta": {
+    "paper": "#E9E6DC",
+    "paperLight": "#F4F1E8",
+    "graphite": "#252A2B",
+    "graphiteSoft": "#515B5C",
+    "graphiteFaint": "#6F7878",
+    "sduRed": "#B84850",
+    "mistBlue": "#527C8A",
+    "energy": "#287C68",
+    "stress": "#A94F54",
+    "exam": "#9A6A18"
+  },
+  "typographyMeta": {
+    "family": "Godot default with local system Chinese fallback",
+    "displayPx": 36,
+    "choiceTitlePx": 18,
+    "bodyPx": 15,
+    "detailPx": 13,
+    "marginPx": "11-17"
+  },
+  "motion": {
+    "narrativeEnterMs": 200,
+    "choicesEnterMs": 240,
+    "hoverMs": 160,
+    "reducedMotion": "complete decorative transitions immediately"
+  },
+  "breakpoints": {
+    "baseline": {
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "narrative": {
+    "thesis": "The campus photograph is the event canvas; no dashboard, split cards, or boxed choices.",
+    "story": [
+      "recognize the real place",
+      "understand the event",
+      "compare consequential actions"
+    ],
+    "runtimeAssetRule": "Use the player's original registered campus photos; generated mockups are preview-only."
+  }
+}
