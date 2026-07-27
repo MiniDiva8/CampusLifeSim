@@ -1,7 +1,7 @@
 ---
 name: CampusLifeSim Editorial Event Surface
-status: active-prototype
-scope: event-choice-screen
+status: active-system
+scope: archive-menu/route-setup/event-choice-screen/campus-map
 baseline: 1280x720
 concept_seed: user-pinned/no-roll
 updated: 2026-07-26
@@ -11,7 +11,9 @@ updated: 2026-07-26
 
 《惊魂期末周》的事件页采用“校园纪实照片 + 学生刊物排版”作为视觉母题。玩家先认出真实校园地点，再阅读事件，最后比较会改变状态的选择。照片是画布，不是被卡片遮住的装饰。
 
-这份规范目前只约束事件选择页。主菜单、地图、地点行动、结算、设置、暂停和结局页仍属于待迁移的旧界面，不能反向定义本设计系统。
+这套暖纸、校园纪实和档案批注语言目前已经覆盖主菜单、路线初始化、事件选择和校园地图。地点行动、结算、设置、暂停和结局页仍可继续迁移，但不得反向把已移除的纯黑背景、玻璃大卡或后台式网格带回这些核心页面。
+
+主菜单把照片当作“档案附图”，允许使用图钉、纸胶带、日期戳、地点圈注与目录索引；路线页把三种开局方式当作可验证的策略档案，必须同时写清优势、短板、推荐行动和事件倾向。所有玩法说明都必须与实际规则一致。
 
 # Colors
 

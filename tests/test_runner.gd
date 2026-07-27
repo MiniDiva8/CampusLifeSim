@@ -1,6 +1,7 @@
 extends SceneTree
 
 const AmbientSoundControllerScript = preload("res://scripts/services/ambient_sound_controller.gd")
+const RouteRulesScript = preload("res://scripts/core/route_rules.gd")
 
 var failures: Array[String] = []
 var checks := 0
@@ -13,6 +14,7 @@ func _init() -> void:
 	_test_clock()
 	_test_session_and_clamping()
 	_test_difficulty_rules()
+	_test_route_rules()
 	_test_event_conditions_and_delays()
 	_test_ai_determinism()
 	_test_audio_foundation()
@@ -126,8 +128,8 @@ func _test_difficulty_rules() -> void:
 	engine.apply_fallback_action(action, easy)
 	engine.apply_fallback_action(action, medium)
 	engine.apply_fallback_action(action, hard)
-	_expect(easy.stats.study == 35 and medium.stats.study == 33 and hard.stats.study == 31, "academic gains should shrink as difficulty rises")
-	_expect(easy.tasks.exam == 10 and medium.tasks.exam == 8 and hard.tasks.exam == 6, "task gains should shrink as difficulty rises")
+	_expect(easy.stats.study == 36 and medium.stats.study == 34 and hard.stats.study == 31, "academic gains should shrink as difficulty rises while honoring the study route")
+	_expect(easy.tasks.exam == 11 and medium.tasks.exam == 9 and hard.tasks.exam == 6, "task gains should shrink as difficulty rises while honoring the study route")
 	_expect(easy.stats.stress == 28 and medium.stats.stress == 31 and hard.stats.stress == 35, "stress gains and ambient pressure should grow as difficulty rises")
 	_expect(easy.stats.energy == 70 and medium.stats.energy == 68 and hard.stats.energy == 66, "energy costs should grow as difficulty rises")
 	_expect(DifficultyRules.get_crisis_threshold("easy") > DifficultyRules.get_crisis_threshold("medium") and DifficultyRules.get_crisis_threshold("medium") > DifficultyRules.get_crisis_threshold("hard"), "stress crisis thresholds should fall as difficulty rises")
@@ -145,11 +147,31 @@ func _test_difficulty_rules() -> void:
 	_expect(legacy_session.from_dict(legacy_data) and legacy_session.difficulty_id == "easy", "old saves should continue under easy rules")
 
 
+func _test_route_rules() -> void:
+	_expect(RouteRulesScript.get_all().size() == 3, "three strategy routes should be available")
+	for route in RouteRulesScript.get_all():
+		_expect(route.has_all(["id", "name", "core", "advantage", "shortcoming", "recommendation", "tendency"]), "route dossiers should explain every promised gameplay dimension")
+	_expect(RouteRulesScript.adjust_effect_amount("stat", "study", 10, "study") == 11, "study route should improve study gains")
+	_expect(RouteRulesScript.adjust_effect_amount("task", "presentation", 25, "study") == 24, "study route should slightly slow presentation gains")
+	_expect(RouteRulesScript.adjust_effect_amount("stat", "project", 10, "project") == 11, "project route should improve project gains")
+	_expect(RouteRulesScript.adjust_effect_amount("task", "exam", 25, "project") == 24, "project route should slightly slow exam gains")
+	_expect(RouteRulesScript.adjust_effect_amount("relationship", "roommate", 8, "social") == 10, "social route should improve positive relationship gains")
+	_expect(RouteRulesScript.adjust_effect_amount("stat", "study", 20, "social") == 19, "social route should slightly slow single-track academic gains")
+	_expect(RouteRulesScript.adjust_action_pressure(1, "project") == 2, "project route should add one point of ambient action pressure")
+	var study_event := {"kind": "location", "trigger": {"location": "library"}}
+	var project_event := {"kind": "location", "trigger": {"location": "lab"}}
+	var npc_event := {"kind": "npc", "trigger": {"location": "dorm"}}
+	_expect(RouteRulesScript.get_event_priority_bonus(study_event, "study") == 35, "study route should prioritize academic location events")
+	_expect(RouteRulesScript.get_event_priority_bonus(project_event, "project") == 35, "project route should prioritize project location events")
+	_expect(RouteRulesScript.get_event_priority_bonus(npc_event, "social") == 30, "social route should prioritize eligible NPC events")
+
+
 func _test_event_conditions_and_delays() -> void:
 	var session := GameSession.new()
 	var engine := EventEngine.new()
 	_expect(engine.condition_matches({"type": "stat_min", "target": "energy", "value": 70}, session), "stat minimum condition should match")
 	_expect(not engine.condition_matches({"type": "relationship_min", "target": "roommate", "value": 80}, session), "relationship minimum condition should reject")
+	_expect(engine.condition_matches({"type": "route", "value": "study"}, session), "route conditions should match the saved strategy route")
 	var event := {"id": "test_event"}
 	var choice := {
 		"id": "test_choice",

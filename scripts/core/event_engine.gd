@@ -1,6 +1,7 @@
 class_name EventEngine
 extends RefCounted
 
+const RouteRulesScript = preload("res://scripts/core/route_rules.gd")
 var repository: ContentRepository
 
 
@@ -35,6 +36,8 @@ func condition_matches(condition: Dictionary, session: GameSession) -> bool:
 			return session.clock.day <= int(expected)
 		"slot":
 			return session.clock.slot == int(expected)
+		"route":
+			return session.trait_id == RouteRulesScript.normalize(str(expected))
 		_:
 			push_warning("Unknown condition type: %s" % condition_type)
 			return false
@@ -82,7 +85,13 @@ func get_location_event(location_id: String, session: GameSession) -> Dictionary
 			candidates.append(event)
 	if candidates.is_empty():
 		return {}
-	candidates.sort_custom(func(a, b): return int(a.get("priority", 0)) > int(b.get("priority", 0)))
+	candidates.sort_custom(func(a, b):
+		var a_score: int = int(a.get("priority", 0)) + RouteRulesScript.get_event_priority_bonus(a, session.trait_id)
+		var b_score: int = int(b.get("priority", 0)) + RouteRulesScript.get_event_priority_bonus(b, session.trait_id)
+		if a_score == b_score:
+			return str(a.get("id", "")) < str(b.get("id", ""))
+		return a_score > b_score
+	)
 	return candidates[0]
 
 
@@ -111,7 +120,7 @@ func apply_fallback_action(action: Dictionary, session: GameSession) -> Array[St
 
 
 func _apply_action_pressure(session: GameSession, result: Array[String]) -> void:
-	var amount := DifficultyRules.get_action_pressure(session)
+	var amount: int = RouteRulesScript.adjust_action_pressure(DifficultyRules.get_action_pressure(session), session.trait_id)
 	if amount <= 0:
 		return
 	var changed := session.change_stat("stress", amount)
@@ -143,6 +152,7 @@ func _apply_effect(effect: Dictionary, session: GameSession) -> String:
 	var target := str(effect.get("target", ""))
 	var raw_amount := int(effect.get("amount", 0))
 	var amount := DifficultyRules.adjust_effect_amount(effect_type, target, raw_amount, session.difficulty_id)
+	amount = RouteRulesScript.adjust_effect_amount(effect_type, target, amount, session.trait_id)
 	match effect_type:
 		"stat":
 			var changed := session.change_stat(target, amount)

@@ -10,6 +10,8 @@
 
 界面只能通过明确接口修改游戏状态，JSON 只描述受控条件和效果，不执行脚本。
 
+`ArchiveMainMenuView` 和 `RouteSetupView` 是两个全画布纸质界面。前者只读取存档摘要并连接新建、继续、设置、许可和退出回调；后者把玩家输入转换为姓名、路线 ID 和难度 ID，再交回 `main.gd` 创建存档。它们不直接修改运行中的游戏状态。`RouteRules` 是路线说明与结算规则的唯一来源，统一处理学习、项目、关系、行动压力和事件优先级，事件选项预览也调用同一规则，避免界面文案与实际结果分离。
+
 `DifficultyRules` 在 `EventEngine` 应用效果前统一调整数值，确保事件 JSON 保持单一基础数值。`GameSession` 只保存难度 ID，不复制倍率配置；旧存档自动回退到简易规则。
 
 `BackgroundCatalog` 除了随机选择照片，还从清单提供真实场景名称、活动文本、固定事件地点语义和 EXIF 方向。`OrientedPhotoRect` 不改写原 JPEG，而是在显示层旋转画面。

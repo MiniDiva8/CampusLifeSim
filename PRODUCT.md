@@ -25,7 +25,7 @@ adaptive
 ## Capabilities and Constraints
 
 - Godot 4.7.1 标准版、GDScript、1280×720 基准画面，首发 Windows。
-- 七天、每天五时段、六地点、三档难度、七个结局。
+- 七天、每天五时段、六地点、三条真实策略路线、三档难度、七个结局。
 - 纯离线运行；不依赖真实在线大模型、账号、云存档或网络服务。
 - 不制作自由行走、寻路和金钱系统。
 - 事件、地点、结局、AI 建议和照片语义保持数据驱动。
@@ -42,6 +42,7 @@ adaptive
 ## Evidence on Hand
 
 - 32 个已校验数据驱动事件与完整核心流程，见 `data/`。
+- 稳扎稳打、实干派和协调者会改变收益、压力及事件优先级，规则与测试见 `scripts/core/route_rules.gd` 和 `tests/test_runner.gd`。
 - 65 张用户提供的校园原图及场景元数据，见 `assets/backgrounds/` 和 `data/backgrounds.json`。
 - 难度、存档、离线 AI、音效、环境声和完整流程测试，见 `scripts/` 与 `tests/`。
 - 玩法与来源记录，见 `docs/GAME_DESIGN.md` 和 `docs/ASSET_SOURCES.md`。

@@ -1,6 +1,7 @@
 class_name GameSession
 extends RefCounted
 
+const RouteRulesScript = preload("res://scripts/core/route_rules.gd")
 const SCHEMA_VERSION := 1
 const DEFAULT_SEED := 20260722
 const STAT_KEYS := ["study", "project", "energy", "stress", "ai_dependence"]
@@ -31,7 +32,7 @@ func _init() -> void:
 
 func reset(name_value: String = "小山", selected_trait: String = "study", selected_difficulty: String = DifficultyRules.LEGACY_DIFFICULTY) -> void:
 	player_name = name_value.strip_edges() if not name_value.strip_edges().is_empty() else "小山"
-	trait_id = selected_trait
+	trait_id = RouteRulesScript.normalize(selected_trait)
 	difficulty_id = DifficultyRules.normalize(selected_difficulty)
 	run_seed = DEFAULT_SEED
 	clock.reset()
@@ -58,18 +59,18 @@ func reset(name_value: String = "小山", selected_trait: String = "study", sele
 	last_location_backgrounds = {}
 	last_road_background = ""
 	background_choice_counter = 0
-	apply_trait(selected_trait)
+	apply_trait(trait_id)
 
 
 func apply_trait(selected_trait: String) -> void:
-	match selected_trait:
+	trait_id = RouteRulesScript.normalize(selected_trait)
+	match trait_id:
 		"project":
 			stats["project"] += 10
 		"social":
 			for relationship_id in RELATIONSHIP_KEYS:
 				relationships[relationship_id] += 5
 		_:
-			trait_id = "study"
 			stats["study"] += 10
 	clamp_all()
 
@@ -160,7 +161,7 @@ func from_dict(data: Dictionary) -> bool:
 	if int(data.get("schema_version", -1)) != SCHEMA_VERSION:
 		return false
 	player_name = str(data.get("player_name", "小山"))
-	trait_id = str(data.get("trait_id", "study"))
+	trait_id = RouteRulesScript.normalize(str(data.get("trait_id", "study")))
 	difficulty_id = DifficultyRules.normalize(str(data.get("difficulty_id", DifficultyRules.LEGACY_DIFFICULTY)))
 	run_seed = int(data.get("run_seed", DEFAULT_SEED))
 	clock.from_dict(data.get("clock", {}))

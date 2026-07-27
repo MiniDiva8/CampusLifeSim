@@ -57,17 +57,26 @@ func _run() -> void:
 	root.add_child(app)
 	await process_frame
 	_expect(app.current_screen == "main_menu", "application should open on main menu")
-	_expect(_count_nodes_with_script(app, "res://scripts/ui/glass_panel.gd") >= 1, "main menu should use the shared screen-reading glass surface")
-	_expect(_count_nodes_with_script(app, "res://scripts/ui/glass_hover_controller.gd") >= 4, "main menu actions should have cursor-responsive glass hover controllers")
+	_expect(app.find_child("ArchiveMainMenuView", true, false) != null, "main menu should open as a dedicated final-week archive cover")
+	_expect(app.find_child("ArchivePhotoAttachment", true, false) != null and app.find_child("ArchiveSeal", true, false) != null, "archive cover should mount the campus evidence photo and expose a ritual seal action")
+	_expect(_count_nodes_with_script(app, "res://scripts/ui/glass_panel.gd") == 0, "archive cover should not reuse the legacy dashboard glass cards")
+	_expect(_has_label_containing(app, "第 0 日 / 入档前"), "archive cover should establish the pre-run record state")
 	var ambience := root.get_node_or_null("ProjectAmbientSoundController")
 	_expect(ambience != null and ambience.get_current_context() == &"menu", "main menu should start the restrained campus soundscape")
 	_expect(app.repository.events.size() == 32, "main UI should load validated content")
 	_expect(app.background_catalog.locations.size() == 6, "main UI should load all location background pools")
 	app.show_setup()
 	await process_frame
+	_expect(app.find_child("RouteSetupView", true, false) != null, "setup should use the dedicated two-page route dossier")
 	_expect(app.find_child("Difficulty_easy", true, false) != null and app.find_child("Difficulty_medium", true, false) != null and app.find_child("Difficulty_hard", true, false) != null, "setup should expose three difficulty choices")
 	var medium_button := app.find_child("Difficulty_medium", true, false) as Button
 	_expect(medium_button != null and medium_button.button_pressed, "new games should recommend medium difficulty")
+	var project_route := app.find_child("Trait_project", true, false) as Button
+	project_route.pressed.emit()
+	await process_frame
+	_expect(_has_label_containing(app, "每次行动会额外积累 1 点压力"), "route dossier should expose a truthful gameplay shortcoming")
+	var study_route := app.find_child("Trait_study", true, false) as Button
+	study_route.pressed.emit()
 	app.save_service = SaveService.new("user://campus_ui_smoke_save.json", "user://campus_ui_smoke_settings.json")
 	app.save_service.delete_save()
 	var name_input := app.find_child("PlayerName", true, false) as LineEdit

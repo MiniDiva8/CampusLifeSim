@@ -4,6 +4,9 @@ const GlassPanelScript = preload("res://scripts/ui/glass_panel.gd")
 const GlassHoverControllerScript = preload("res://scripts/ui/glass_hover_controller.gd")
 const EditorialEventViewScript = preload("res://scripts/ui/editorial_event_view.gd")
 const CampusMapViewScript = preload("res://scripts/ui/campus_map_view.gd")
+const ArchiveMainMenuViewScript = preload("res://scripts/ui/archive_main_menu_view.gd")
+const RouteSetupViewScript = preload("res://scripts/ui/route_setup_view.gd")
+const RouteRulesScript = preload("res://scripts/core/route_rules.gd")
 const COLOR_INK := Color("#F4F2E9")
 const COLOR_MUTED := Color("#9BAAA7")
 const COLOR_DARK := Color("#071013")
@@ -362,6 +365,8 @@ func _effect_preview(effects) -> String:
 			parts.append("AI 使用习惯")
 			continue
 		var adjusted: int = DifficultyRules.adjust_effect_amount(effect_type, target, amount, session.difficulty_id) if session != null else amount
+		if session != null:
+			adjusted = RouteRulesScript.adjust_effect_amount(effect_type, target, adjusted, session.trait_id)
 		parts.append("%s %s%d" % [target_name, "+" if adjusted >= 0 else "", adjusted])
 		if parts.size() >= 2:
 			break
@@ -404,159 +409,75 @@ func _set_soundscape(context: StringName, fade_seconds: float = 0.65, period_ove
 
 func show_main_menu() -> void:
 	_set_soundscape(&"menu", 0.85, &"evening", 0)
-	var root := _reset_screen("main_menu", Color("#284246"), background_catalog.get_menu_background(), Color("#050C0EE0"))
-	var top := HBoxContainer.new()
-	root.add_child(top)
-	top.add_child(_make_badge("山东大学中心校区 · 人工智能学院", COLOR_SDU_RED))
-	var top_space := Control.new()
-	top_space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top.add_child(top_space)
-	var build_version := str(ProjectSettings.get_setting("application/config/version", "DEV")).trim_suffix("-demo")
-	top.add_child(_make_label("BUILD  %s · OFFLINE" % build_version, 11, Color("#71837F")))
+	_finish_interaction_feedback()
+	current_screen = "main_menu"
+	active_photo_background = null
+	active_photo_fill = null
+	for child in get_children():
+		child.queue_free()
+	screen_layer = Control.new()
+	screen_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(screen_layer)
 
-	var main := HBoxContainer.new()
-	main.add_theme_constant_override("separation", 54)
-	main.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	main.alignment = BoxContainer.ALIGNMENT_CENTER
-	root.add_child(main)
-
-	var identity := VBoxContainer.new()
-	identity.custom_minimum_size.x = 650
-	identity.add_theme_constant_override("separation", 13)
-	main.add_child(identity)
-	var marker := ColorRect.new()
-	marker.color = COLOR_SDU_RED
-	marker.custom_minimum_size = Vector2(72, 3)
-	identity.add_child(marker)
-	identity.add_child(_make_label("SHANDONG UNIVERSITY · FINAL WEEK", 16, COLOR_SDU_RED))
-	var title := _make_label("惊魂期末周", 70, COLOR_INK)
-	identity.add_child(title)
-	var subtitle := _make_label("山大南路 27 号，七天、五个时段，以及没有标准答案的校园生活。", 23, Color("#D3DDD8"))
-	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	identity.add_child(subtitle)
-	var statement := _make_label("在考试、项目、关系与身体状态之间做选择。\n每一次取舍都会留下痕迹，并在之后重新出现。", 16, COLOR_MUTED)
-	statement.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	identity.add_child(statement)
-	var feature_row := HBoxContainer.new()
-	feature_row.add_theme_constant_override("separation", 8)
-	identity.add_child(feature_row)
-	feature_row.add_child(_make_badge("中心校区", COLOR_SDU_RED))
-	feature_row.add_child(_make_badge("7 天", COLOR_TEAL))
-	feature_row.add_child(_make_badge("5 时段 / 天", COLOR_BLUE))
-	feature_row.add_child(_make_badge("6 个地点", COLOR_ACCENT))
-	feature_row.add_child(_make_badge("7 种结局", COLOR_CORAL))
-
-	var card := _make_panel(Color("#0B1518F5"), 20, Color("#36545A"))
-	card.custom_minimum_size = Vector2(410, 480)
-	main.add_child(card)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 11)
-	card.add_child(box)
-	box.add_child(_make_label("开始你的期末周", 25, COLOR_INK))
-	var menu_note := _make_label("进度在每次选择后自动保存。", 13, COLOR_MUTED)
-	box.add_child(menu_note)
-	box.add_child(_make_separator())
-	var new_button := _make_button("开始新的期末周  →", show_setup, true)
-	new_button.custom_minimum_size.y = 58
-	box.add_child(new_button)
-	var continue_button := _make_button("继续上次进度", continue_game)
-	continue_button.disabled = not save_service.has_save()
-	box.add_child(continue_button)
-	box.add_child(_make_button("设置", func(): show_settings("main_menu")))
-	box.add_child(_make_button("制作与许可", show_credits))
-	var card_space := Control.new()
-	card_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	box.add_child(card_space)
-	box.add_child(_make_button("退出游戏", show_exit_confirmation, false, true))
-	box.add_child(_make_label("离线运行 · 原图展示 · Godot 4.7.1", 11, Color("#61736F")))
-
-	var footer := HBoxContainer.new()
-	root.add_child(footer)
-	footer.add_child(_make_label("SDU · 1901 · CAMPUSLIFESIM", 10, COLOR_SDU_RED))
-	var footer_space := Control.new()
-	footer_space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	footer.add_child(footer_space)
-	footer.add_child(_make_label("学无止境，气有浩然", 10, Color("#8F9F9B")))
+	var background_path := background_catalog.get_menu_background()
+	var texture: Texture2D
+	if not background_path.is_empty() and ResourceLoader.exists(background_path):
+		texture = _load_photo_texture(background_path)
+	var has_save := save_service.has_save()
+	var continue_status := "尚无可读取的记录"
+	if has_save:
+		var stored_session := save_service.load_game()
+		if stored_session != null:
+			continue_status = "第 %d 天 · %s / %s" % [
+				stored_session.clock.day,
+				stored_session.clock.get_slot_name(),
+				DifficultyRules.get_display_name(stored_session.difficulty_id),
+			]
+		else:
+			has_save = false
+			continue_status = "记录无法读取"
+	var view = ArchiveMainMenuViewScript.new()
+	view.name = "ArchiveMainMenuView"
+	view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	screen_layer.add_child(view)
+	view.configure({
+		"photo_texture": texture,
+		"photo_orientation": background_catalog.get_photo_orientation(background_path),
+		"has_save": has_save,
+		"continue_status": continue_status,
+		"notice_text": notice_text,
+		"reduced_motion": bool(settings.get("reduced_motion", false)),
+		"new_action": show_setup,
+		"continue_action": continue_game,
+		"settings_action": func(): show_settings("main_menu"),
+		"credits_action": show_credits,
+		"exit_action": show_exit_confirmation,
+	})
+	active_photo_background = view.photo_rect
+	notice_text = ""
 
 
 func show_setup() -> void:
 	_set_soundscape(&"menu", 0.5, &"evening", 0)
-	var root := _reset_screen("setup", Color("#244046"), "", Color("#07101388"))
-	root.add_child(_make_header("人工智能学院 · 期末周档案", "在山大期末周开始前，给自己一个名字和起点", show_main_menu))
-	var center := HBoxContainer.new()
-	center.alignment = BoxContainer.ALIGNMENT_CENTER
-	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(center)
-	var panel := _make_panel(COLOR_PANEL, 20, Color("#36545A"))
-	panel.custom_minimum_size = Vector2(940, 550)
-	panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	center.add_child(panel)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 10)
-	panel.add_child(box)
-	box.add_child(_make_label("你的名字", 16, COLOR_MUTED))
-	var name_input := LineEdit.new()
-	name_input.name = "PlayerName"
-	name_input.placeholder_text = "输入名字（默认：小山）"
-	name_input.text = "小山"
-	name_input.max_length = 12
-	name_input.custom_minimum_size.y = 48
-	_style_line_edit(name_input)
-	box.add_child(name_input)
-	box.add_child(_make_label("选择初始特长", 20, COLOR_INK))
-
-	var trait_group := ButtonGroup.new()
-	var trait_row := HBoxContainer.new()
-	trait_row.add_theme_constant_override("separation", 12)
-	box.add_child(trait_row)
-	var traits := [
-		{"id": "study", "title": "稳扎稳打", "desc": "学习进度 +10\n适合先建立知识优势"},
-		{"id": "project", "title": "实干派", "desc": "项目进度 +10\n更快做出可展示成果"},
-		{"id": "social", "title": "协调者", "desc": "四名 NPC 关系各 +5\n让同伴支持更早出现"},
-	]
-	for trait_entry in traits:
-		var trait_button := Button.new()
-		trait_button.name = "Trait_%s" % trait_entry.id
-		trait_button.text = "%s\n\n%s" % [trait_entry.title, trait_entry.desc]
-		trait_button.toggle_mode = true
-		trait_button.button_group = trait_group
-		trait_button.custom_minimum_size = Vector2(290, 118)
-		trait_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		trait_button.add_theme_font_size_override("font_size", 17)
-		_style_button(trait_button, Color("#21464F"), COLOR_TEAL)
-		trait_button.set_meta("trait_id", trait_entry.id)
-		trait_button.set_meta("audio_cue", &"select")
-		trait_row.add_child(trait_button)
-		if trait_entry.id == "study":
-			trait_button.button_pressed = true
-
-	box.add_child(_make_label("选择难度", 20, COLOR_INK))
-	var difficulty_group := ButtonGroup.new()
-	var difficulty_row := HBoxContainer.new()
-	difficulty_row.add_theme_constant_override("separation", 12)
-	box.add_child(difficulty_row)
-	for difficulty_id in DifficultyRules.ORDER:
-		var config: Dictionary = DifficultyRules.get_config(difficulty_id)
-		var difficulty_button := Button.new()
-		difficulty_button.name = "Difficulty_%s" % difficulty_id
-		difficulty_button.text = "%s · %s\n%s" % [config.name, config.subtitle, config.description]
-		difficulty_button.toggle_mode = true
-		difficulty_button.button_group = difficulty_group
-		difficulty_button.custom_minimum_size = Vector2(290, 82)
-		difficulty_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		difficulty_button.add_theme_font_size_override("font_size", 14)
-		_style_button(difficulty_button, Color("#21464F"), Color(str(config.color)))
-		difficulty_button.set_meta("difficulty_id", difficulty_id)
-		difficulty_button.set_meta("audio_cue", &"select")
-		difficulty_row.add_child(difficulty_button)
-		if difficulty_id == DifficultyRules.DEFAULT_NEW_GAME:
-			difficulty_button.button_pressed = true
-
-	var tip := _make_label("难度会改变每次结算：压力、精力消耗、恢复效率与学业收益。中等为推荐体验。", 14, COLOR_MUTED)
-	tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(tip)
-	var start_button := _make_button("进入期末周", func(): _start_from_setup(name_input, trait_group, difficulty_group), true)
-	box.add_child(start_button)
+	_finish_interaction_feedback()
+	current_screen = "setup"
+	active_photo_background = null
+	active_photo_fill = null
+	for child in get_children():
+		child.queue_free()
+	screen_layer = Control.new()
+	screen_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(screen_layer)
+	var view = RouteSetupViewScript.new()
+	view.name = "RouteSetupView"
+	view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	screen_layer.add_child(view)
+	view.configure({
+		"routes": RouteRulesScript.get_all(),
+		"reduced_motion": bool(settings.get("reduced_motion", false)),
+		"back_action": show_main_menu,
+		"confirm_action": _start_new_session,
+	})
 
 
 func _start_from_setup(name_input: LineEdit, trait_group: ButtonGroup, difficulty_group: ButtonGroup) -> void:
@@ -568,8 +489,12 @@ func _start_from_setup(name_input: LineEdit, trait_group: ButtonGroup, difficult
 	var pressed_difficulty := difficulty_group.get_pressed_button()
 	if pressed_difficulty != null:
 		difficulty_id = str(pressed_difficulty.get_meta("difficulty_id"))
+	_start_new_session(name_input.text, trait_id, difficulty_id)
+
+
+func _start_new_session(player_name: String, trait_id: String, difficulty_id: String) -> void:
 	session = GameSession.new()
-	session.reset(name_input.text, trait_id, difficulty_id)
+	session.reset(player_name, trait_id, difficulty_id)
 	var error := save_service.save_game(session)
 	if error != OK:
 		_show_fatal_error("无法创建自动存档：%s" % error_string(error))
