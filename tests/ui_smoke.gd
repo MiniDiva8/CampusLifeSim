@@ -68,6 +68,7 @@ func _run() -> void:
 	app.show_setup()
 	await process_frame
 	_expect(app.find_child("RouteSetupView", true, false) != null, "setup should use the dedicated two-page route dossier")
+	_expect(_has_label_containing(app, "档案署名") and (app.find_child("PlayerName", true, false) as LineEdit).has_theme_stylebox_override("normal"), "setup should present the player name as a clear dossier-signature field")
 	_expect(app.find_child("Difficulty_easy", true, false) != null and app.find_child("Difficulty_medium", true, false) != null and app.find_child("Difficulty_hard", true, false) != null, "setup should expose three difficulty choices")
 	var medium_button := app.find_child("Difficulty_medium", true, false) as Button
 	_expect(medium_button != null and medium_button.button_pressed, "new games should recommend medium difficulty")
@@ -115,14 +116,8 @@ func _run() -> void:
 	var library_location_button := app.find_child("Location_library", true, false) as Button
 	_expect(campus_map != null and library_location_button != null, "campus screen should expose a full-canvas map with building hotspots")
 	_expect(_count_nodes_with_script(campus_map, "res://scripts/ui/glass_panel.gd") == 0, "campus navigation should not return to the legacy dashboard glass panels")
-	library_location_button.mouse_entered.emit()
-	await process_frame
-	var hover_note := app.find_child("MapHoverNote", true, false) as Control
-	_expect(hover_note != null and hover_note.visible, "hovering a campus building should immediately reveal its activity note")
-	_expect(_has_label_containing(hover_note, "专注复习") and _has_label_containing(hover_note, "整理资料"), "library hover note should explain the concrete actions available there")
-	library_location_button.mouse_exited.emit()
-	await process_frame
-	_expect(not hover_note.visible, "building activity note should leave with the pointer instead of lingering")
+	_expect(library_location_button.tooltip_text.contains("蒋震图书馆") and library_location_button.tooltip_text.contains("点击后在地图下方查看行程"), "building hover should retain the original dark translucent location tooltip")
+	_expect(app.find_child("MapHoverNote", true, false) == null, "campus map should not stack a second white hover card over the dark location tooltip")
 	library_location_button.pressed.emit()
 	await process_frame
 	var travel_selected := app.find_child("TravelSelected", true, false) as Button
@@ -140,6 +135,8 @@ func _run() -> void:
 	_expect(ambience != null and ambience.get_current_context() == &"road", "travel transition should crossfade to the road soundscape")
 	_expect(app.active_photo_background != null, "travel transition should use a road photograph")
 	_expect(travel_progress != null and travel_progress.has_theme_stylebox_override("fill"), "travel transition should use the luminous progress treatment")
+	_expect(app.find_child("TravelProgressWalker", true, false) != null, "travel transition should place a walking student illustration above the progress bar")
+	_expect(not _has_label_containing(app, "约 2 秒"), "travel transition should not expose a mechanical two-second countdown")
 	_expect(await _wait_for_screen(app, "event"), "library should present an eligible location event")
 	_expect(ambience != null and ambience.get_current_context() == &"library", "arrival should crossfade from the road into the library")
 	_expect(app.active_photo_background != null, "location event should retain the selected scene photograph")

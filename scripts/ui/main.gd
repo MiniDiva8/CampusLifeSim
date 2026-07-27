@@ -6,6 +6,7 @@ const EditorialEventViewScript = preload("res://scripts/ui/editorial_event_view.
 const CampusMapViewScript = preload("res://scripts/ui/campus_map_view.gd")
 const ArchiveMainMenuViewScript = preload("res://scripts/ui/archive_main_menu_view.gd")
 const RouteSetupViewScript = preload("res://scripts/ui/route_setup_view.gd")
+const TravelProgressWalkerScript = preload("res://scripts/ui/travel_progress_walker.gd")
 const RouteRulesScript = preload("res://scripts/core/route_rules.gd")
 const COLOR_INK := Color("#F4F2E9")
 const COLOR_MUTED := Color("#9BAAA7")
@@ -725,13 +726,14 @@ func show_travel(location: Dictionary, road_background: String, duration: float 
 	var route := HBoxContainer.new()
 	box.add_child(route)
 	route.add_child(_make_label("正在穿过校园", 12, COLOR_TEAL))
-	var route_space := Control.new()
-	route_space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	route.add_child(route_space)
-	route.add_child(_make_label("约 2 秒", 11, COLOR_MUTED))
 	var title := _make_label("前往  %s" % location.get("name", "新地点"), 31, COLOR_INK)
 	box.add_child(title)
 	box.add_child(_make_label("路上的片刻，也属于山大期末周。学无止境，先从下一步开始。", 14, COLOR_MUTED))
+	var track := Control.new()
+	track.name = "TravelProgressTrack"
+	track.custom_minimum_size = Vector2(700, 44)
+	track.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_child(track)
 	var progress := ProgressBar.new()
 	progress.name = "TravelProgress"
 	progress.min_value = 0.0
@@ -739,11 +741,23 @@ func show_travel(location: Dictionary, road_background: String, duration: float 
 	progress.show_percentage = false
 	progress.value = 0.0
 	progress.custom_minimum_size.y = 10
+	progress.position = Vector2(0, 30)
+	progress.size = Vector2(700, 10)
+	progress.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_style_progress_bar(progress, Color(str(location.get("color", "#63DDB8"))), 5)
-	box.add_child(progress)
+	track.add_child(progress)
+	var walker = TravelProgressWalkerScript.new()
+	walker.name = "TravelProgressWalker"
+	walker.position = Vector2(0, 0)
+	walker.size = Vector2(700, 37)
+	walker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	track.add_child(walker)
 	var progress_tween := create_tween()
+	progress_tween.set_parallel(true)
 	progress_tween.set_trans(Tween.TRANS_LINEAR)
-	progress_tween.tween_property(progress, "value", 100.0, maxf(duration, 0.01))
+	var travel_duration := maxf(duration, 0.01)
+	progress_tween.tween_property(progress, "value", 100.0, travel_duration)
+	progress_tween.tween_property(walker, "progress", 100.0, travel_duration)
 	var photo_note := _make_label("校园道路原图 · 仅做等比裁切与平移", 10, Color("#80918D"))
 	photo_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	root.add_child(photo_note)

@@ -256,8 +256,6 @@ func _sample_context(context: StringName, time: float, slow_left: float, slow_ri
 			var steps := _footstep_train(time, 0.63, 0.72, 0.060 * activity)
 			left += steps
 			right += _footstep_train(time, 0.63, 1.035, 0.054 * activity)
-			left += _night_insects(time, night) * 0.7
-			right += _night_insects(time + 0.11, night)
 		&"road":
 			var wind_left := slow_left * (0.23 + 0.08 * sin(TAU * 0.12 * time))
 			var wind_right := slow_right * (0.23 + 0.08 * sin(TAU * 0.10 * time + 1.1))
@@ -265,8 +263,6 @@ func _sample_context(context: StringName, time: float, slow_left: float, slow_ri
 			right = wind_right + fast_right * 0.028
 			left += _footstep_train(time, 0.51, 0.18, 0.085 * activity)
 			right += _footstep_train(time, 0.51, 0.435, 0.080 * activity)
-			left += _night_insects(time, night) * 0.75
-			right += _night_insects(time + 0.16, night) * 0.9
 		&"dorm":
 			var fan_left := sin(TAU * 82.0 * time) * 0.018 + sin(TAU * 164.0 * time) * 0.008
 			var fan_right := sin(TAU * 81.4 * time + 0.5) * 0.018 + sin(TAU * 162.8 * time) * 0.008
@@ -316,8 +312,6 @@ func _sample_context(context: StringName, time: float, slow_left: float, slow_ri
 			var bounce_right := _ball_bounce(time, 2.92, 0.090 * activity) + _ball_bounce(time, 5.36, 0.080 * activity)
 			left += bounce_left
 			right += bounce_right
-			left += _night_insects(time, night) * 0.75
-			right += _night_insects(time + 0.13, night)
 	return Vector2(left, right)
 
 
@@ -380,13 +374,6 @@ func _noise_burst(time: float, start: float, duration: float, noise: float, gain
 		return 0.0
 	var progress := local_time / duration
 	return noise * sin(PI * progress) * gain
-
-
-func _night_insects(time: float, night_density: float) -> float:
-	if night_density <= 0.0:
-		return 0.0
-	var pulse := pow(maxf(sin(TAU * 3.6 * time), 0.0), 5.0)
-	return sin(TAU * 3650.0 * time) * pulse * 0.018 * night_density
 
 
 func _loop_edge_envelope(time: float, duration: float) -> float:

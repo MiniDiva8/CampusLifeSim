@@ -91,7 +91,7 @@ func _draw_map_watermark() -> void:
 func _draw_section_rules() -> void:
 	draw_line(Vector2(62, 94), Vector2(610, 94), Color(SDU_RED, 0.56), 2.0)
 	draw_line(Vector2(672, 94), Vector2(1218, 94), Color(SDU_RED, 0.56), 2.0)
-	draw_line(Vector2(67, 237), Vector2(601, 237), Color(INK, 0.22), 1.0)
+	draw_line(Vector2(67, 264), Vector2(601, 264), Color(INK, 0.22), 1.0)
 	draw_line(Vector2(670, 191), Vector2(1210, 191), Color(INK, 0.22), 1.0)
 	draw_rect(Rect2(1102, 41, 112, 34), Color.TRANSPARENT, false, 2.0, false)
 	draw_string(ThemeDB.fallback_font, Vector2(1115, 64), "第 0 日 / 登记", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, SDU_RED)
@@ -148,43 +148,48 @@ func _build_header() -> void:
 
 
 func _build_identity() -> void:
-	var question := _make_label("你准备以什么方式\n度过这七天？", 34, INK)
-	question.position = Vector2(67, 112)
-	question.size = Vector2(520, 84)
+	var question := _make_label("你准备怎样\n度过这七天？", 30, INK)
+	question.position = Vector2(67, 106)
+	question.size = Vector2(520, 76)
 	add_child(question)
 
-	var prompt := _make_label("记录人", 12, MUTED)
-	prompt.position = Vector2(69, 202)
-	prompt.size = Vector2(62, 25)
+	var prompt := _make_label("档案署名  /  RECORD", 11, SDU_RED)
+	prompt.position = Vector2(69, 192)
+	prompt.size = Vector2(190, 18)
 	add_child(prompt)
+	var name_label := _make_label("姓名", 13, MUTED)
+	name_label.position = Vector2(70, 218)
+	name_label.size = Vector2(64, 28)
+	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	add_child(name_label)
 	name_input = LineEdit.new()
 	name_input.name = "PlayerName"
 	name_input.text = "小山"
-	name_input.placeholder_text = "输入名字（默认：小山）"
+	name_input.placeholder_text = "输入名字"
 	name_input.max_length = 12
-	name_input.position = Vector2(137, 196)
-	name_input.size = Vector2(244, 34)
+	name_input.position = Vector2(126, 212)
+	name_input.size = Vector2(436, 40)
 	name_input.add_theme_font_size_override("font_size", 17)
 	name_input.add_theme_color_override("font_color", INK)
 	name_input.add_theme_color_override("caret_color", SDU_RED)
 	name_input.add_theme_color_override("font_placeholder_color", Color(MUTED, 0.65))
-	for state in ["normal", "read_only"]:
-		name_input.add_theme_stylebox_override(state, _underline_style(Color(INK, 0.32)))
-	name_input.add_theme_stylebox_override("focus", _underline_style(SDU_RED))
+	name_input.add_theme_stylebox_override("normal", _name_input_style(Color(INK, 0.28), Color(PAPER_LIGHT, 0.78)))
+	name_input.add_theme_stylebox_override("read_only", _name_input_style(Color(INK, 0.18), Color(PAPER_LIGHT, 0.62)))
+	name_input.add_theme_stylebox_override("focus", _name_input_style(SDU_RED, Color("#FFFDF7")))
 	add_child(name_input)
 
 
 func _build_route_tabs() -> void:
 	var positions := {
-		"study": Vector2(71, 258),
-		"project": Vector2(98, 358),
-		"social": Vector2(71, 458),
+		"study": Vector2(71, 276),
+		"project": Vector2(98, 376),
+		"social": Vector2(71, 476),
 	}
 	for route in data.get("routes", RouteRulesScript.get_all()):
 		var route_data: Dictionary = route
 		var route_id := str(route_data.get("id", RouteRulesScript.DEFAULT_ROUTE))
 		var tab = RouteFileTabScript.new()
-		tab.position = positions.get(route_id, Vector2(71, 258))
+		tab.position = positions.get(route_id, Vector2(71, 276))
 		tab.size = Vector2(500, 91)
 		tab.configure(route_data, trait_group)
 		tab.route_selected.connect(_select_route)
@@ -336,13 +341,15 @@ func _style_difficulty_button(button: Button) -> void:
 	button.add_theme_stylebox_override("focus", hover)
 
 
-func _underline_style(color: Color) -> StyleBoxFlat:
+func _name_input_style(border_color: Color, background_color: Color) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color.TRANSPARENT
-	style.border_color = color
-	style.border_width_bottom = 2
-	style.content_margin_left = 5
-	style.content_margin_right = 5
+	style.bg_color = background_color
+	style.border_color = border_color
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(3)
+	style.content_margin_left = 14
+	style.content_margin_right = 14
+	style.content_margin_top = 5
 	style.content_margin_bottom = 5
 	return style
 

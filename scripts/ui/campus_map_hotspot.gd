@@ -2,7 +2,6 @@ extends Button
 class_name CampusMapHotspot
 
 signal location_selected(location_id: String)
-signal location_hovered(location_id: String, active: bool)
 
 const PAPER := Color("#F1EBDD")
 const INK := Color("#26352F")
@@ -251,23 +250,19 @@ func _short_name(id: String, fallback: String) -> String:
 
 func _on_mouse_entered() -> void:
 	_hovered = true
-	location_hovered.emit(str(location_data.get("id", "")), true)
 	queue_redraw()
 
 
 func _on_mouse_exited() -> void:
 	_hovered = false
-	location_hovered.emit(str(location_data.get("id", "")), false)
 	queue_redraw()
 
 
 func _on_focus_entered() -> void:
-	location_hovered.emit(str(location_data.get("id", "")), true)
 	queue_redraw()
 
 
 func _on_focus_exited() -> void:
-	location_hovered.emit(str(location_data.get("id", "")), false)
 	queue_redraw()
 
 
