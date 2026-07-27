@@ -100,12 +100,16 @@ func _run() -> void:
 	first_continue.pressed.emit()
 	_expect(await _wait_for_screen(app, "map"), "continuing should reach the campus map")
 	_expect(app.session.clock.get_index() == 1, "first choice should consume one slot")
+	var campus_map := app.find_child("CampusMapView", true, false) as Control
 	var library_location_button := app.find_child("Location_library", true, false) as Button
-	_expect(library_location_button != null and library_location_button.get_node_or_null("GlassHoverController") != null, "campus location cards should expose the shared hover lift treatment")
-	library_location_button.mouse_entered.emit()
-	await create_timer(0.18).timeout
-	_expect(library_location_button.scale.x > 1.0, "location hover should visibly lift the card when reduced motion is disabled")
-	library_location_button.mouse_exited.emit()
+	_expect(campus_map != null and library_location_button != null, "campus screen should expose a full-canvas map with building hotspots")
+	_expect(_count_nodes_with_script(campus_map, "res://scripts/ui/glass_panel.gd") == 0, "campus navigation should not return to the legacy dashboard glass panels")
+	library_location_button.pressed.emit()
+	await process_frame
+	var travel_selected := app.find_child("TravelSelected", true, false) as Button
+	_expect(str(campus_map.selected_location_id) == "library", "selecting a building should draw its route before travel")
+	_expect(travel_selected != null and not travel_selected.disabled, "selected building should expose one contextual travel action")
+	_expect(_has_label_containing(app, "蒋震图书馆"), "selected building should reveal its real campus name")
 
 	var travel_click_started := Time.get_ticks_usec()
 	app._travel_to_location("library", 0.05)

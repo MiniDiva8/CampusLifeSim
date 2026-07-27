@@ -3,6 +3,7 @@ extends Control
 const GlassPanelScript = preload("res://scripts/ui/glass_panel.gd")
 const GlassHoverControllerScript = preload("res://scripts/ui/glass_hover_controller.gd")
 const EditorialEventViewScript = preload("res://scripts/ui/editorial_event_view.gd")
+const CampusMapViewScript = preload("res://scripts/ui/campus_map_view.gd")
 const COLOR_INK := Color("#F4F2E9")
 const COLOR_MUTED := Color("#9BAAA7")
 const COLOR_DARK := Color("#071013")
@@ -624,155 +625,34 @@ func show_map() -> void:
 		show_main_menu()
 		return
 	_set_soundscape(&"campus", 0.65)
-	var root := _reset_screen("map", Color("#18373A"), "", Color("#07101366"))
-	root.add_child(_make_game_header())
-	var columns := HBoxContainer.new()
-	columns.add_theme_constant_override("separation", 14)
-	columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(columns)
-
-	columns.add_child(_build_status_panel())
-	columns.add_child(_build_map_panel())
-	columns.add_child(_build_schedule_panel())
-
-
-func _make_game_header() -> Control:
-	var panel := _make_panel(Color("#0B1518F5"), 16, Color("#36545A"))
-	panel.custom_minimum_size.y = 72
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 14)
-	panel.add_child(row)
-	var title_box := VBoxContainer.new()
-	title_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(title_box)
-	title_box.add_child(_make_label("惊魂期末周 · 山东大学中心校区", 23, COLOR_INK))
-	title_box.add_child(_make_label("%s  /  %s  /  %s难度  /  人工智能学院" % [session.player_name, session.clock.get_display_text(), DifficultyRules.get_display_name(session.difficulty_id)], 13, COLOR_MUTED))
-	var exam_badge := _make_badge("核心课考试：第 5 天上午", COLOR_TEAL)
-	row.add_child(exam_badge)
-	var project_badge := _make_badge("展示：第 7 天下午", COLOR_ACCENT)
-	row.add_child(project_badge)
-	row.add_child(_make_button("暂停  Esc", show_pause_menu, false, false, 120))
-	return panel
-
-
-func _build_status_panel() -> Control:
-	var panel := _make_panel(Color("#0B1518F2"), 16, Color("#294247"))
-	panel.custom_minimum_size.x = 245
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 9)
-	panel.add_child(box)
-	box.add_child(_make_label("STATUS / 当前状态", 18, COLOR_INK))
-	var difficulty_config := DifficultyRules.get_config(session.difficulty_id)
-	box.add_child(_make_label("%s难度 · %s" % [difficulty_config.name, difficulty_config.subtitle], 13, Color(str(difficulty_config.color))))
-	box.add_child(_make_stat_bar("学习进度", int(session.stats.study), COLOR_TEAL))
-	box.add_child(_make_stat_bar("项目进度", int(session.stats.project), COLOR_BLUE))
-	box.add_child(_make_stat_bar("精力", int(session.stats.energy), COLOR_ACCENT))
-	box.add_child(_make_stat_bar("压力", int(session.stats.stress), COLOR_CORAL))
-	if int(session.stats.stress) >= DifficultyRules.get_crisis_threshold(session.difficulty_id):
-		var warning := _make_label("⚠ 高压：下一次结算可能出现眩晕", 12, Color("#FFD4CE"))
-		warning.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		box.add_child(warning)
-	box.add_child(_make_separator())
-	box.add_child(_make_label("同伴关系", 17, COLOR_INK))
-	for npc in repository.npcs:
-		box.add_child(_make_relationship_row(npc))
-	var space := Control.new()
-	space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	box.add_child(space)
-	var reminder := _make_label("提示：关系不是装饰。\n你投入的时间，可能在关键时刻变成帮助。", 13, COLOR_MUTED)
-	reminder.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	box.add_child(reminder)
-	return panel
-
-
-func _build_map_panel() -> Control:
-	var panel := _make_panel(Color("#0E191CF0"), 18, Color("#36545A"))
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 10)
-	panel.add_child(box)
-	var title := _make_label("选择下一站", 25, COLOR_INK)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(title)
-	var subtitle := _make_label("点击地点后将经过约 2 秒校园路途。每次行动都会推进时间。", 13, COLOR_MUTED)
-	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(subtitle)
-	var grid := GridContainer.new()
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 12)
-	grid.add_theme_constant_override("v_separation", 12)
-	grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	box.add_child(grid)
-	for location in repository.locations:
-		grid.add_child(_make_location_button(location))
-	return panel
-
-
-func _build_schedule_panel() -> Control:
-	var panel := _make_panel(Color("#0B1518F2"), 16, Color("#294247"))
-	panel.custom_minimum_size.x = 275
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 10)
-	panel.add_child(box)
-	box.add_child(_make_label("DEADLINES / 日程", 18, COLOR_INK))
-	box.add_child(_make_progress_card("人工智能核心课", int(session.tasks.exam), "第 5 天上午"))
-	box.add_child(_make_progress_card("AI 课程项目展示", int(session.tasks.presentation), "第 7 天下午"))
-	box.add_child(_make_separator())
-	box.add_child(_make_label("AI 学伴", 18, COLOR_BLUE))
 	var advice := AIAdvisor.new(repository.ai_advice).choose_advice(session)
-	var advice_title := _make_label(str(advice.get("title", "今日建议")), 16, COLOR_INK)
-	advice_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	box.add_child(advice_title)
-	var advice_text := _make_label(str(advice.get("message", "")), 14, COLOR_MUTED)
-	advice_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	advice_text.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	box.add_child(advice_text)
-	box.add_child(_make_button("查看建议与风险", func(): show_ai_advice(advice), false, false, 0))
-	var note := _make_label("AI 依赖度不会在流程中直接显示。你的使用和核验习惯会影响结局。", 12, Color("#789994"))
-	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	box.add_child(note)
-	return panel
-
-
-func _make_location_button(location: Dictionary) -> Button:
-	var button := Button.new()
-	button.name = "Location_%s" % str(location.get("id", "unknown"))
-	button.text = ""
-	button.custom_minimum_size = Vector2(260, 126)
-	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var accent := Color(str(location.get("color", "#55C2A3")))
-	_style_button(button, Color("#142326F2"), Color(accent, 0.72))
-
-	var content := VBoxContainer.new()
-	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	content.add_theme_constant_override("separation", 5)
-	button.add_child(content)
-	var heading := HBoxContainer.new()
-	heading.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_child(heading)
-	var identity := _make_label("%s   %s" % [location.get("icon", "◆"), location.get("name", "地点")], 18, COLOR_INK)
-	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	identity.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	heading.add_child(identity)
-	var arrow := _make_label("↗", 18, accent.lightened(0.18))
-	arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	heading.add_child(arrow)
-	var subtitle := _make_label(str(location.get("subtitle", "")), 15, Color("#D2DDDA"))
-	subtitle.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_child(subtitle)
-	var spacer := Control.new()
-	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_child(spacer)
-	var route_hint := _make_label("进入地点  ·  消耗 1 个时段", 11, Color(accent, 0.82))
-	route_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_child(route_hint)
-	button.tooltip_text = str(location.get("description", ""))
-	button.set_meta("audio_cue", &"location_enter")
-	button.pressed.connect(_travel_to_location.bind(str(location.get("id", ""))))
-	return button
+	_finish_interaction_feedback()
+	current_screen = "map"
+	active_photo_background = null
+	active_photo_fill = null
+	for child in get_children():
+		child.queue_free()
+	screen_layer = Control.new()
+	screen_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(screen_layer)
+	var map_view = CampusMapViewScript.new()
+	map_view.name = "CampusMapView"
+	map_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	screen_layer.add_child(map_view)
+	map_view.configure({
+		"player_name": session.player_name,
+		"clock_text": session.clock.get_display_text(),
+		"difficulty_name": DifficultyRules.get_display_name(session.difficulty_id),
+		"stats": session.stats.duplicate(true),
+		"tasks": session.tasks.duplicate(true),
+		"relationships": session.relationships.duplicate(true),
+		"current_location_id": session.current_location_id,
+		"locations": repository.locations,
+		"npcs": repository.npcs,
+		"travel_action": _travel_to_location,
+		"pause_action": show_pause_menu,
+		"advice_action": show_ai_advice.bind(advice),
+	})
 
 
 func _travel_to_location(location_id: String, duration: float = TRAVEL_DURATION_SECONDS) -> void:
