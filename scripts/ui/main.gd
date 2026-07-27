@@ -887,24 +887,24 @@ func show_result(title_text: String, description: String, effects: Array[String]
 	var data := _base_scene_data(scene_context, background_path)
 	data.merge({
 		"panel_name": "ResultCard",
-		"section": "选择的回声",
-		"accent": "#F4C45E",
+		"section": "选择回执 / DECISION RECEIPT",
+		"accent": "#B84850",
 		"title": title_text,
 		"body": description,
-		"question": "这次选择带来的变化",
-		"cost_text": "结果已结算",
+		"question": "本时段已经写入档案",
+		"cost_text": "结果已结算 · 等待翻页",
 		"state_tags": _scene_state_tags(),
 		"choices": [{
 			"name": "ContinueResult",
-			"title": "继续期末周",
+			"title": "翻页 · 继续期末周",
 			"detail": effect_text,
-			"effect": "继续",
-			"effect_color": "#F4C45E",
+			"effect": "下一页  →",
+			"effect_color": "#B84850",
 			"action": continue_action,
 			"height": 88,
 		}],
 	}, true)
-	_show_adaptive_scene("result", data)
+	_show_editorial_event(data, "result")
 
 
 func _advance_after_action() -> void:

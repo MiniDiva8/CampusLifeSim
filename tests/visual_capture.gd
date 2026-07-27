@@ -35,6 +35,11 @@ func _capture() -> void:
 	_save_viewport("res://reports/campus_map.png")
 	var library_hotspot := app.find_child("Location_library", true, false) as Button
 	if library_hotspot != null:
+		library_hotspot.mouse_entered.emit()
+		for _frame in 3:
+			await process_frame
+		_save_viewport("res://reports/campus_map_hover.png")
+		library_hotspot.mouse_exited.emit()
 		library_hotspot.pressed.emit()
 		for _frame in 3:
 			await process_frame
@@ -56,6 +61,7 @@ func _capture() -> void:
 	app._resolve_event_choice(arrival_event, arrival_event.choices[0])
 	for _frame in 5:
 		await process_frame
+	await create_timer(0.45).timeout
 	_save_viewport("res://reports/result_choice.png")
 	app.show_pause_menu()
 	for _frame in 5:

@@ -104,6 +104,8 @@ func _run() -> void:
 	_expect(choice_click_ms < 150.0, "choice callback should yield responsive feedback within 150 ms")
 	_expect(app.find_child("InteractionPending", true, false) != null, "choice clicks should show feedback before any heavier result work")
 	_expect(await _wait_for_screen(app, "result"), "event choice should show consequences")
+	_expect(app.find_child("EditorialEventView", true, false) != null and app.find_child("AdaptiveScene", true, false) == null, "choice results should use the paper editorial receipt instead of the legacy dark adaptive panel")
+	_expect(_has_label_containing(app, "选择回执") and _has_label_containing(app, "翻页 · 继续期末周"), "result receipt should clearly separate settled consequences from the next-page action")
 	_expect(app.active_photo_background.texture == first_photo_texture, "choice result should reuse the active original photo texture instead of decoding it again")
 	var first_continue := app.find_child("ContinueResult", true, false) as Button
 	first_continue.pressed.emit()
@@ -113,6 +115,14 @@ func _run() -> void:
 	var library_location_button := app.find_child("Location_library", true, false) as Button
 	_expect(campus_map != null and library_location_button != null, "campus screen should expose a full-canvas map with building hotspots")
 	_expect(_count_nodes_with_script(campus_map, "res://scripts/ui/glass_panel.gd") == 0, "campus navigation should not return to the legacy dashboard glass panels")
+	library_location_button.mouse_entered.emit()
+	await process_frame
+	var hover_note := app.find_child("MapHoverNote", true, false) as Control
+	_expect(hover_note != null and hover_note.visible, "hovering a campus building should immediately reveal its activity note")
+	_expect(_has_label_containing(hover_note, "专注复习") and _has_label_containing(hover_note, "整理资料"), "library hover note should explain the concrete actions available there")
+	library_location_button.mouse_exited.emit()
+	await process_frame
+	_expect(not hover_note.visible, "building activity note should leave with the pointer instead of lingering")
 	library_location_button.pressed.emit()
 	await process_frame
 	var travel_selected := app.find_child("TravelSelected", true, false) as Button
