@@ -7,7 +7,7 @@ config_version=5
 
 config/name="惊魂期末周"
 config/description="一款发生在山东大学中心校区、关于期末周时间管理、校园关系与 AI 判断的选择模拟游戏。"
-config/version="0.11.3-paper-hover"
+config/version="0.11.4-single-transit"
 run/main_scene="res://scenes/main.tscn"
 
 [autoload]

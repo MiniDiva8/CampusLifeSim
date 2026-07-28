@@ -121,6 +121,7 @@ func _run() -> void:
 	var hover_note := app.find_child("MapHoverNote", true, false) as Control
 	_expect(library_location_button.tooltip_text.is_empty(), "building hotspots should suppress Godot's black system tooltip when the paper hover note is active")
 	_expect(hover_note != null and hover_note.visible, "hovering a campus building should reveal one white paper activity note")
+	_expect(not _has_label_containing(hover_note, "鼠标所指"), "paper activity notes should not include implementation-oriented hover wording")
 	_expect(_has_label_containing(hover_note, "专注复习") and _has_label_containing(hover_note, "整理资料"), "library paper note should explain the concrete actions available there")
 	library_location_button.mouse_exited.emit()
 	await process_frame
@@ -136,9 +137,11 @@ func _run() -> void:
 	app._travel_to_location("library", 0.05)
 	var travel_click_ms := float(Time.get_ticks_usec() - travel_click_started) / 1000.0
 	_expect(travel_click_ms < 150.0, "location callback should acknowledge the click before original photos finish loading")
-	_expect(app.current_screen == "travel", "selecting a location should open the travel transition")
-	_expect(_has_label_containing(app, "已收到你的选择"), "cold photo loads should first show a responsive travel acknowledgement")
+	_expect(app.current_screen in ["map", "travel"], "location confirmation should retain the map while a cold road photo loads or enter the one landscape transition when it is cached")
+	if app.current_screen == "map":
+		_expect(travel_selected.disabled, "the selected map action should lock while the road photo is prepared")
 	var travel_progress := await _wait_for_node(app, "TravelProgress") as ProgressBar
+	_expect(app.current_screen == "travel" and not _has_label_containing(app, "已收到你的选择"), "only the landscape road transition should remain after the map action")
 	_expect(ambience != null and ambience.get_current_context() == &"road", "travel transition should crossfade to the road soundscape")
 	_expect(app.active_photo_background != null, "travel transition should use a road photograph")
 	_expect(travel_progress != null and travel_progress.has_theme_stylebox_override("fill"), "travel transition should use the luminous progress treatment")

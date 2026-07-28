@@ -76,10 +76,6 @@ func _capture() -> void:
 	app.background_catalog.choose_location_background("library", app.session)
 	var road_background: String = app.background_catalog.choose_road_background(app.session)
 	var library_location: Dictionary = app.repository.get_location("library")
-	app._show_travel_preparation(library_location)
-	for _frame in 5:
-		await process_frame
-	_save_viewport("res://reports/travel_preparing.png")
 	app.show_travel(library_location, road_background, 10.0)
 	for _frame in 5:
 		await process_frame

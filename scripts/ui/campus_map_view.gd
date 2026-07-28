@@ -343,7 +343,7 @@ func _build_hover_note() -> void:
 	_hover_note = PanelContainer.new()
 	_hover_note.name = "MapHoverNote"
 	_hover_note.position = Vector2(548, 106)
-	_hover_note.size = Vector2(274, 88)
+	_hover_note.size = Vector2(290, 70)
 	_hover_note.visible = false
 	_hover_note.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hover_note.z_index = 20
@@ -354,8 +354,8 @@ func _build_hover_note() -> void:
 	style.set_corner_radius_all(3)
 	style.content_margin_left = 14
 	style.content_margin_right = 14
-	style.content_margin_top = 10
-	style.content_margin_bottom = 9
+	style.content_margin_top = 11
+	style.content_margin_bottom = 10
 	style.shadow_color = Color("#2A312B30")
 	style.shadow_size = 6
 	style.shadow_offset = Vector2(3, 4)
@@ -366,15 +366,13 @@ func _build_hover_note() -> void:
 	row.add_theme_constant_override("separation", 10)
 	_hover_note.add_child(row)
 	_hover_note_rule = ColorRect.new()
-	_hover_note_rule.custom_minimum_size = Vector2(4, 58)
+	_hover_note_rule.custom_minimum_size = Vector2(4, 48)
 	_hover_note_rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(_hover_note_rule)
 	var copy := VBoxContainer.new()
 	copy.add_theme_constant_override("separation", 1)
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(copy)
-	var eyebrow := _make_label("鼠标所指 · 可以在这里", 10, MUTED)
-	copy.add_child(eyebrow)
 	_hover_note_name = _make_label("校园地点", 16, INK)
 	_hover_note_name.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	copy.add_child(_hover_note_name)

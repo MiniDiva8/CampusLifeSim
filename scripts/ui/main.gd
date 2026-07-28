@@ -585,19 +585,20 @@ func _travel_to_location(location_id: String, duration: float = TRAVEL_DURATION_
 	var location := repository.get_location(location_id)
 	if location.is_empty() or session == null:
 		return
+	if not _begin_interaction_feedback("正在出发…"):
+		return
 	var destination_background := background_catalog.choose_location_background(location_id, session)
 	var road_background := background_catalog.choose_road_background(session)
 	_request_photo_texture(destination_background)
 	_request_photo_texture(road_background)
-	_show_travel_preparation(location)
-	await get_tree().process_frame
 	var save_error := save_service.save_game(session)
 	if save_error != OK:
 		notice_text = "自动存档失败：%s" % error_string(save_error)
 	var road_texture: Texture2D = await _await_photo_texture(road_background)
 	if road_texture == null:
 		push_warning("Road background could not be prepared: %s" % road_background)
-	if current_screen != "travel" or session == null or session.current_location_id != location_id:
+	if current_screen != "map" or session == null or session.current_location_id != location_id:
+		_finish_interaction_feedback()
 		return
 	show_travel(location, road_background, duration)
 	await get_tree().create_timer(maxf(duration, 0.01)).timeout
@@ -607,43 +608,6 @@ func _travel_to_location(location_id: String, duration: float = TRAVEL_DURATION_
 			push_warning("Destination background could not be prepared: %s" % destination_background)
 	if current_screen == "travel" and session != null and session.current_location_id == location_id:
 		show_location(location_id)
-
-
-func _show_travel_preparation(location: Dictionary) -> void:
-	var root := _reset_screen("travel", Color("#24464B"), "", Color("#0710136E"))
-	var top := HBoxContainer.new()
-	root.add_child(top)
-	top.add_child(_make_badge("SDU · CAMPUS TRANSIT", COLOR_SDU_RED))
-	var top_space := Control.new()
-	top_space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top.add_child(top_space)
-	top.add_child(_make_badge(session.clock.get_display_text(), COLOR_BLUE))
-	var vertical_space := Control.new()
-	vertical_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(vertical_space)
-	var center := HBoxContainer.new()
-	center.alignment = BoxContainer.ALIGNMENT_CENTER
-	root.add_child(center)
-	var accent := Color(str(location.get("color", "#63DDB8")))
-	var panel := _make_panel(Color("#091619E8"), 18, accent, true, 2.2)
-	panel.custom_minimum_size = Vector2(620, 136)
-	center.add_child(panel)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 8)
-	panel.add_child(box)
-	box.add_child(_make_label("已收到你的选择", 12, accent))
-	box.add_child(_make_label("正在准备前往  %s" % str(location.get("name", "校园地点")), 25, COLOR_INK))
-	box.add_child(_make_label("照片在后台读取，界面不会因为原图解码而失去响应。", 13, COLOR_MUTED))
-	var progress := ProgressBar.new()
-	progress.show_percentage = false
-	progress.value = 62.0
-	progress.custom_minimum_size.y = 8
-	_style_progress_bar(progress, accent, 4)
-	box.add_child(progress)
-	var progress_tween := create_tween()
-	progress_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	progress_tween.tween_property(progress, "value", 88.0, 1.2)
-
 
 func _show_scene_preparation(
 	screen_name: String,
