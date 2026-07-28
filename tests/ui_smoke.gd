@@ -116,8 +116,15 @@ func _run() -> void:
 	var library_location_button := app.find_child("Location_library", true, false) as Button
 	_expect(campus_map != null and library_location_button != null, "campus screen should expose a full-canvas map with building hotspots")
 	_expect(_count_nodes_with_script(campus_map, "res://scripts/ui/glass_panel.gd") == 0, "campus navigation should not return to the legacy dashboard glass panels")
-	_expect(library_location_button.tooltip_text.contains("蒋震图书馆") and library_location_button.tooltip_text.contains("点击后在地图下方查看行程"), "building hover should retain the original dark translucent location tooltip")
-	_expect(app.find_child("MapHoverNote", true, false) == null, "campus map should not stack a second white hover card over the dark location tooltip")
+	library_location_button.mouse_entered.emit()
+	await process_frame
+	var hover_note := app.find_child("MapHoverNote", true, false) as Control
+	_expect(library_location_button.tooltip_text.is_empty(), "building hotspots should suppress Godot's black system tooltip when the paper hover note is active")
+	_expect(hover_note != null and hover_note.visible, "hovering a campus building should reveal one white paper activity note")
+	_expect(_has_label_containing(hover_note, "专注复习") and _has_label_containing(hover_note, "整理资料"), "library paper note should explain the concrete actions available there")
+	library_location_button.mouse_exited.emit()
+	await process_frame
+	_expect(not hover_note.visible, "the paper activity note should leave with the pointer instead of lingering")
 	library_location_button.pressed.emit()
 	await process_frame
 	var travel_selected := app.find_child("TravelSelected", true, false) as Button

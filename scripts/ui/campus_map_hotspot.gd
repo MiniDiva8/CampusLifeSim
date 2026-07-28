@@ -2,6 +2,7 @@ extends Button
 class_name CampusMapHotspot
 
 signal location_selected(location_id: String)
+signal location_hovered(location_id: String, active: bool)
 
 const PAPER := Color("#F1EBDD")
 const INK := Color("#26352F")
@@ -23,10 +24,9 @@ func configure(data: Dictionary, is_current: bool = false) -> void:
 	text = ""
 	focus_mode = Control.FOCUS_ALL
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	tooltip_text = "%s\n%s\n点击后在地图下方查看行程" % [
-		str(location_data.get("name", "校园地点")),
-		str(location_data.get("description", "")),
-	]
+	# The map owns the visual hover note. Leaving this empty prevents Godot's
+	# system tooltip from stacking a second black panel over the paper note.
+	tooltip_text = ""
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		add_theme_stylebox_override(state, StyleBoxEmpty.new())
 	_build_labels()
@@ -250,19 +250,23 @@ func _short_name(id: String, fallback: String) -> String:
 
 func _on_mouse_entered() -> void:
 	_hovered = true
+	location_hovered.emit(str(location_data.get("id", "")), true)
 	queue_redraw()
 
 
 func _on_mouse_exited() -> void:
 	_hovered = false
+	location_hovered.emit(str(location_data.get("id", "")), false)
 	queue_redraw()
 
 
 func _on_focus_entered() -> void:
+	location_hovered.emit(str(location_data.get("id", "")), true)
 	queue_redraw()
 
 
 func _on_focus_exited() -> void:
+	location_hovered.emit(str(location_data.get("id", "")), false)
 	queue_redraw()
 
 

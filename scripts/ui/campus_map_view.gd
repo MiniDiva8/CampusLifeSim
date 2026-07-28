@@ -23,6 +23,15 @@ const HOTSPOT_LAYOUT := {
 	"field": {"position": Vector2(60, 395), "size": Vector2(266, 160)},
 }
 
+const HOVER_NOTE_LAYOUT := {
+	"dorm": Vector2(245, 176),
+	"library": Vector2(548, 106),
+	"teaching": Vector2(615, 414),
+	"lab": Vector2(910, 132),
+	"canteen": Vector2(955, 474),
+	"field": Vector2(323, 470),
+}
+
 const NPC_LOCATION := {
 	"roommate": "dorm",
 	"teammate": "lab",
@@ -47,6 +56,11 @@ var _detail_subtitle: Label
 var _detail_description: Label
 var _travel_button: Button
 var _route_caption: Label
+var _hover_note: PanelContainer
+var _hover_note_rule: ColorRect
+var _hover_note_name: Label
+var _hover_note_actions: Label
+var _hovered_location_id := ""
 
 
 func configure(view_data: Dictionary) -> void:
@@ -56,6 +70,7 @@ func configure(view_data: Dictionary) -> void:
 	_build_deadline_notes()
 	_build_hotspots()
 	_build_npc_markers()
+	_build_hover_note()
 	_build_detail_strip()
 	_build_margin_actions()
 	queue_redraw()
@@ -71,6 +86,7 @@ func _draw() -> void:
 	_draw_trees()
 	_draw_central_landmark()
 	_draw_route()
+	_draw_hover_connector()
 	draw_line(Vector2(38, 598), Vector2(size.x - 38, 598), Color(INK, 0.22), 1.0, true)
 
 
@@ -284,6 +300,7 @@ func _build_hotspots() -> void:
 		hotspot.size = layout.size
 		hotspot.configure(location, id == current_id)
 		hotspot.location_selected.connect(_select_location)
+		hotspot.location_hovered.connect(_show_location_hover)
 		add_child(hotspot)
 		_hotspots[id] = hotspot
 
@@ -320,6 +337,91 @@ func _build_npc_markers() -> void:
 			style.shadow_size = 3 if state == "normal" else 5
 			marker.add_theme_stylebox_override(state, style)
 		add_child(marker)
+
+
+func _build_hover_note() -> void:
+	_hover_note = PanelContainer.new()
+	_hover_note.name = "MapHoverNote"
+	_hover_note.position = Vector2(548, 106)
+	_hover_note.size = Vector2(274, 88)
+	_hover_note.visible = false
+	_hover_note.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hover_note.z_index = 20
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(PAPER_LIGHT, 0.98)
+	style.border_color = Color(INK, 0.28)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(3)
+	style.content_margin_left = 14
+	style.content_margin_right = 14
+	style.content_margin_top = 10
+	style.content_margin_bottom = 9
+	style.shadow_color = Color("#2A312B30")
+	style.shadow_size = 6
+	style.shadow_offset = Vector2(3, 4)
+	_hover_note.add_theme_stylebox_override("panel", style)
+	add_child(_hover_note)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	_hover_note.add_child(row)
+	_hover_note_rule = ColorRect.new()
+	_hover_note_rule.custom_minimum_size = Vector2(4, 58)
+	_hover_note_rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(_hover_note_rule)
+	var copy := VBoxContainer.new()
+	copy.add_theme_constant_override("separation", 1)
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(copy)
+	var eyebrow := _make_label("鼠标所指 · 可以在这里", 10, MUTED)
+	copy.add_child(eyebrow)
+	_hover_note_name = _make_label("校园地点", 16, INK)
+	_hover_note_name.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	copy.add_child(_hover_note_name)
+	_hover_note_actions = _make_label("查看可进行的活动", 12, MUTED)
+	_hover_note_actions.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	copy.add_child(_hover_note_actions)
+
+
+func _show_location_hover(location_id: String, active: bool) -> void:
+	if not active:
+		if _hovered_location_id == location_id:
+			_hovered_location_id = ""
+			_hover_note.visible = false
+			queue_redraw()
+		return
+	if not _locations.has(location_id):
+		return
+	_hovered_location_id = location_id
+	var location: Dictionary = _locations[location_id]
+	var accent := Color(str(location.get("color", "#627D6B")))
+	_hover_note_rule.color = accent
+	_hover_note_name.text = str(location.get("name", "校园地点"))
+	var action_names: Array[String] = []
+	for action_value in location.get("actions", []):
+		var action: Dictionary = action_value
+		action_names.append(str(action.get("label", "安排一个时段")))
+	_hover_note_actions.text = "可做  %s" % "  /  ".join(action_names)
+	_hover_note.position = HOVER_NOTE_LAYOUT.get(location_id, Vector2(548, 106))
+	_hover_note.visible = true
+	queue_redraw()
+
+
+func _draw_hover_connector() -> void:
+	if _hovered_location_id.is_empty() or not HOTSPOT_LAYOUT.has(_hovered_location_id) or _hover_note == null or not _hover_note.visible:
+		return
+	var start := _hotspot_center(_hovered_location_id)
+	var note_rect := Rect2(_hover_note.position, _hover_note.size)
+	var end := note_rect.get_center()
+	if end.x > start.x:
+		end.x = note_rect.position.x
+	else:
+		end.x = note_rect.end.x
+	end.y = clampf(start.y, note_rect.position.y + 14.0, note_rect.end.y - 14.0)
+	var bend := Vector2((start.x + end.x) * 0.5, start.y)
+	draw_polyline(PackedVector2Array([start, bend, end]), Color(PAPER_LIGHT, 0.92), 5.0, true)
+	draw_polyline(PackedVector2Array([start, bend, end]), Color(SDU_RED, 0.72), 1.5, true)
+	draw_circle(start, 4.0, SDU_RED)
 
 
 func _build_detail_strip() -> void:
