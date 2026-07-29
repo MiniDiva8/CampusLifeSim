@@ -17,6 +17,7 @@ const MIST_BLUE := Color("#527C8A")
 const ENERGY := Color("#287C68")
 const STRESS := Color("#A94F54")
 const EXAM := Color("#9A6A18")
+const StatusRibbonScript = preload("res://scripts/ui/status_ribbon.gd")
 
 var photo_rect: OrientedPhotoRect
 var _reduced_motion := false
@@ -138,18 +139,16 @@ func _build_top_margin(data: Dictionary) -> void:
 	location_label.size = Vector2(260, 28)
 	add_child(location_label)
 
-	var state_row := HBoxContainer.new()
-	state_row.name = "EditorialStateLine"
-	state_row.position = Vector2(893, 20)
-	state_row.size = Vector2(347, 38)
-	state_row.alignment = BoxContainer.ALIGNMENT_END
-	state_row.add_theme_constant_override("separation", 14)
-	add_child(state_row)
-	state_row.add_child(_state_pair("精力", int(data.get("energy", 0)), ENERGY))
-	state_row.add_child(_thin_divider())
-	state_row.add_child(_state_pair("压力", int(data.get("stress", 0)), STRESS))
-	state_row.add_child(_thin_divider())
-	state_row.add_child(_state_pair("考试", int(data.get("exam", 0)), EXAM))
+	var state_ribbon = StatusRibbonScript.new()
+	state_ribbon.name = "EditorialStateRibbon"
+	state_ribbon.position = Vector2(700, 15)
+	state_ribbon.configure({
+		"study": int(data.get("study", 0)),
+		"project": int(data.get("project", 0)),
+		"energy": int(data.get("energy", 0)),
+		"stress": int(data.get("stress", 0)),
+	}, true, 119.0, 46.0)
+	add_child(state_ribbon)
 
 
 func _build_narrative(data: Dictionary) -> void:

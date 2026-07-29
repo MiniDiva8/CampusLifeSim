@@ -33,6 +33,15 @@ func _capture() -> void:
 	for _frame in 5:
 		await process_frame
 	_save_viewport("res://reports/campus_map.png")
+	var scholar_marker := app.find_child("MapNPC_scholar", true, false) as Button
+	if scholar_marker != null:
+		scholar_marker.pressed.emit()
+		for _frame in 3:
+			await process_frame
+		_save_viewport("res://reports/campus_map_companion.png")
+		app.show_map()
+		for _frame in 3:
+			await process_frame
 	var library_hotspot := app.find_child("Location_library", true, false) as Button
 	if library_hotspot != null:
 		library_hotspot.mouse_entered.emit()
@@ -44,6 +53,11 @@ func _capture() -> void:
 		for _frame in 3:
 			await process_frame
 		_save_viewport("res://reports/campus_map_route.png")
+	var advice := AIAdvisor.new(app.repository.ai_advice).choose_advice(app.session)
+	app.show_ai_advice(advice)
+	for _frame in 5:
+		await process_frame
+	_save_viewport("res://reports/ai_advice_sheet.png")
 	app.session = GameSession.new()
 	app._present_current_state()
 	await _wait_for_screen(app, "event")

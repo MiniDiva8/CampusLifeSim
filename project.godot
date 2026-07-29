@@ -7,13 +7,12 @@ config_version=5
 
 config/name="惊魂期末周"
 config/description="一款发生在山东大学中心校区、关于期末周时间管理、校园关系与 AI 判断的选择模拟游戏。"
-config/version="0.11.4-single-transit"
+config/version="0.12.0-companion-loop"
 run/main_scene="res://scenes/main.tscn"
 
 [autoload]
 
 AppConfig="*res://scenes/system/app_config.tscn"
-SceneLoader="*res://scenes/system/scene_loader.tscn"
 ProjectMusicController="*res://scenes/system/music_controller.tscn"
 ProjectUISoundController="*res://scenes/system/ui_sound_controller.tscn"
 ProjectAmbientSoundController="*res://scenes/system/ambient_sound_controller.tscn"

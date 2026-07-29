@@ -59,6 +59,7 @@ func _run() -> void:
 	_expect(app.current_screen == "main_menu", "application should open on main menu")
 	_expect(app.find_child("ArchiveMainMenuView", true, false) != null, "main menu should open as a dedicated final-week archive cover")
 	_expect(app.find_child("ArchivePhotoAttachment", true, false) != null and app.find_child("ArchiveSeal", true, false) != null, "archive cover should mount the campus evidence photo and expose a ritual seal action")
+	_expect(app.find_child("ArchivePhotoCircle", true, false) == null and not _has_label_containing(app, "期末周入口"), "archive photo should remain clean without the retired red circle, leader, or entrance annotation")
 	_expect(_count_nodes_with_script(app, "res://scripts/ui/glass_panel.gd") == 0, "archive cover should not reuse the legacy dashboard glass cards")
 	_expect(_has_label_containing(app, "第 0 日 / 入档前"), "archive cover should establish the pre-run record state")
 	var ambience := root.get_node_or_null("ProjectAmbientSoundController")
@@ -116,6 +117,27 @@ func _run() -> void:
 	var library_location_button := app.find_child("Location_library", true, false) as Button
 	_expect(campus_map != null and library_location_button != null, "campus screen should expose a full-canvas map with building hotspots")
 	_expect(_count_nodes_with_script(campus_map, "res://scripts/ui/glass_panel.gd") == 0, "campus navigation should not return to the legacy dashboard glass panels")
+	var map_status := app.find_child("MapStatusRibbon", true, false) as Control
+	var study_value := map_status.find_child("StatusValue_study", true, false) as Label if map_status != null else null
+	_expect(map_status != null and study_value != null and study_value.get_theme_font_size("font_size") >= 18, "map status should use four prominent meters instead of the old twelve-point value line")
+	var advice := AIAdvisor.new(app.repository.ai_advice).choose_advice(app.session)
+	app.show_ai_advice(advice)
+	await process_frame
+	_expect(app.current_screen == "ai_advice" and app.find_child("AIAdviceSheet", true, false) != null, "AI advice should open as a dedicated paper verification sheet")
+	_expect(app.find_child("AIAdviceRiskNote", true, false) != null and _has_label_containing(app, "AI 可能遗漏了什么"), "AI sheet should separate recommendation evidence from its blind spots")
+	_expect(_count_nodes_with_script(app, "res://scripts/ui/glass_panel.gd") == 0, "AI advice should not return to the old dark glass panel")
+	var advice_return := app.find_child("AIAdviceReturn", true, false) as Button
+	advice_return.pressed.emit()
+	_expect(await _wait_for_screen(app, "map"), "AI verification sheet should return to the campus map")
+	campus_map = app.find_child("CampusMapView", true, false) as Control
+	library_location_button = app.find_child("Location_library", true, false) as Button
+	var scholar_marker := app.find_child("MapNPC_scholar", true, false) as Button
+	_expect(scholar_marker != null and scholar_marker.text.contains("林知夏") and scholar_marker.text.contains("40"), "map companion markers should expose both identity and current relationship")
+	scholar_marker.pressed.emit()
+	await process_frame
+	var travel_selected := app.find_child("TravelSelected", true, false) as Button
+	_expect(str(campus_map.selected_npc_id) == "scholar" and str(campus_map.selected_location_id) == "library", "clicking Lin Zhixia should target her library companion route")
+	_expect(travel_selected != null and travel_selected.text.contains("林知夏") and _has_label_containing(app, "主动前往后会优先进入这名同伴的事件"), "companion selection should explain the active relationship action")
 	library_location_button.mouse_entered.emit()
 	await process_frame
 	var hover_note := app.find_child("MapHoverNote", true, false) as Control
@@ -128,13 +150,13 @@ func _run() -> void:
 	_expect(not hover_note.visible, "the paper activity note should leave with the pointer instead of lingering")
 	library_location_button.pressed.emit()
 	await process_frame
-	var travel_selected := app.find_child("TravelSelected", true, false) as Button
+	travel_selected = app.find_child("TravelSelected", true, false) as Button
 	_expect(str(campus_map.selected_location_id) == "library", "selecting a building should draw its route before travel")
 	_expect(travel_selected != null and not travel_selected.disabled, "selected building should expose one contextual travel action")
 	_expect(_has_label_containing(app, "蒋震图书馆"), "selected building should reveal its real campus name")
 
 	var travel_click_started := Time.get_ticks_usec()
-	app._travel_to_location("library", 0.05)
+	app._travel_to_npc("scholar", 0.05)
 	var travel_click_ms := float(Time.get_ticks_usec() - travel_click_started) / 1000.0
 	_expect(travel_click_ms < 150.0, "location callback should acknowledge the click before original photos finish loading")
 	_expect(app.current_screen in ["map", "travel"], "location confirmation should retain the map while a cold road photo loads or enter the one landscape transition when it is cached")
@@ -148,14 +170,16 @@ func _run() -> void:
 	_expect(app.find_child("TravelProgressWalker", true, false) != null, "travel transition should place a walking student illustration above the progress bar")
 	_expect(not _has_label_containing(app, "约 2 秒"), "travel transition should not expose a mechanical two-second countdown")
 	_expect(await _wait_for_screen(app, "event"), "library should present an eligible location event")
+	_expect(_has_label_containing(app, "林知夏"), "actively visiting the library companion should guarantee her eligible relationship event")
 	_expect(ambience != null and ambience.get_current_context() == &"library", "arrival should crossfade from the road into the library")
 	_expect(app.active_photo_background != null, "location event should retain the selected scene photograph")
-	var library_event: Dictionary = app.event_engine.get_location_event("library", app.session)
+	var library_event: Dictionary = app.event_engine.get_npc_event("scholar", "library", app.session)
 	var library_choice := app.find_child("Choice_%s" % str(library_event.choices[0].id), true, false) as Button
 	library_choice.pressed.emit()
 	_expect(await _wait_for_screen(app, "result"), "library choice should resolve after responsive feedback")
 	var library_continue := app.find_child("ContinueResult", true, false) as Button
 	library_continue.pressed.emit()
+	_expect(app.current_screen != "event_loading" and not _has_label_containing(app, "下一幕正在准备"), "fixed events should keep the current receipt visible instead of inserting the retired loading page")
 	_expect(await _wait_for_screen(app, "event"), "day-one schedule notice should trigger on its fixed slot")
 	_expect(app.session.clock.get_index() == 2, "location event should consume one slot")
 
@@ -255,6 +279,7 @@ func _run() -> void:
 	app.session.difficulty_id = "medium"
 	app.session.stats.stress = DifficultyRules.get_crisis_threshold("medium")
 	app._advance_after_action()
+	_expect(app.current_screen != "stress_crisis_loading" and not _has_label_containing(app, "身体状态正在显现"), "stress photographs should load without the retired preparation page")
 	_expect(await _wait_for_screen(app, "stress_crisis"), "high stress should automatically open the disorientation choice screen after an action")
 	_expect(ambience != null and ambience.is_stress_layer_playing(), "stress crisis should add the optional body-feedback sound layer")
 	_expect(app.active_photo_background != null, "stress crisis should use the long-exposure photograph")

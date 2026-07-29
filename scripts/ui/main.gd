@@ -7,6 +7,7 @@ const CampusMapViewScript = preload("res://scripts/ui/campus_map_view.gd")
 const ArchiveMainMenuViewScript = preload("res://scripts/ui/archive_main_menu_view.gd")
 const RouteSetupViewScript = preload("res://scripts/ui/route_setup_view.gd")
 const TravelProgressWalkerScript = preload("res://scripts/ui/travel_progress_walker.gd")
+const AIAdviceSheetViewScript = preload("res://scripts/ui/ai_advice_sheet_view.gd")
 const RouteRulesScript = preload("res://scripts/core/route_rules.gd")
 const COLOR_INK := Color("#F4F2E9")
 const COLOR_MUTED := Color("#9BAAA7")
@@ -37,6 +38,7 @@ var notice_text := ""
 var _photo_texture_cache: Dictionary = {}
 var _photo_texture_lru: Array[String] = []
 var _interaction_pending := false
+var _pending_npc_id := ""
 
 
 func _ready() -> void:
@@ -80,6 +82,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	match current_screen:
 		"map", "location":
 			show_pause_menu()
+		"ai_advice":
+			show_map()
 		"pause":
 			show_map()
 		"settings":
@@ -211,9 +215,12 @@ func _base_scene_data(scene_context: Dictionary, background_path: String) -> Dic
 		"time": session.clock.get_display_text() if session != null else "期末周",
 		"scene_name": scene_name,
 		"activity": str(scene_context.get("activity_text", "安排当前时段")),
+		"study": int(session.stats.study) if session != null else 0,
+		"project": int(session.stats.project) if session != null else 0,
 		"energy": int(session.stats.energy) if session != null else 0,
 		"stress": int(session.stats.stress) if session != null else 0,
 		"exam": int(session.tasks.exam) if session != null else 0,
+		"presentation": int(session.tasks.presentation) if session != null else 0,
 		"day": int(session.clock.day) if session != null else 1,
 		"slot_index": int(session.clock.slot) if session != null else 0,
 		"footer_hint": "山东大学中心校区 · 离线运行 · 自动存档",
@@ -411,6 +418,7 @@ func _set_soundscape(context: StringName, fade_seconds: float = 0.65, period_ove
 func show_main_menu() -> void:
 	_set_soundscape(&"menu", 0.85, &"evening", 0)
 	_finish_interaction_feedback()
+	_pending_npc_id = ""
 	current_screen = "main_menu"
 	active_photo_background = null
 	active_photo_fill = null
@@ -494,6 +502,7 @@ func _start_from_setup(name_input: LineEdit, trait_group: ButtonGroup, difficult
 
 
 func _start_new_session(player_name: String, trait_id: String, difficulty_id: String) -> void:
+	_pending_npc_id = ""
 	session = GameSession.new()
 	session.reset(player_name, trait_id, difficulty_id)
 	var error := save_service.save_game(session)
@@ -528,18 +537,10 @@ func _present_current_state() -> void:
 		var event_background := background_catalog.ensure_event_background(str(fixed_event.get("id", "")), session)
 		if not event_background.is_empty() and not _photo_texture_cache.has(event_background):
 			_request_photo_texture(event_background)
-			_show_scene_preparation(
-				"event_loading",
-				"下一幕正在准备",
-				str(fixed_event.get("title", "校园事件")),
-				"正在后台读取对应校园原图，事件内容与选择不会因此延迟结算。",
-				COLOR_TEAL
-			)
-			await get_tree().process_frame
 			var event_texture: Texture2D = await _await_photo_texture(event_background)
 			if event_texture == null:
 				push_warning("Event background could not be prepared: %s" % event_background)
-			if session == null or session.clock.get_index() != expected_index or current_screen != "event_loading":
+			if session == null or session.clock.get_index() != expected_index:
 				return
 		show_event(fixed_event)
 	else:
@@ -576,9 +577,21 @@ func show_map() -> void:
 		"locations": repository.locations,
 		"npcs": repository.npcs,
 		"travel_action": _travel_to_location,
+		"npc_action": _travel_to_npc,
 		"pause_action": show_pause_menu,
 		"advice_action": show_ai_advice.bind(advice),
 	})
+
+
+func _travel_to_npc(npc_id: String, duration: float = TRAVEL_DURATION_SECONDS) -> void:
+	var npc := repository.get_npc(npc_id)
+	if npc.is_empty():
+		return
+	var location_id := str(npc.get("location", ""))
+	if repository.get_location(location_id).is_empty():
+		return
+	_pending_npc_id = npc_id
+	_travel_to_location(location_id, duration)
 
 
 func _travel_to_location(location_id: String, duration: float = TRAVEL_DURATION_SECONDS) -> void:
@@ -608,50 +621,6 @@ func _travel_to_location(location_id: String, duration: float = TRAVEL_DURATION_
 			push_warning("Destination background could not be prepared: %s" % destination_background)
 	if current_screen == "travel" and session != null and session.current_location_id == location_id:
 		show_location(location_id)
-
-func _show_scene_preparation(
-	screen_name: String,
-	eyebrow: String,
-	title_text: String,
-	detail: String,
-	accent: Color
-) -> void:
-	var root := _reset_screen(screen_name, Color("#24464B"), "", Color("#0710136E"))
-	var top := HBoxContainer.new()
-	root.add_child(top)
-	top.add_child(_make_badge("SDU · RESPONSIVE TRANSITION", COLOR_SDU_RED))
-	var top_space := Control.new()
-	top_space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top.add_child(top_space)
-	if session != null:
-		top.add_child(_make_badge(session.clock.get_display_text(), COLOR_BLUE))
-	var vertical_space := Control.new()
-	vertical_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(vertical_space)
-	var center := HBoxContainer.new()
-	center.alignment = BoxContainer.ALIGNMENT_CENTER
-	root.add_child(center)
-	var panel := _make_panel(Color("#091619E8"), 18, accent, true, 2.2)
-	panel.custom_minimum_size = Vector2(660, 150)
-	center.add_child(panel)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 8)
-	panel.add_child(box)
-	box.add_child(_make_label(eyebrow, 12, accent))
-	box.add_child(_make_label(title_text, 25, COLOR_INK))
-	var detail_label := _make_label(detail, 13, COLOR_MUTED)
-	detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	box.add_child(detail_label)
-	var progress := ProgressBar.new()
-	progress.show_percentage = false
-	progress.value = 24.0
-	progress.custom_minimum_size.y = 8
-	_style_progress_bar(progress, accent, 4)
-	box.add_child(progress)
-	var progress_tween := create_tween()
-	progress_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	progress_tween.tween_property(progress, "value", 88.0, 1.25)
-
 
 func show_travel(location: Dictionary, road_background: String, duration: float = TRAVEL_DURATION_SECONDS) -> void:
 	_set_soundscape(&"road", minf(maxf(duration, 0.01) * 0.32, 0.65))
@@ -735,6 +704,15 @@ func show_location(location_id: String) -> void:
 	if session.current_location_id != location_id or session.current_background_path.is_empty():
 		background_catalog.choose_location_background(location_id, session)
 	var scene_context := background_catalog.get_active_scene_context(session)
+	var pending_npc_id := _pending_npc_id
+	_pending_npc_id = ""
+	if not pending_npc_id.is_empty():
+		var npc_event := event_engine.get_npc_event(pending_npc_id, location_id, session)
+		if not npc_event.is_empty():
+			show_event(npc_event)
+		else:
+			show_npc_contact(pending_npc_id)
+		return
 	var event := event_engine.get_location_event(location_id, session)
 	if not event.is_empty():
 		show_event(event)
@@ -765,6 +743,56 @@ func show_location(location_id: String) -> void:
 		"pause_action": show_pause_menu,
 	}, true)
 	_show_adaptive_scene("location", data)
+
+
+func show_npc_contact(npc_id: String) -> void:
+	var npc := repository.get_npc(npc_id)
+	if npc.is_empty() or session == null:
+		show_map()
+		return
+	var contact: Dictionary = npc.get("contact", {})
+	if contact.is_empty():
+		show_location(str(npc.get("location", "")))
+		return
+	var scene_context := background_catalog.get_active_scene_context(session)
+	var relationship_value := int(session.relationships.get(npc_id, 40))
+	var choices := [{
+		"name": "NPCContact_%s" % npc_id,
+		"title": str(contact.get("label", "聊一会儿")),
+		"detail": str(contact.get("description", "")),
+		"effect": _effect_preview(contact.get("effects", [])),
+		"effect_color": str(npc.get("color", "#63DDB8")),
+		"action": _resolve_npc_contact.bind(npc, contact),
+	}]
+	var data := _base_scene_data(scene_context, session.current_background_path)
+	data.merge({
+		"panel_name": "NPCContactCard",
+		"section": "%s · 关系 %d" % [str(npc.get("role", "校园同伴")), relationship_value],
+		"accent": str(npc.get("color", "#63DDB8")),
+		"title": str(contact.get("title", "和 %s 聊一会儿" % npc.get("name", "同伴"))),
+		"body": "%s\n%s" % [str(contact.get("body", "")), str(npc.get("description", ""))],
+		"question": "你准备怎样回应 %s？" % str(npc.get("name", "对方")),
+		"cost_text": "相处会推进 1 个时段",
+		"state_tags": [
+			{"text": "关系 %d" % relationship_value, "color": str(npc.get("color", "#63DDB8"))},
+			{"text": "主动相处", "color": "#527C8A"},
+		],
+		"choices": choices,
+	}, true)
+	_show_editorial_event(data, "npc_contact")
+
+
+func _resolve_npc_contact(npc: Dictionary, contact: Dictionary) -> void:
+	if not _begin_interaction_feedback("正在记录这次相处…"):
+		return
+	await get_tree().process_frame
+	var effects := event_engine.apply_fallback_action(contact, session)
+	show_result(
+		str(contact.get("title", "同伴交流")),
+		str(contact.get("description", "你们认真聊了一会儿。")),
+		_visible_effects(effects),
+		_advance_after_action
+	)
 
 
 func show_event(event: Dictionary) -> void:
@@ -940,18 +968,10 @@ func show_stress_crisis(continue_action: Callable) -> void:
 	var background_path := background_catalog.get_stress_background()
 	if not background_path.is_empty() and not _photo_texture_cache.has(background_path):
 		_request_photo_texture(background_path)
-		_show_scene_preparation(
-			"stress_crisis_loading",
-			"身体状态正在显现",
-			"压力过载",
-			"长曝光原图正在后台读取。你的危机选项会在画面准备好后立即出现。",
-			COLOR_CORAL
-		)
-		await get_tree().process_frame
 		var stress_texture: Texture2D = await _await_photo_texture(background_path)
 		if stress_texture == null:
 			push_warning("Stress background could not be prepared: %s" % background_path)
-		if current_screen != "stress_crisis_loading":
+		if session == null:
 			return
 	_set_soundscape(_session_soundscape_context(), 0.35)
 	var config := DifficultyRules.get_config(session.difficulty_id)
@@ -1052,35 +1072,53 @@ func _highest_relationship_id() -> String:
 
 
 func show_ai_advice(advice: Dictionary) -> void:
-	var root := _reset_screen("ai_advice", Color("#1B3441"), "", Color("#07101388"))
-	var center := HBoxContainer.new()
-	center.alignment = BoxContainer.ALIGNMENT_CENTER
-	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(center)
-	var panel := _make_panel(Color("#0B1518FA"), 22, COLOR_BLUE)
-	panel.custom_minimum_size = Vector2(760, 460)
-	panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	center.add_child(panel)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 16)
-	panel.add_child(box)
-	var ai_icon := _make_label("AI  学伴", 18, COLOR_BLUE)
-	ai_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(ai_icon)
-	var title := _make_label(str(advice.get("title", "建议")), 30, COLOR_INK)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(title)
-	var message := _make_label(str(advice.get("message", "")), 20, COLOR_INK)
-	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	message.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	box.add_child(message)
-	var risk_panel := _make_panel(Color("#4B3034E8"), 12, COLOR_CORAL, false)
-	box.add_child(risk_panel)
-	var risk := _make_label("核验提醒：%s" % advice.get("risk", "建议可能不完整。"), 15, Color("#FFD4CE"))
-	risk.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	risk_panel.add_child(risk)
-	box.add_child(_make_button("我会自己判断", show_map, true))
+	if session == null:
+		show_main_menu()
+		return
+	_finish_interaction_feedback()
+	current_screen = "ai_advice"
+	active_photo_background = null
+	active_photo_fill = null
+	for child in get_children():
+		child.queue_free()
+	screen_layer = Control.new()
+	screen_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(screen_layer)
+	var sheet = AIAdviceSheetViewScript.new()
+	sheet.name = "AIAdviceSheet"
+	sheet.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	screen_layer.add_child(sheet)
+	sheet.configure({
+		"advice": advice,
+		"stats": session.stats.duplicate(true),
+		"tasks": session.tasks.duplicate(true),
+		"relationship_average": roundi(session.average_relationship()),
+		"time": session.clock.get_display_text(),
+		"basis": _ai_advice_basis(str(advice.get("id", "balanced"))),
+		"risk": str(advice.get("risk", "建议可能不完整。")),
+		"return_action": show_map,
+	})
+
+
+func _ai_advice_basis(advice_id: String) -> String:
+	match advice_id:
+		"rest_first":
+			return "精力只有 %d。AI 因此把恢复能力放在首位，但它没有替你判断最近的截止任务是否允许暂停。" % int(session.stats.energy)
+		"calm_down":
+			return "当前压力为 %d，已经进入高风险区间。AI 识别到了状态峰值，却不知道哪位同伴此刻最可能提供帮助。" % int(session.stats.stress)
+		"exam_focus":
+			return "学习进度为 %d，考试准备为 %d。系统认为课程短板比眼前项目更紧迫。" % [int(session.stats.study), int(session.tasks.exam)]
+		"project_focus":
+			return "项目进度为 %d，展示准备为 %d。系统优先寻找能留下可复现成果的行动。" % [int(session.stats.project), int(session.tasks.presentation)]
+		"efficient_bias":
+			return "AI 使用习惯已经明显影响建议排序。这个方案追求数字增长，却主动忽略了休息和关系成本。"
+		_:
+			return "学习 %d、项目 %d、精力 %d、压力 %d。没有单项越过危机线，所以系统建议保留调整余量。" % [
+				int(session.stats.study),
+				int(session.stats.project),
+				int(session.stats.energy),
+				int(session.stats.stress),
+			]
 
 
 func show_pause_menu() -> void:

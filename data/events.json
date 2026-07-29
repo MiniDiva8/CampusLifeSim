@@ -170,64 +170,64 @@
   },
 
   {
-    "id": "npc_roommate_notes", "kind": "npc", "title": "“我也没复习”", "speaker": "程乐天", "body": "室友一边说自己什么都不会，一边从抽屉里拿出按章节装订的重点。你盯着那几枚彩色标签，开始重新理解“没复习”。", "once": true, "priority": 70,
-    "trigger": {"type": "location", "location": "dorm", "days": [], "slots": []}, "requirements": [{"type": "event_fired", "target": "loc_dorm_noise", "value": true}],
+    "id": "npc_roommate_notes", "kind": "npc", "npc_id": "roommate", "title": "“我也没复习”", "speaker": "程乐天", "body": "室友一边说自己什么都不会，一边从抽屉里拿出按章节装订的重点。你盯着那几枚彩色标签，开始重新理解“没复习”。", "once": true, "priority": 70,
+    "trigger": {"type": "location", "location": "dorm", "days": [], "slots": []}, "requirements": [],
     "choices": [
       {"id": "exchange", "label": "拿自己的项目经验交换笔记", "outcome": "你们各自填上了对方知识地图的一块空白。", "effects": [{"type": "stat", "target": "study", "amount": 10}, {"type": "relationship", "target": "roommate", "amount": 8}, {"type": "flag", "target": "roommate_notes", "value": true, "message": "获得室友整理的重点"}]},
       {"id": "tease", "label": "先吐槽，再一起核对重点", "outcome": "笑完之后，你们还真找出了两处不同版本。", "effects": [{"type": "stat", "target": "study", "amount": 7}, {"type": "relationship", "target": "roommate", "amount": 6}, {"type": "stat", "target": "stress", "amount": -5}]}
     ]
   },
   {
-    "id": "npc_roommate_wakeup", "kind": "npc", "title": "三遍闹钟之后", "speaker": "程乐天", "body": "你昨晚状态糟糕，闹钟已经被按掉。室友站在床边：“再不起，今天的重要安排真要变成明天的遗憾了。”", "once": true, "priority": 75,
-    "trigger": {"type": "location", "location": "dorm", "days": [], "slots": []}, "requirements": [{"type": "event_fired", "target": "npc_roommate_notes", "value": true}, {"type": "day_min", "value": 4}],
+    "id": "npc_roommate_wakeup", "kind": "npc", "npc_id": "roommate", "title": "三遍闹钟之后", "speaker": "程乐天", "body": "你昨晚状态糟糕，闹钟已经被按掉。室友站在床边：“再不起，今天的重要安排真要变成明天的遗憾了。”", "once": true, "priority": 75,
+    "trigger": {"type": "location", "location": "dorm", "days": [], "slots": []}, "requirements": [{"type": "event_fired", "target": "npc_roommate_notes", "value": true}, {"type": "relationship_min", "target": "roommate", "value": 46}, {"type": "day_min", "value": 4}],
     "choices": [
       {"id": "get_up", "label": "接受帮助，马上起床", "outcome": "一杯温水和一句吐槽把你拉回了日程。", "effects": [{"type": "stat", "target": "energy", "amount": 10}, {"type": "relationship", "target": "roommate", "amount": 8}, {"type": "stat", "target": "stress", "amount": -5}, {"type": "flag", "target": "roommate_rescue", "value": true, "message": "室友在关键时刻叫醒了你"}]},
       {"id": "sleep_more", "label": "请求再睡二十分钟", "outcome": "二十分钟恢复了一点精力，也吃掉了一部分安全余量。", "effects": [{"type": "stat", "target": "energy", "amount": 15}, {"type": "task", "target": "exam", "amount": -5}]}
     ]
   },
   {
-    "id": "npc_teammate_log", "kind": "npc", "title": "“我这里可以复现”", "speaker": "周启明", "body": "组员的电脑上指标正常，你这里却持续漂移。你们终于意识到，两个人使用的数据版本、依赖和随机种子并不完全相同。", "once": true, "priority": 70,
-    "trigger": {"type": "location", "location": "lab", "days": [], "slots": []}, "requirements": [{"type": "event_fired", "target": "loc_lab_bug", "value": true}],
+    "id": "npc_teammate_log", "kind": "npc", "npc_id": "teammate", "title": "“我这里可以复现”", "speaker": "周启明", "body": "组员的电脑上指标正常，你这里却持续漂移。你们终于意识到，两个人使用的数据版本、依赖和随机种子并不完全相同。", "once": true, "priority": 70,
+    "trigger": {"type": "location", "location": "lab", "days": [], "slots": []}, "requirements": [],
     "choices": [
       {"id": "document", "label": "记录数据版本、环境和随机种子", "outcome": "一份短文档解决了之后三次“我这里可以复现”。", "effects": [{"type": "stat", "target": "project", "amount": 11}, {"type": "relationship", "target": "teammate", "amount": 8}, {"type": "flag", "target": "environment_documented", "value": true, "message": "项目环境已记录"}]},
       {"id": "his_machine", "label": "决定展示时只用他的电脑", "outcome": "眼前问题被绕过，新的单点风险悄悄出现。", "effects": [{"type": "stat", "target": "project", "amount": 7}, {"type": "task", "target": "presentation", "amount": 5}, {"type": "stat", "target": "stress", "amount": 5}]}
     ]
   },
   {
-    "id": "npc_teammate_pair", "kind": "npc", "title": "把模块交给别人之前", "speaker": "周启明", "body": "组员主动提出帮你完成剩余模块，但需要你先讲清楚设计意图。直接交出去最快，解释清楚则更稳。", "once": true, "priority": 75,
-    "trigger": {"type": "location", "location": "lab", "days": [], "slots": []}, "requirements": [{"type": "event_fired", "target": "npc_teammate_log", "value": true}, {"type": "day_min", "value": 4}],
+    "id": "npc_teammate_pair", "kind": "npc", "npc_id": "teammate", "title": "把模块交给别人之前", "speaker": "周启明", "body": "组员主动提出帮你完成剩余模块，但需要你先讲清楚设计意图。直接交出去最快，解释清楚则更稳。", "once": true, "priority": 75,
+    "trigger": {"type": "location", "location": "lab", "days": [], "slots": []}, "requirements": [{"type": "event_fired", "target": "npc_teammate_log", "value": true}, {"type": "relationship_min", "target": "teammate", "value": 46}, {"type": "day_min", "value": 4}],
     "choices": [
       {"id": "explain", "label": "画出数据流再分工", "outcome": "沟通占了半小时，之后的合并却异常顺利。", "effects": [{"type": "stat", "target": "project", "amount": 14}, {"type": "task", "target": "presentation", "amount": 8}, {"type": "relationship", "target": "teammate", "amount": 9}, {"type": "flag", "target": "team_understanding", "value": true, "message": "团队理解保持一致"}]},
       {"id": "delegate", "label": "只发接口，先把速度拉满", "outcome": "进度很快，两个模块对“完成”的理解却不一样。", "effects": [{"type": "stat", "target": "project", "amount": 12}, {"type": "relationship", "target": "teammate", "amount": -3}, {"type": "stat", "target": "stress", "amount": 7}]}
     ]
   },
   {
-    "id": "npc_scholar_exchange", "kind": "npc", "title": "蒋震图书馆里的两种复习地图", "speaker": "林知夏", "body": "蒋震图书馆里，林知夏的笔记按模型与概念联系整理，你的笔记按题型分类。两种方法没有谁绝对正确，放在一起却刚好互补。", "once": true, "priority": 70,
-    "trigger": {"type": "location", "location": "library", "days": [], "slots": []}, "requirements": [{"type": "event_fired", "target": "loc_library_seat", "value": true}],
+    "id": "npc_scholar_exchange", "kind": "npc", "npc_id": "scholar", "title": "蒋震图书馆里的两种复习地图", "speaker": "林知夏", "body": "蒋震图书馆里，林知夏的笔记按模型与概念联系整理，你的笔记按题型分类。两种方法没有谁绝对正确，放在一起却刚好互补。", "once": true, "priority": 70,
+    "trigger": {"type": "location", "location": "library", "days": [], "slots": []}, "requirements": [],
     "choices": [
       {"id": "compare", "label": "一起解释各自最薄弱的一章", "outcome": "解释给别人听，让你发现了自己真正没懂的地方。", "effects": [{"type": "stat", "target": "study", "amount": 12}, {"type": "relationship", "target": "scholar", "amount": 8}, {"type": "flag", "target": "peer_review", "value": true, "message": "完成同伴互评"}]},
       {"id": "copy_notes", "label": "只拍下她的重点回去再看", "outcome": "你获得了资料，却错过了资料背后的推理。", "effects": [{"type": "stat", "target": "study", "amount": 7}, {"type": "relationship", "target": "scholar", "amount": 2}]}
     ]
   },
   {
-    "id": "npc_scholar_review", "kind": "npc", "title": "考前最后一道错题", "speaker": "林知夏", "body": "考前，林知夏发来一道你们讨论过的变式题。你第一眼仍然不会，但这次知道该从哪里开始。", "once": true, "priority": 75,
-    "trigger": {"type": "location", "location": "library", "days": [], "slots": []}, "requirements": [{"type": "event_fired", "target": "npc_scholar_exchange", "value": true}, {"type": "day_min", "value": 4}, {"type": "day_max", "value": 5}],
+    "id": "npc_scholar_review", "kind": "npc", "npc_id": "scholar", "title": "考前最后一道错题", "speaker": "林知夏", "body": "考前，林知夏发来一道你们讨论过的变式题。你第一眼仍然不会，但这次知道该从哪里开始。", "once": true, "priority": 75,
+    "trigger": {"type": "location", "location": "library", "days": [], "slots": []}, "requirements": [{"type": "event_fired", "target": "npc_scholar_exchange", "value": true}, {"type": "relationship_min", "target": "scholar", "value": 46}, {"type": "day_min", "value": 4}, {"type": "day_max", "value": 5}],
     "choices": [
       {"id": "solve", "label": "独立推导后和她核对", "outcome": "你不仅得到答案，也确认自己掌握了方法。", "effects": [{"type": "stat", "target": "study", "amount": 13}, {"type": "task", "target": "exam", "amount": 10}, {"type": "relationship", "target": "scholar", "amount": 7}]},
       {"id": "answer", "label": "直接问她最后答案", "outcome": "答案很快到手，题目换个外壳仍然让你犹豫。", "effects": [{"type": "stat", "target": "study", "amount": 6}, {"type": "relationship", "target": "scholar", "amount": 3}]}
     ]
   },
   {
-    "id": "npc_monitor_help", "kind": "npc", "title": "班长也需要帮忙", "speaker": "宋小雨", "body": "班长正在整理全班展示顺序，同时自己的材料还没核对。她问你能不能帮忙检查名单。", "once": true, "priority": 70,
-    "trigger": {"type": "location", "location": "canteen", "days": [], "slots": []}, "requirements": [{"type": "event_fired", "target": "loc_canteen_queue", "value": true}],
+    "id": "npc_monitor_help", "kind": "npc", "npc_id": "monitor", "title": "班长也需要帮忙", "speaker": "宋小雨", "body": "班长正在整理全班展示顺序，同时自己的材料还没核对。她问你能不能帮忙检查名单。", "once": true, "priority": 70,
+    "trigger": {"type": "location", "location": "canteen", "days": [], "slots": []}, "requirements": [],
     "choices": [
       {"id": "help", "label": "花十分钟一起核对", "outcome": "你发现一个重复序号，也获得了更完整的日程信息。", "effects": [{"type": "relationship", "target": "monitor", "amount": 9}, {"type": "task", "target": "presentation", "amount": 5}, {"type": "flag", "target": "helped_monitor", "value": true, "message": "你帮助班长核对了名单"}]},
       {"id": "decline", "label": "说明自己正在赶进度", "outcome": "班长表示理解，但你们都继续被自己的待办追赶。", "effects": [{"type": "stat", "target": "project", "amount": 5}, {"type": "relationship", "target": "monitor", "amount": -2}]}
     ]
   },
   {
-    "id": "npc_monitor_update", "kind": "npc", "title": "比群通知早十分钟", "speaker": "宋小雨", "body": "班长提前告诉你：展示顺序临时前移，而且新教室的投影比例不同。十分钟不多，但足够救下一张关键页面。", "once": true, "priority": 75,
-    "trigger": {"type": "location", "location": "teaching", "days": [], "slots": []}, "requirements": [{"type": "event_fired", "target": "npc_monitor_help", "value": true}, {"type": "day_min", "value": 6}],
+    "id": "npc_monitor_update", "kind": "npc", "npc_id": "monitor", "title": "比群通知早十分钟", "speaker": "宋小雨", "body": "班长提前告诉你：展示顺序临时前移，而且新教室的投影比例不同。十分钟不多，但足够救下一张关键页面。", "once": true, "priority": 75,
+    "trigger": {"type": "location", "location": "canteen", "days": [], "slots": []}, "requirements": [{"type": "event_fired", "target": "npc_monitor_help", "value": true}, {"type": "relationship_min", "target": "monitor", "value": 46}, {"type": "day_min", "value": 6}],
     "choices": [
       {"id": "adjust", "label": "立刻调整演示并感谢她", "outcome": "你避免了开场时才发现页面被裁掉的灾难。", "effects": [{"type": "task", "target": "presentation", "amount": 12}, {"type": "relationship", "target": "monitor", "amount": 8}, {"type": "stat", "target": "stress", "amount": -5}, {"type": "flag", "target": "presentation_order_known", "value": true, "message": "已适配新的展示安排"}]},
       {"id": "trust", "label": "相信现场可以临时处理", "outcome": "你省下当下的时间，也把风险留给了未来的自己。", "effects": [{"type": "stat", "target": "project", "amount": 5}, {"type": "stat", "target": "stress", "amount": 5}]}

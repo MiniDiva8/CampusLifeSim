@@ -22,6 +22,10 @@ func condition_matches(condition: Dictionary, session: GameSession) -> bool:
 			return int(session.relationships.get(target, 0)) >= int(expected)
 		"relationship_max":
 			return int(session.relationships.get(target, 0)) <= int(expected)
+		"average_relationship_min":
+			return session.average_relationship() >= float(expected)
+		"average_relationship_max":
+			return session.average_relationship() <= float(expected)
 		"task_min":
 			return int(session.tasks.get(target, 0)) >= int(expected)
 		"task_max":
@@ -85,6 +89,24 @@ func get_location_event(location_id: String, session: GameSession) -> Dictionary
 			candidates.append(event)
 	if candidates.is_empty():
 		return {}
+	_sort_event_candidates(candidates, session)
+	return candidates[0]
+
+
+func get_npc_event(npc_id: String, location_id: String, session: GameSession) -> Dictionary:
+	var candidates: Array = []
+	for event in repository.events:
+		if str(event.get("kind", "")) != "npc" or str(event.get("npc_id", "")) != npc_id:
+			continue
+		if event_can_trigger(event, session, location_id):
+			candidates.append(event)
+	if candidates.is_empty():
+		return {}
+	_sort_event_candidates(candidates, session)
+	return candidates[0]
+
+
+func _sort_event_candidates(candidates: Array, session: GameSession) -> void:
 	candidates.sort_custom(func(a, b):
 		var a_score: int = int(a.get("priority", 0)) + RouteRulesScript.get_event_priority_bonus(a, session.trait_id)
 		var b_score: int = int(b.get("priority", 0)) + RouteRulesScript.get_event_priority_bonus(b, session.trait_id)
@@ -92,7 +114,6 @@ func get_location_event(location_id: String, session: GameSession) -> Dictionary
 			return str(a.get("id", "")) < str(b.get("id", ""))
 		return a_score > b_score
 	)
-	return candidates[0]
 
 
 func apply_choice(event: Dictionary, choice: Dictionary, session: GameSession) -> Array[String]:

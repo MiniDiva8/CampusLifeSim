@@ -53,6 +53,18 @@ func validate() -> void:
 	_validate_unique_ids(endings, "ending")
 	_events_by_id.clear()
 	var location_ids := _id_set(locations)
+	var npc_ids := _id_set(npcs)
+	for npc in npcs:
+		if not npc is Dictionary:
+			continue
+		var npc_id := str(npc.get("id", ""))
+		if not location_ids.has(str(npc.get("location", ""))):
+			errors.append("NPC %s references an unknown location" % npc_id)
+		var contact = npc.get("contact", {})
+		if not contact is Dictionary or str(contact.get("title", "")).is_empty() or str(contact.get("label", "")).is_empty():
+			errors.append("NPC %s needs a data-driven contact action" % npc_id)
+		else:
+			_validate_effects(contact.get("effects", []), "NPC contact %s" % npc_id)
 	for event in events:
 		if not event is Dictionary:
 			continue
@@ -63,6 +75,8 @@ func validate() -> void:
 		var trigger: Dictionary = event.get("trigger", {})
 		if str(trigger.get("type", "")) == "location" and not location_ids.has(str(trigger.get("location", ""))):
 			errors.append("Event %s references an unknown location" % event_id)
+		if str(event.get("kind", "")) == "npc" and not npc_ids.has(str(event.get("npc_id", ""))):
+			errors.append("Event %s references an unknown NPC" % event_id)
 		var choices = event.get("choices", [])
 		if not choices is Array or choices.is_empty():
 			errors.append("Event %s has no choices" % event_id)

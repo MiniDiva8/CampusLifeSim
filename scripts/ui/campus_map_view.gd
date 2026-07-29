@@ -2,6 +2,7 @@ extends Control
 class_name CampusMapView
 
 const HotspotScript = preload("res://scripts/ui/campus_map_hotspot.gd")
+const StatusRibbonScript = preload("res://scripts/ui/status_ribbon.gd")
 const PAPER := Color("#EAE2D2")
 const PAPER_LIGHT := Color("#F7F1E5")
 const PAPER_DARK := Color("#D4C9B4")
@@ -32,13 +33,6 @@ const HOVER_NOTE_LAYOUT := {
 	"field": Vector2(323, 470),
 }
 
-const NPC_LOCATION := {
-	"roommate": "dorm",
-	"teammate": "lab",
-	"scholar": "library",
-	"monitor": "canteen",
-}
-
 const NPC_OFFSET := {
 	"roommate": Vector2(142, 7),
 	"teammate": Vector2(136, 10),
@@ -48,8 +42,10 @@ const NPC_OFFSET := {
 
 var data: Dictionary = {}
 var selected_location_id := ""
+var selected_npc_id := ""
 var _hotspots: Dictionary = {}
 var _locations: Dictionary = {}
+var _npcs: Dictionary = {}
 var _detail_rule: ColorRect
 var _detail_name: Label
 var _detail_subtitle: Label
@@ -199,26 +195,11 @@ func _build_header() -> void:
 	meta.size = Vector2(370, 27)
 	add_child(meta)
 
-	var stats: Dictionary = data.get("stats", {})
-	var stat_items := [
-		["学习", int(stats.get("study", 0)), Color("#3C806D")],
-		["项目", int(stats.get("project", 0)), Color("#477FA8")],
-		["精力", int(stats.get("energy", 0)), GOLD],
-		["压力", int(stats.get("stress", 0)), Color("#B84850")],
-	]
-	var x := 347.0
-	for item in stat_items:
-		var dot := ColorRect.new()
-		dot.color = item[2]
-		dot.position = Vector2(x, 56)
-		dot.size = Vector2(6, 6)
-		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(dot)
-		var stat := _make_label("%s %d" % [item[0], item[1]], 12, MUTED)
-		stat.position = Vector2(x + 11, 48)
-		stat.size = Vector2(76, 24)
-		add_child(stat)
-		x += 86.0
+	var status_ribbon = StatusRibbonScript.new()
+	status_ribbon.name = "MapStatusRibbon"
+	status_ribbon.position = Vector2(345, 43)
+	status_ribbon.configure(data.get("stats", {}), true, 112.0, 42.0)
+	add_child(status_ribbon)
 
 	var map_title := _make_label("今天去哪里？", 22, INK)
 	map_title.position = Vector2(42, 105)
@@ -310,22 +291,21 @@ func _build_npc_markers() -> void:
 	for npc_value in data.get("npcs", []):
 		var npc: Dictionary = npc_value
 		var npc_id := str(npc.get("id", ""))
-		var location_id := str(NPC_LOCATION.get(npc_id, ""))
+		var location_id := str(npc.get("location", ""))
 		if not HOTSPOT_LAYOUT.has(location_id):
 			continue
+		_npcs[npc_id] = npc
+		var relationship_value := int(relationships.get(npc_id, 40))
 		var marker := Button.new()
 		marker.name = "MapNPC_%s" % npc_id
-		marker.text = "%s  %s" % [str(npc.get("avatar", "·")), str(npc.get("name", "同伴"))]
+		marker.text = "%s  %s  %d" % [str(npc.get("avatar", "·")), str(npc.get("name", "同伴")), relationship_value]
 		marker.position = HOTSPOT_LAYOUT[location_id].position + NPC_OFFSET.get(npc_id, Vector2(110, 8))
-		marker.size = Vector2(105, 28)
+		marker.size = Vector2(132, 30)
 		marker.add_theme_font_size_override("font_size", 11)
 		marker.add_theme_color_override("font_color", INK)
-		marker.mouse_default_cursor_shape = Control.CURSOR_HELP
-		marker.tooltip_text = "%s · 关系 %d\n%s" % [
-			str(npc.get("role", "同伴")),
-			int(relationships.get(npc_id, 40)),
-			_relation_state(int(relationships.get(npc_id, 40))),
-		]
+		marker.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		marker.tooltip_text = ""
+		marker.set_meta("audio_cue", &"choice")
 		var accent := Color(str(npc.get("color", "#78877E")))
 		for state in ["normal", "hover", "pressed", "focus"]:
 			var style := StyleBoxFlat.new()
@@ -336,6 +316,7 @@ func _build_npc_markers() -> void:
 			style.shadow_color = Color("#28332C28")
 			style.shadow_size = 3 if state == "normal" else 5
 			marker.add_theme_stylebox_override(state, style)
+		marker.pressed.connect(_select_npc.bind(npc_id))
 		add_child(marker)
 
 
@@ -525,6 +506,11 @@ func _build_margin_actions() -> void:
 
 
 func _select_location(location_id: String) -> void:
+	selected_npc_id = ""
+	_apply_location_selection(location_id)
+
+
+func _apply_location_selection(location_id: String) -> void:
 	if not _locations.has(location_id):
 		return
 	selected_location_id = location_id
@@ -542,9 +528,34 @@ func _select_location(location_id: String) -> void:
 	queue_redraw()
 
 
+func _select_npc(npc_id: String) -> void:
+	if not _npcs.has(npc_id):
+		return
+	var npc: Dictionary = _npcs[npc_id]
+	var location_id := str(npc.get("location", ""))
+	if not _locations.has(location_id):
+		return
+	_apply_location_selection(location_id)
+	selected_npc_id = npc_id
+	var relationship_value := int(data.get("relationships", {}).get(npc_id, 40))
+	var accent := Color(str(npc.get("color", "#78877E")))
+	_detail_rule.color = accent
+	_detail_name.text = "%s · %s" % [str(npc.get("name", "同伴")), _relation_stage(relationship_value)]
+	_detail_subtitle.text = "%s  /  关系 %d" % [str(npc.get("role", "校园同伴")), relationship_value]
+	_detail_description.text = "%s  主动前往后会优先进入这名同伴的事件。" % str(npc.get("description", ""))
+	_travel_button.text = "去找 %s  →" % str(npc.get("name", "TA"))
+	_route_caption.text = "同伴行程已标出  ·  关系会影响后续支援"
+	queue_redraw()
+
+
 func _confirm_travel() -> void:
 	if selected_location_id.is_empty():
 		return
+	if not selected_npc_id.is_empty():
+		var npc_action: Callable = data.get("npc_action", Callable())
+		if npc_action.is_valid():
+			npc_action.call(selected_npc_id)
+			return
 	var travel_action: Callable = data.get("travel_action", Callable())
 	if travel_action.is_valid():
 		travel_action.call(selected_location_id)
@@ -579,6 +590,14 @@ func _relation_state(value: int) -> String:
 	if value >= 30:
 		return "普通同学关系"
 	return "最近有些疏远"
+
+
+func _relation_stage(value: int) -> String:
+	if value >= 70:
+		return "信任"
+	if value >= 50:
+		return "熟悉"
+	return "初识"
 
 
 func _hotspot_center(location_id: String) -> Vector2:

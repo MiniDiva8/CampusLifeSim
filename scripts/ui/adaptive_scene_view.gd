@@ -3,6 +3,7 @@ extends Control
 
 const GlassPanelScript = preload("res://scripts/ui/glass_panel.gd")
 const GlassHoverControllerScript = preload("res://scripts/ui/glass_hover_controller.gd")
+const StatusRibbonScript = preload("res://scripts/ui/status_ribbon.gd")
 const INK := Color("#F4F2E9")
 const MUTED := Color("#9BAAA7")
 const BACKGROUND := Color("#071013")
@@ -108,9 +109,15 @@ func _build_hud(data: Dictionary) -> void:
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(spacer)
 
-	row.add_child(_stat_chip("精力", int(data.get("energy", 80)), TEAL))
-	row.add_child(_stat_chip("压力", int(data.get("stress", 20)), CORAL))
-	row.add_child(_stat_chip("考试", int(data.get("exam", 0)), GOLD))
+	var status_ribbon = StatusRibbonScript.new()
+	status_ribbon.name = "SceneStatusRibbon"
+	status_ribbon.configure({
+		"study": int(data.get("study", 0)),
+		"project": int(data.get("project", 0)),
+		"energy": int(data.get("energy", 80)),
+		"stress": int(data.get("stress", 20)),
+	}, false, 86.0, 34.0)
+	row.add_child(status_ribbon)
 
 	var pause_action = data.get("pause_action")
 	if pause_action is Callable and not pause_action.is_null():

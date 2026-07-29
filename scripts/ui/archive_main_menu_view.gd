@@ -233,35 +233,10 @@ func _build_photo_attachment() -> void:
 	caption.position = Vector2(682, 497)
 	caption.size = Vector2(500, 24)
 	add_child(caption)
-	_build_photo_markup_overlay()
+	_build_photo_pins()
 
 
-func _build_photo_markup_overlay() -> void:
-	var circle := Line2D.new()
-	circle.name = "ArchivePhotoCircle"
-	circle.default_color = Color(SDU_RED, 0.90)
-	circle.width = 3.0
-	circle.antialiased = true
-	circle.closed = true
-	for index in 49:
-		var angle := TAU * float(index) / 48.0
-		circle.add_point(Vector2(941, 285) + Vector2(cos(angle), sin(angle)) * 48.0)
-	add_child(circle)
-
-	var leader := Line2D.new()
-	leader.default_color = Color(SDU_RED, 0.82)
-	leader.width = 2.0
-	leader.antialiased = true
-	leader.points = PackedVector2Array([Vector2(977, 318), Vector2(1128, 403)])
-	add_child(leader)
-	var marker := _make_pin(Vector2(1124, 399), 8, SDU_RED)
-	add_child(marker)
-	var annotation := _make_label("期末周入口", 14, SDU_RED)
-	annotation.position = Vector2(1057, 409)
-	annotation.size = Vector2(145, 24)
-	annotation.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	add_child(annotation)
-
+func _build_photo_pins() -> void:
 	var left_pin := _make_pin(Vector2(674, 69), 14, Color("#8B2329"))
 	left_pin.name = "ArchivePhotoPinLeft"
 	add_child(left_pin)

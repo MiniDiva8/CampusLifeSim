@@ -19,6 +19,7 @@ func _init() -> void:
 	_test_ai_determinism()
 	_test_audio_foundation()
 	_test_ambience_contract()
+	_test_runtime_loading_surface()
 	_test_save_round_trip()
 	_test_endings_reachable()
 	if failures.is_empty():
@@ -48,6 +49,11 @@ func _test_content_repository() -> void:
 		var kind := str(event.get("kind", ""))
 		kind_counts[kind] = int(kind_counts.get(kind, 0)) + 1
 	_expect(kind_counts == {"fixed": 8, "location": 12, "npc": 8, "ai": 4}, "event category counts should match the demo scope")
+	for npc in repository.npcs:
+		_expect(not str(npc.get("location", "")).is_empty() and not npc.get("contact", {}).is_empty(), "every map companion should provide a location and repeatable contact action")
+	for event in repository.events:
+		if str(event.get("kind", "")) == "npc":
+			_expect(not str(event.get("npc_id", "")).is_empty(), "every NPC event should identify its companion explicitly")
 
 
 func _test_background_catalog() -> void:
@@ -171,7 +177,13 @@ func _test_event_conditions_and_delays() -> void:
 	var engine := EventEngine.new()
 	_expect(engine.condition_matches({"type": "stat_min", "target": "energy", "value": 70}, session), "stat minimum condition should match")
 	_expect(not engine.condition_matches({"type": "relationship_min", "target": "roommate", "value": 80}, session), "relationship minimum condition should reject")
+	_expect(not engine.condition_matches({"type": "average_relationship_min", "value": 48}, session), "average relationship conditions should distinguish an untouched social network")
 	_expect(engine.condition_matches({"type": "route", "value": "study"}, session), "route conditions should match the saved strategy route")
+	var repository := ContentRepository.new()
+	repository.load_all()
+	var targeted_engine := EventEngine.new(repository)
+	var targeted_event := targeted_engine.get_npc_event("scholar", "library", session)
+	_expect(targeted_event.get("id") == "npc_scholar_exchange", "actively visiting a companion should resolve that companion's eligible event before unrelated AI events")
 	var event := {"id": "test_event"}
 	var choice := {
 		"id": "test_choice",
@@ -234,6 +246,17 @@ func _test_ambience_contract() -> void:
 	_expect(AmbientSoundControllerScript.period_from_slot(4) == &"night", "late night should use the night soundscape")
 
 
+func _test_runtime_loading_surface() -> void:
+	_expect(not FileAccess.file_exists("res://scenes/system/loading_screen.tscn"), "the retired project loading screen should not remain in the runtime project")
+	_expect(not FileAccess.file_exists("res://scenes/system/scene_loader.tscn"), "the unused scene-loader autoload scene should be removed")
+	_expect(not FileAccess.file_exists("res://addons/maaacks_game_template/base/loading_screen.gd"), "the retired loading-screen plugin script should not be packaged")
+	_expect(not FileAccess.file_exists("res://addons/maaacks_game_template/base/scene_loader.gd"), "the retired scene-loader plugin script should not be packaged")
+	var project_source := FileAccess.get_file_as_string("res://project.godot")
+	var main_source := FileAccess.get_file_as_string("res://scripts/ui/main.gd")
+	_expect(not project_source.contains("SceneLoader=\"*res://"), "the retired SceneLoader should not be registered as an autoload")
+	_expect(not main_source.contains("_show_scene_preparation") and not main_source.contains("event_loading") and not main_source.contains("stress_crisis_loading"), "fixed events and stress crises should not retain a second loading-page branch")
+
+
 func _test_save_round_trip() -> void:
 	var service := SaveService.new("user://campus_test_autosave.json", "user://campus_test_settings.json")
 	service.delete_save()
@@ -270,7 +293,7 @@ func _test_endings_reachable() -> void:
 		"ai_partner": {"study": 60, "project": 60, "ai_dependence": 40, "verified_ai": true},
 		"study_master": {"study": 80},
 		"tech_builder": {"project": 80},
-		"warm_campus": {},
+		"warm_campus": {"relationships": 50},
 	}
 	for ending_id in scenarios:
 		var session := GameSession.new()

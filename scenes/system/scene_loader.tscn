@@ -1,8 +1,0 @@
-[gd_scene load_steps=2 format=3]
-
-[ext_resource path="res://addons/maaacks_game_template/base/scene_loader.gd" type="Script" id="1_loader"]
-
-[node name="SceneLoader" type="Node"]
-process_mode = 3
-script = ExtResource("1_loader")
-loading_screen_path = "res://scenes/system/loading_screen.tscn"
