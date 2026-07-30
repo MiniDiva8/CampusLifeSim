@@ -7,8 +7,8 @@
     "description": "山大南路 27 号的夜深下来，宿舍既是恢复精力的地方，也是期末消息最密集的一站。",
     "color": "#7C6FB2",
     "actions": [
-      {"id": "sleep", "label": "补个好觉", "description": "恢复精力，也让脑子停止冒烟。", "effects": [{"type": "stat", "target": "energy", "amount": 22}, {"type": "stat", "target": "stress", "amount": -12}]},
-      {"id": "night_work", "label": "在宿舍赶工", "description": "效率可观，但身体会记账。", "effects": [{"type": "stat", "target": "project", "amount": 9}, {"type": "stat", "target": "energy", "amount": -16}, {"type": "stat", "target": "stress", "amount": 8}]}
+      {"id": "sleep", "label": "补个好觉", "description": "恢复精力，也偿还已经积累的睡眠债。", "effects": [{"type": "stat", "target": "energy", "amount": 22}, {"type": "stat", "target": "stress", "amount": -12}, {"type": "debt", "target": "sleep", "amount": -2}]},
+      {"id": "night_work", "label": "在宿舍赶工", "description": "眼前效率可观，但身体和项目都会记账。", "effects": [{"type": "stat", "target": "project", "amount": 12}, {"type": "stat", "target": "energy", "amount": -16}, {"type": "stat", "target": "stress", "amount": 8}, {"type": "debt", "target": "sleep", "amount": 2}, {"type": "debt", "target": "technical", "amount": 1}]}
     ]
   },
   {
@@ -44,7 +44,7 @@
     "color": "#477FA8",
     "actions": [
       {"id": "code", "label": "推进核心功能", "description": "扎实完成自己负责的部分。", "effects": [{"type": "stat", "target": "project", "amount": 11}, {"type": "task", "target": "presentation", "amount": 5}, {"type": "stat", "target": "energy", "amount": -12}, {"type": "stat", "target": "stress", "amount": 5}]},
-      {"id": "pair_work", "label": "和组员结对调试", "description": "进度略慢，但减少理解断层。", "effects": [{"type": "stat", "target": "project", "amount": 8}, {"type": "relationship", "target": "teammate", "amount": 4}, {"type": "stat", "target": "energy", "amount": -9}]}
+      {"id": "pair_work", "label": "和组员结对调试", "description": "进度略慢，但会偿还理解断层形成的技术债。", "effects": [{"type": "stat", "target": "project", "amount": 8}, {"type": "relationship", "target": "teammate", "amount": 4}, {"type": "stat", "target": "energy", "amount": -9}, {"type": "debt", "target": "technical", "amount": -1}, {"type": "debt", "target": "social", "amount": -1}]}
     ]
   },
   {
@@ -55,8 +55,8 @@
     "description": "齐园的一顿热饭能解决很多问题，至少在下一道 DDL 之前。",
     "color": "#C96767",
     "actions": [
-      {"id": "meal", "label": "认真吃顿饭", "description": "补充精力，暂停内耗。", "effects": [{"type": "stat", "target": "energy", "amount": 14}, {"type": "stat", "target": "stress", "amount": -7}]},
-      {"id": "chat", "label": "和同学拼桌", "description": "饭桌也是校园情报站。", "effects": [{"type": "relationship", "target": "monitor", "amount": 4}, {"type": "stat", "target": "stress", "amount": -5}, {"type": "stat", "target": "energy", "amount": 7}]}
+      {"id": "meal", "label": "认真吃顿饭", "description": "补充精力，暂停内耗，也让身体债务不再继续扩大。", "effects": [{"type": "stat", "target": "energy", "amount": 14}, {"type": "stat", "target": "stress", "amount": -7}, {"type": "debt", "target": "sleep", "amount": -1}]},
+      {"id": "chat", "label": "和同学拼桌", "description": "饭桌也是校园情报站，可以回应之前欠下的人情。", "effects": [{"type": "relationship", "target": "monitor", "amount": 4}, {"type": "stat", "target": "stress", "amount": -5}, {"type": "stat", "target": "energy", "amount": 7}, {"type": "debt", "target": "social", "amount": -1}]}
     ]
   },
   {
@@ -67,8 +67,8 @@
     "description": "从风雨操场到室外田径场，场地不问你复习了多少，只提醒你先把气喘匀。",
     "color": "#5D9B66",
     "actions": [
-      {"id": "walk", "label": "沿校园路散步", "description": "把脑内弹窗一个个关掉。", "effects": [{"type": "stat", "target": "stress", "amount": -14}, {"type": "stat", "target": "energy", "amount": 4}]},
-      {"id": "exercise", "label": "慢跑几圈", "description": "消耗一点精力，换来更稳的心态。", "effects": [{"type": "stat", "target": "stress", "amount": -18}, {"type": "stat", "target": "energy", "amount": -4}]}
+      {"id": "walk", "label": "沿校园路散步", "description": "把脑内弹窗一个个关掉，也让疲劳不再继续滚大。", "effects": [{"type": "stat", "target": "stress", "amount": -14}, {"type": "stat", "target": "energy", "amount": 4}, {"type": "debt", "target": "sleep", "amount": -1}]},
+      {"id": "exercise", "label": "慢跑几圈", "description": "消耗一点精力，换来更稳的心态和更可控的身体状态。", "effects": [{"type": "stat", "target": "stress", "amount": -18}, {"type": "stat", "target": "energy", "amount": -4}, {"type": "debt", "target": "sleep", "amount": -1}]}
     ]
   }
 ]

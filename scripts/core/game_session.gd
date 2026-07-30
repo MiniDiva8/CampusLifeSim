@@ -2,7 +2,7 @@ class_name GameSession
 extends RefCounted
 
 const RouteRulesScript = preload("res://scripts/core/route_rules.gd")
-const SCHEMA_VERSION := 1
+const SCHEMA_VERSION := 2
 const DEFAULT_SEED := 20260722
 const STAT_KEYS := ["study", "project", "energy", "stress", "ai_dependence"]
 const RELATIONSHIP_KEYS := ["roommate", "teammate", "scholar", "monitor"]
@@ -24,6 +24,13 @@ var current_background_path := ""
 var last_location_backgrounds: Dictionary = {}
 var last_road_background := ""
 var background_choice_counter := 0
+var debts: Dictionary = {}
+var active_commitment := ""
+var commitment_day := 0
+var commitment_progress := 0
+var commitments_history: Array = []
+var decision_count := 0
+var consequence_history: Array = []
 
 
 func _init() -> void:
@@ -59,6 +66,13 @@ func reset(name_value: String = "小山", selected_trait: String = "study", sele
 	last_location_backgrounds = {}
 	last_road_background = ""
 	background_choice_counter = 0
+	debts = {"sleep": 0, "technical": 0, "social": 0, "ai_risk": 0}
+	active_commitment = ""
+	commitment_day = 0
+	commitment_progress = 0
+	commitments_history = []
+	decision_count = 0
+	consequence_history = []
 	apply_trait(trait_id)
 
 
@@ -82,6 +96,8 @@ func clamp_all() -> void:
 		relationships[key] = clampi(int(relationships.get(key, 0)), 0, 100)
 	for key in tasks.keys():
 		tasks[key] = clampi(int(tasks[key]), 0, 100)
+	for key in debts.keys():
+		debts[key] = clampi(int(debts[key]), 0, 9)
 
 
 func change_stat(stat_id: String, amount: int) -> int:
@@ -106,6 +122,12 @@ func change_task(task_id: String, amount: int) -> int:
 	var before := int(tasks.get(task_id, 0))
 	tasks[task_id] = clampi(before + amount, 0, 100)
 	return int(tasks[task_id]) - before
+
+
+func change_debt(debt_id: String, amount: int) -> int:
+	var before := int(debts.get(debt_id, 0))
+	debts[debt_id] = clampi(before + amount, 0, 9)
+	return int(debts[debt_id]) - before
 
 
 func average_relationship() -> float:
@@ -154,11 +176,19 @@ func to_dict() -> Dictionary:
 		"last_location_backgrounds": last_location_backgrounds.duplicate(true),
 		"last_road_background": last_road_background,
 		"background_choice_counter": background_choice_counter,
+		"debts": debts.duplicate(true),
+		"active_commitment": active_commitment,
+		"commitment_day": commitment_day,
+		"commitment_progress": commitment_progress,
+		"commitments_history": commitments_history.duplicate(true),
+		"decision_count": decision_count,
+		"consequence_history": consequence_history.duplicate(true),
 	}
 
 
 func from_dict(data: Dictionary) -> bool:
-	if int(data.get("schema_version", -1)) != SCHEMA_VERSION:
+	var source_schema := int(data.get("schema_version", -1))
+	if source_schema not in [1, SCHEMA_VERSION]:
 		return false
 	player_name = str(data.get("player_name", "小山"))
 	trait_id = RouteRulesScript.normalize(str(data.get("trait_id", "study")))
@@ -177,6 +207,16 @@ func from_dict(data: Dictionary) -> bool:
 	last_location_backgrounds = data.get("last_location_backgrounds", {}).duplicate(true)
 	last_road_background = str(data.get("last_road_background", ""))
 	background_choice_counter = maxi(int(data.get("background_choice_counter", 0)), 0)
+	debts = data.get("debts", {"sleep": 0, "technical": 0, "social": 0, "ai_risk": 0}).duplicate(true)
+	for debt_id in ["sleep", "technical", "social", "ai_risk"]:
+		if not debts.has(debt_id):
+			debts[debt_id] = 0
+	active_commitment = str(data.get("active_commitment", ""))
+	commitment_day = int(data.get("commitment_day", 0))
+	commitment_progress = int(data.get("commitment_progress", 0))
+	commitments_history = data.get("commitments_history", []).duplicate(true)
+	decision_count = maxi(int(data.get("decision_count", 0)), 0)
+	consequence_history = data.get("consequence_history", []).duplicate(true)
 	for key in STAT_KEYS:
 		if not stats.has(key):
 			return false

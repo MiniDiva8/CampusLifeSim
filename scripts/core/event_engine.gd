@@ -2,6 +2,7 @@ class_name EventEngine
 extends RefCounted
 
 const RouteRulesScript = preload("res://scripts/core/route_rules.gd")
+const DecisionRulesScript = preload("res://scripts/core/decision_rules.gd")
 var repository: ContentRepository
 
 
@@ -30,8 +31,17 @@ func condition_matches(condition: Dictionary, session: GameSession) -> bool:
 			return int(session.tasks.get(target, 0)) >= int(expected)
 		"task_max":
 			return int(session.tasks.get(target, 0)) <= int(expected)
+		"debt_min":
+			return int(session.debts.get(target, 0)) >= int(expected)
+		"debt_max":
+			return int(session.debts.get(target, 0)) <= int(expected)
 		"flag":
-			return session.flags.get(target, false) == expected
+			var actual = session.flags.get(target, null)
+			if typeof(actual) != typeof(expected):
+				return false
+			return actual == expected
+		"flag_in":
+			return expected is Array and expected.has(session.flags.get(target, null))
 		"event_fired":
 			return session.has_fired(target) == bool(expected)
 		"day_min":
@@ -82,6 +92,23 @@ func get_fixed_event(session: GameSession) -> Dictionary:
 	return {}
 
 
+func get_next_fixed_index(session: GameSession, maximum_index: int) -> int:
+	var current_index := session.clock.get_index()
+	var result := -1
+	for event in repository.events:
+		var trigger: Dictionary = event.get("trigger", {})
+		if str(trigger.get("type", "")) != "fixed":
+			continue
+		if bool(event.get("once", true)) and session.has_fired(str(event.get("id", ""))):
+			continue
+		var event_index := (int(trigger.get("day", 1)) - 1) * GameClock.SLOTS_PER_DAY + int(trigger.get("slot", 0))
+		if event_index <= current_index or event_index > maximum_index:
+			continue
+		if result < 0 or event_index < result:
+			result = event_index
+	return result
+
+
 func get_location_event(location_id: String, session: GameSession) -> Dictionary:
 	var candidates: Array = []
 	for event in repository.events:
@@ -123,10 +150,16 @@ func apply_choice(event: Dictionary, choice: Dictionary, session: GameSession) -
 	for delayed in choice.get("delayed", []):
 		var queued: Dictionary = delayed.duplicate(true)
 		queued["due_index"] = session.clock.get_index() + int(delayed.get("after_slots", 1))
+		queued["source_event_id"] = str(event.get("id", ""))
+		queued["source_choice_id"] = str(choice.get("id", ""))
+		queued["source_day"] = session.clock.day
+		queued["source_label"] = str(choice.get("label", "之前的选择"))
 		session.pending_consequences.append(queued)
-		result.append("一个后果将在之后显现")
+		result.append("这项决定会在之后继续产生影响")
 	_apply_action_pressure(session, result)
 	session.mark_event_fired(str(event.get("id", "")), str(choice.get("id", "")))
+	session.decision_count += 1
+	result.append_array(DecisionRulesScript.resolve_milestone(str(event.get("id", "")), str(choice.get("id", "")), session))
 	session.clamp_all()
 	return result
 
@@ -136,6 +169,7 @@ func apply_fallback_action(action: Dictionary, session: GameSession) -> Array[St
 	for effect in action.get("effects", []):
 		result.append(_apply_effect(effect, session))
 	_apply_action_pressure(session, result)
+	session.decision_count += 1
 	session.clamp_all()
 	return result
 
@@ -158,8 +192,21 @@ func process_due_consequences(session: GameSession) -> Array[Dictionary]:
 				messages.append(_apply_effect(effect, session))
 			resolved.append({
 				"title": consequence.get("title", "延迟后果"),
-				"message": consequence.get("message", "之前的选择产生了新的影响。"),
+				"message": "因为你在第 %d 天选择了“%s”：%s" % [
+					int(consequence.get("source_day", session.clock.day)),
+					str(consequence.get("source_label", "之前的做法")),
+					str(consequence.get("message", "之前的选择产生了新的影响。")),
+				],
 				"effects": messages,
+				"source_day": int(consequence.get("source_day", session.clock.day)),
+				"source_event_id": str(consequence.get("source_event_id", "")),
+				"source_choice_id": str(consequence.get("source_choice_id", "")),
+			})
+			session.consequence_history.append({
+				"resolved_index": session.clock.get_index(),
+				"source_day": int(consequence.get("source_day", session.clock.day)),
+				"source_event_id": str(consequence.get("source_event_id", "")),
+				"source_choice_id": str(consequence.get("source_choice_id", "")),
 			})
 		else:
 			remaining.append(consequence)
@@ -177,15 +224,23 @@ func _apply_effect(effect: Dictionary, session: GameSession) -> String:
 	match effect_type:
 		"stat":
 			var changed := session.change_stat(target, amount)
+			DecisionRulesScript.register_effect(session, effect_type, target, changed)
 			return "%s %s%d" % [_display_target(target), "+" if changed >= 0 else "", changed]
 		"relationship":
 			var changed := session.change_relationship(target, amount)
+			DecisionRulesScript.register_effect(session, effect_type, target, changed)
 			return "%s关系 %s%d" % [_display_target(target), "+" if changed >= 0 else "", changed]
 		"task":
 			var changed := session.change_task(target, amount)
+			DecisionRulesScript.register_effect(session, effect_type, target, changed)
 			return "%s %s%d" % [_display_target(target), "+" if changed >= 0 else "", changed]
+		"debt":
+			var changed := session.change_debt(target, raw_amount)
+			DecisionRulesScript.register_effect(session, effect_type, target, changed)
+			return "%s %s%d" % [DecisionRulesScript.debt_display_name(target), "+" if changed >= 0 else "", changed]
 		"flag":
 			session.flags[target] = effect.get("value", true)
+			DecisionRulesScript.register_effect(session, effect_type, target, 0, effect.get("value", true))
 			return str(effect.get("message", "新的事件线索已记录"))
 		_:
 			push_error("Unknown effect type: %s" % effect_type)

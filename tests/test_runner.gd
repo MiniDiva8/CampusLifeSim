@@ -15,6 +15,7 @@ func _init() -> void:
 	_test_session_and_clamping()
 	_test_difficulty_rules()
 	_test_route_rules()
+	_test_decision_rules()
 	_test_event_conditions_and_delays()
 	_test_ai_determinism()
 	_test_audio_foundation()
@@ -172,6 +173,51 @@ func _test_route_rules() -> void:
 	_expect(RouteRulesScript.get_event_priority_bonus(npc_event, "social") == 30, "social route should prioritize eligible NPC events")
 
 
+func _test_decision_rules() -> void:
+	var committed := GameSession.new()
+	committed.reset("阶段承诺", "project", "medium")
+	_expect(DecisionRules.needs_commitment(committed), "day one should ask for a phase commitment")
+	_expect(DecisionRules.get_commitment_options(committed).size() == 4, "a commitment prompt should offer four contextual strategies")
+	DecisionRules.begin_commitment(committed, "project")
+	DecisionRules.register_effect(committed, "stat", "project", 5)
+	DecisionRules.register_effect(committed, "task", "presentation", 3)
+	var fulfilled := DecisionRules.settle_commitment(committed, 1)
+	_expect(not fulfilled.is_empty() and bool(committed.commitments_history[0].success), "matching actions should fulfill the phase commitment")
+	_expect(committed.debts.technical == 0 and committed.active_commitment.is_empty(), "fulfilled project commitment should not create technical debt")
+
+	var missed := GameSession.new()
+	missed.reset("承诺落空", "study", "hard")
+	DecisionRules.begin_commitment(missed, "exam")
+	var missed_result := DecisionRules.settle_commitment(missed, 1)
+	_expect(not missed_result.is_empty() and missed.debts.sleep == 2, "a missed hard-mode commitment should create a larger cross-day debt")
+	missed.stats.energy = 80
+	missed.stats.stress = 20
+	var debt_result := DecisionRules.settle_sleep_debt(missed, 1)
+	_expect(not debt_result.is_empty() and missed.stats.energy == 74 and missed.stats.stress == 24 and missed.debts.sleep == 1, "sleep debt should become a concrete next-day energy and stress cost")
+
+	var repository := ContentRepository.new()
+	repository.load_all()
+	var engine := EventEngine.new(repository)
+	var schedule_session := GameSession.new()
+	schedule_session.mark_event_fired("fixed_arrival", "record")
+	_expect(engine.get_next_fixed_index(schedule_session, 3) == 2, "two-slot actions should stop on an unfired fixed event instead of skipping it")
+
+	var prepared := GameSession.new()
+	prepared.stats.study = 85
+	prepared.tasks.exam = 80
+	prepared.stats.energy = 70
+	var milestone := DecisionRules.resolve_milestone("fixed_exam", "reasoning", prepared)
+	_expect(not milestone.is_empty() and prepared.flags.exam_outcome == "strong", "milestone quality should be calculated from accumulated preparation and the final approach")
+	var risky := GameSession.new()
+	risky.stats.study = 45
+	risky.tasks.exam = 35
+	risky.stats.energy = 35
+	risky.debts.sleep = 3
+	risky.debts.ai_risk = 2
+	DecisionRules.resolve_milestone("fixed_exam", "memorized", risky)
+	_expect(risky.flags.exam_outcome == "weak", "unpaid debts and shallow preparation should visibly damage the exam outcome")
+
+
 func _test_event_conditions_and_delays() -> void:
 	var session := GameSession.new()
 	var engine := EventEngine.new()
@@ -187,6 +233,7 @@ func _test_event_conditions_and_delays() -> void:
 	var event := {"id": "test_event"}
 	var choice := {
 		"id": "test_choice",
+		"label": "测试选项",
 		"effects": [{"type": "stat", "target": "study", "amount": 5}],
 		"delayed": [{"after_slots": 2, "title": "测试后果", "message": "到期", "effects": [{"type": "stat", "target": "energy", "amount": -10}]}],
 	}
@@ -197,6 +244,8 @@ func _test_event_conditions_and_delays() -> void:
 	session.clock.advance(1)
 	var resolved := engine.process_due_consequences(session)
 	_expect(resolved.size() == 1 and session.stats.energy == 70, "delayed consequence should resolve on its due slot")
+	_expect(str(resolved[0].message).contains("第 1 天") and str(resolved[0].message).contains("测试选项"), "delayed consequence should name the source day and choice")
+	_expect(session.consequence_history.size() == 1, "resolved consequences should be recorded for later recap")
 
 
 func _test_ai_determinism() -> void:
@@ -265,6 +314,11 @@ func _test_save_round_trip() -> void:
 	session.difficulty_id = "hard"
 	session.clock.advance(7)
 	session.change_relationship("teammate", 13)
+	session.debts.technical = 2
+	session.active_commitment = "project"
+	session.commitment_day = 2
+	session.commitment_progress = 6
+	session.decision_count = 4
 	var catalog := BackgroundCatalog.new()
 	catalog.load_all()
 	catalog.choose_location_background("lab", session)
@@ -279,6 +333,8 @@ func _test_save_round_trip() -> void:
 		_expect(restored.difficulty_id == "hard", "save should preserve difficulty")
 		_expect(restored.current_location_id == "lab" and not restored.current_background_path.is_empty(), "save should preserve the active scene background")
 		_expect(restored.background_choice_counter == 2 and not restored.last_road_background.is_empty(), "save should preserve reproducible background history")
+		_expect(restored.debts.technical == 2 and restored.active_commitment == "project" and restored.commitment_progress == 6, "save should preserve debts and phase commitment progress")
+		_expect(restored.decision_count == 4, "save should preserve the meaningful-decision count")
 	service.delete_save()
 
 
@@ -289,10 +345,10 @@ func _test_endings_reachable() -> void:
 	var scenarios := {
 		"pressure_breakdown": {"stress": 95},
 		"ai_overdependence": {"ai_dependence": 80},
-		"all_round": {"study": 70, "project": 70, "energy": 50, "stress": 30, "relationships": 50},
-		"ai_partner": {"study": 60, "project": 60, "ai_dependence": 40, "verified_ai": true},
-		"study_master": {"study": 80},
-		"tech_builder": {"project": 80},
+		"all_round": {"study": 70, "project": 70, "energy": 50, "stress": 30, "relationships": 50, "exam_outcome": "pass", "presentation_outcome": "pass"},
+		"ai_partner": {"study": 60, "project": 60, "ai_dependence": 40, "verified_ai": true, "exam_outcome": "pass", "presentation_outcome": "pass"},
+		"study_master": {"study": 80, "exam_outcome": "strong"},
+		"tech_builder": {"project": 80, "presentation_outcome": "strong"},
 		"warm_campus": {"relationships": 50},
 	}
 	for ending_id in scenarios:
@@ -306,5 +362,9 @@ func _test_endings_reachable() -> void:
 				session.relationships[npc_id] = scenario.relationships
 		if scenario.get("verified_ai", false):
 			session.flags.verified_ai = true
+		if scenario.has("exam_outcome"):
+			session.flags.exam_outcome = scenario.exam_outcome
+		if scenario.has("presentation_outcome"):
+			session.flags.presentation_outcome = scenario.presentation_outcome
 		var result := evaluator.evaluate(session, repository.endings)
 		_expect(result.get("id") == ending_id, "ending %s should be reachable, got %s" % [ending_id, result.get("id")])

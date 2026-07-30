@@ -211,7 +211,7 @@ func _build_choices(data: Dictionary) -> void:
 	question.size = Vector2(choice_rect.size.x * 0.58, 28)
 	_choice_region.add_child(question)
 
-	_interaction_status = _label(str(data.get("cost_text", "选择后推进 1 个时段")), 12, GRAPHITE_FAINT)
+	_interaction_status = _label(str(data.get("cost_text", "这项重要选择会推进约 2–3 个时段")), 12, GRAPHITE_FAINT)
 	_interaction_status.name = "InteractionStatus"
 	_interaction_status.position = Vector2(choice_rect.size.x * 0.56, 3)
 	_interaction_status.size = Vector2(choice_rect.size.x * 0.44, 24)
