@@ -8,7 +8,7 @@ const DATA_FILES := {
 	"ai_advice": "res://data/ai_advice.json",
 	"endings": "res://data/endings.json",
 }
-const EFFECT_TYPES := ["stat", "relationship", "task", "flag"]
+const EFFECT_TYPES := ["stat", "relationship", "task", "flag", "debt"]
 
 var locations: Array = []
 var npcs: Array = []

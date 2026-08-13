@@ -201,6 +201,25 @@ func _build_header() -> void:
 	status_ribbon.configure(data.get("stats", {}), true, 112.0, 42.0)
 	add_child(status_ribbon)
 
+	var commitment_title := str(data.get("commitment_title", "尚未登记阶段承诺"))
+	var commitment_progress := int(data.get("commitment_progress", 0))
+	var commitment_goal := maxi(1, int(data.get("commitment_goal", 8)))
+	var commitment := _make_label("本阶段｜%s  %d/%d" % [
+		commitment_title,
+		commitment_progress,
+		commitment_goal,
+	], 13, SDU_RED)
+	commitment.position = Vector2(804, 18)
+	commitment.size = Vector2(326, 24)
+	commitment.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	add_child(commitment)
+	var debt_summary := str(data.get("debt_summary", "没有待偿还的后果债务"))
+	var debt := _make_label("次日风险｜%s" % debt_summary, 11, Color(MUTED, 0.86))
+	debt.position = Vector2(804, 46)
+	debt.size = Vector2(326, 20)
+	debt.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	add_child(debt)
+
 	var map_title := _make_label("今天去哪里？", 22, INK)
 	map_title.position = Vector2(42, 105)
 	map_title.size = Vector2(210, 32)
@@ -436,7 +455,7 @@ func _build_detail_strip() -> void:
 	copy.add_child(_detail_name)
 	_detail_subtitle = _make_label("建筑不是菜单卡片，而是你下一段校园生活的入口。", 13, MUTED)
 	copy.add_child(_detail_subtitle)
-	_detail_description = _make_label("每次行动消耗 1 个时段；路线确认后会进入校园路途。", 12, Color(MUTED, 0.84))
+	_detail_description = _make_label("一次自主行动通常跨过约 3 个时段；路线确认后会进入校园路途。", 12, Color(MUTED, 0.84))
 	_detail_description.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	copy.add_child(_detail_description)
 	_travel_button = Button.new()
@@ -524,7 +543,7 @@ func _apply_location_selection(location_id: String) -> void:
 	_detail_description.text = str(location.get("description", ""))
 	_travel_button.disabled = false
 	_travel_button.text = "前往这里  →"
-	_route_caption.text = "路线已标出  ·  消耗 1 个时段"
+	_route_caption.text = "路线已标出  ·  约推进 3 个时段"
 	queue_redraw()
 
 

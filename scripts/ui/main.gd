@@ -9,6 +9,7 @@ const RouteSetupViewScript = preload("res://scripts/ui/route_setup_view.gd")
 const TravelProgressWalkerScript = preload("res://scripts/ui/travel_progress_walker.gd")
 const AIAdviceSheetViewScript = preload("res://scripts/ui/ai_advice_sheet_view.gd")
 const RouteRulesScript = preload("res://scripts/core/route_rules.gd")
+const DecisionRulesScript = preload("res://scripts/core/decision_rules.gd")
 const COLOR_INK := Color("#F4F2E9")
 const COLOR_MUTED := Color("#9BAAA7")
 const COLOR_DARK := Color("#071013")
@@ -221,6 +222,10 @@ func _base_scene_data(scene_context: Dictionary, background_path: String) -> Dic
 		"stress": int(session.stats.stress) if session != null else 0,
 		"exam": int(session.tasks.exam) if session != null else 0,
 		"presentation": int(session.tasks.presentation) if session != null else 0,
+		"commitment": DecisionRulesScript.commitment_title(session.active_commitment) if session != null else "",
+		"commitment_progress": int(session.commitment_progress) if session != null else 0,
+		"debt_summary": DecisionRulesScript.debt_risk_summary(session) if session != null else "",
+		"decision_count": int(session.decision_count) if session != null else 0,
 		"day": int(session.clock.day) if session != null else 1,
 		"slot_index": int(session.clock.slot) if session != null else 0,
 		"footer_hint": "山东大学中心校区 · 离线运行 · 自动存档",
@@ -336,11 +341,17 @@ func _scene_state_tags() -> Array:
 	elif int(session.stats.stress) >= 60:
 		stress_state = "压力偏高"
 		stress_color = "#F4C45E"
-	return [
+	var tags := [
 		{"text": "%s难度" % DifficultyRules.get_display_name(session.difficulty_id), "color": difficulty_color},
 		{"text": energy_state, "color": energy_color},
 		{"text": stress_state, "color": stress_color},
 	]
+	if not session.active_commitment.is_empty():
+		tags.append({
+			"text": "承诺 %d/%d" % [session.commitment_progress, DecisionRulesScript.COMMITMENT_GOAL],
+			"color": "#B84850",
+		})
+	return tags
 
 
 func _effect_preview(effects) -> String:
@@ -366,16 +377,35 @@ func _effect_preview(effects) -> String:
 			"teammate": "组员关系",
 			"scholar": "同学关系",
 			"monitor": "班长关系",
+			"sleep": "睡眠债",
+			"technical": "技术债",
+			"social": "人情债",
+			"ai_risk": "AI风险",
 		}.get(target, target)
 		if effect_type == "flag":
 			continue
 		if target == "ai_dependence":
 			parts.append("AI 使用习惯")
 			continue
+		if effect_type == "debt":
+			if session != null and session.difficulty_id == "hard":
+				parts.append("%s可能变化" % target_name)
+			elif session != null and session.difficulty_id == "medium":
+				parts.append("%s%s" % [target_name, "上升" if amount > 0 else "下降"])
+			else:
+				parts.append("%s %s%d" % [target_name, "+" if amount >= 0 else "", amount])
+			if parts.size() >= 2:
+				break
+			continue
 		var adjusted: int = DifficultyRules.adjust_effect_amount(effect_type, target, amount, session.difficulty_id) if session != null else amount
 		if session != null:
 			adjusted = RouteRulesScript.adjust_effect_amount(effect_type, target, adjusted, session.trait_id)
-		parts.append("%s %s%d" % [target_name, "+" if adjusted >= 0 else "", adjusted])
+		if session != null and session.difficulty_id == "hard":
+			parts.append("%s%s" % [target_name, "改善" if adjusted > 0 else "受损"])
+		elif session != null and session.difficulty_id == "medium":
+			parts.append("%s %s" % [target_name, "↑" if adjusted > 0 else "↓"])
+		else:
+			parts.append("%s %s%d" % [target_name, "+" if adjusted >= 0 else "", adjusted])
 		if parts.size() >= 2:
 			break
 	return " · ".join(parts) if not parts.is_empty() else "记录线索"
@@ -383,7 +413,10 @@ func _effect_preview(effects) -> String:
 
 func _choice_detail(choice: Dictionary) -> String:
 	if not choice.get("delayed", []).is_empty():
-		return "这项决定还可能在之后继续产生影响。"
+		return "这项决定会在之后继续产生影响；困难模式不会提前说明具体结果。"
+	for effect_value in choice.get("effects", []):
+		if effect_value is Dictionary and str(effect_value.get("type", "")) == "debt" and int(effect_value.get("amount", 0)) > 0:
+			return "眼前收益更快，但会把一部分代价推迟到之后。"
 	for effect_value in choice.get("effects", []):
 		if effect_value is Dictionary and str(effect_value.get("target", "")) == "ai_dependence":
 			return "可以快速推进，但仍需要你保留自己的判断。"
@@ -543,8 +576,65 @@ func _present_current_state() -> void:
 			if session == null or session.clock.get_index() != expected_index:
 				return
 		show_event(fixed_event)
+	elif DecisionRulesScript.needs_commitment(session):
+		show_commitment()
 	else:
 		show_map()
+
+
+func show_commitment() -> void:
+	if session == null:
+		show_main_menu()
+		return
+	_finish_interaction_feedback()
+	var choices: Array = []
+	for option_value in DecisionRulesScript.get_commitment_options(session):
+		var option: Dictionary = option_value
+		choices.append({
+			"name": "Commitment_%s" % str(option.id),
+			"title": str(option.title),
+			"detail": _commitment_summary(str(option.id)),
+			"effect": "落空：%s" % DecisionRulesScript.debt_display_name(DecisionRulesScript.commitment_debt_id(str(option.id))),
+			"effect_color": str(option.color),
+			"action": _select_commitment.bind(str(option.id)),
+			"height": 60,
+		})
+	var background_path := background_catalog.get_menu_background()
+	var scene_context := background_catalog.get_scene_context(background_path, "teaching")
+	var data := _base_scene_data(scene_context, background_path)
+	data.merge({
+		"panel_name": "CommitmentSheet",
+		"section": "阶段承诺 / PROMISE",
+		"accent": "#B84850",
+		"title": "接下来，你至少要守住什么？",
+		"body": "时间不足以让所有事情同时满格。先登记一件真正优先的事；之后的行动会证明你是否兑现了它。",
+		"question": "只选择一项",
+		"cost_text": "登记本身不消耗时段",
+		"state_tags": [
+			{"text": "第 %d 天" % session.clock.day, "color": "#B84850"},
+			{"text": DecisionRulesScript.debt_risk_summary(session), "color": "#8A6A38"},
+		],
+		"choices": choices,
+	}, true)
+	_show_editorial_event(data, "commitment")
+
+
+func _commitment_summary(commitment_id: String) -> String:
+	return {
+		"exam": "完成一次有效复习、答疑或考试准备",
+		"project": "推进真实成果，不只追求表面进度",
+		"social": "认真处理一次关系或协作请求",
+		"recovery": "通过休息、吃饭或运动恢复状态",
+		"verification": "留下来源、可运行代码或亲自解释的证据",
+	}.get(commitment_id, "用接下来的行动证明这项优先级")
+
+
+func _select_commitment(commitment_id: String) -> void:
+	if not _begin_interaction_feedback("正在登记阶段承诺…"):
+		return
+	DecisionRulesScript.begin_commitment(session, commitment_id)
+	_save_current_session()
+	show_map()
 
 
 func show_map() -> void:
@@ -573,6 +663,11 @@ func show_map() -> void:
 		"stats": session.stats.duplicate(true),
 		"tasks": session.tasks.duplicate(true),
 		"relationships": session.relationships.duplicate(true),
+		"commitment_title": DecisionRulesScript.commitment_title(session.active_commitment),
+		"commitment_progress": session.commitment_progress,
+		"commitment_goal": DecisionRulesScript.COMMITMENT_GOAL,
+		"debt_summary": DecisionRulesScript.debt_risk_summary(session),
+		"decision_count": session.decision_count,
 		"current_location_id": session.current_location_id,
 		"locations": repository.locations,
 		"npcs": repository.npcs,
@@ -737,7 +832,7 @@ func show_location(location_id: String) -> void:
 		"title": "抵达 · %s" % scene_name,
 		"body": "%s\n%s" % [scene_context.get("arrival_text", location.description), location.description],
 		"question": "这个时段，你准备做什么？",
-		"cost_text": "行动后推进 1 个时段",
+		"cost_text": "自主行动会推进约 3 个时段",
 		"state_tags": _scene_state_tags(),
 		"choices": choices,
 		"pause_action": show_pause_menu,
@@ -772,7 +867,7 @@ func show_npc_contact(npc_id: String) -> void:
 		"title": str(contact.get("title", "和 %s 聊一会儿" % npc.get("name", "同伴"))),
 		"body": "%s\n%s" % [str(contact.get("body", "")), str(npc.get("description", ""))],
 		"question": "你准备怎样回应 %s？" % str(npc.get("name", "对方")),
-		"cost_text": "相处会推进 1 个时段",
+		"cost_text": "这次相处会推进约 3 个时段",
 		"state_tags": [
 			{"text": "关系 %d" % relationship_value, "color": str(npc.get("color", "#63DDB8"))},
 			{"text": "主动相处", "color": "#527C8A"},
@@ -818,7 +913,7 @@ func show_event(event: Dictionary) -> void:
 		"title": _format_scene_text(str(event.get("title", "事件")), scene_context),
 		"body": _format_scene_text(str(event.get("body", "")), scene_context),
 		"question": "你准备怎么做？",
-		"cost_text": "选择后推进 1 个时段",
+		"cost_text": "这次决定将推进约 %d 个时段" % DecisionRulesScript.event_time_cost(event),
 		"state_tags": _scene_state_tags(),
 		"choices": choices,
 	}, true)
@@ -860,7 +955,8 @@ func _resolve_event_choice(event: Dictionary, choice: Dictionary) -> void:
 	var scene_context := background_catalog.get_active_scene_context(session)
 	var outcome := _format_scene_text(str(choice.get("outcome", "你的选择产生了影响。")), scene_context)
 	var result_title := _format_scene_text(str(event.get("title", "事件结果")), scene_context)
-	show_result(result_title, outcome, _visible_effects(effects), _advance_after_action)
+	var time_cost := DecisionRulesScript.event_time_cost(event, choice)
+	show_result(result_title, outcome, _visible_effects(effects), _advance_after_action.bind(time_cost))
 
 
 func _resolve_fallback_action(action: Dictionary) -> void:
@@ -868,7 +964,8 @@ func _resolve_fallback_action(action: Dictionary) -> void:
 		return
 	await get_tree().process_frame
 	var effects := event_engine.apply_fallback_action(action, session)
-	show_result(str(action.get("label", "行动完成")), str(action.get("description", "这个时段结束了。")), _visible_effects(effects), _advance_after_action)
+	var time_cost := int(action.get("time_cost", DecisionRulesScript.EXPLORATION_COST))
+	show_result(str(action.get("label", "行动完成")), str(action.get("description", "这个时段结束了。")), _visible_effects(effects), _advance_after_action.bind(time_cost))
 
 
 func _visible_effects(effects: Array[String]) -> Array[String]:
@@ -913,13 +1010,28 @@ func show_result(title_text: String, description: String, effects: Array[String]
 	_show_editorial_event(data, "result")
 
 
-func _advance_after_action() -> void:
+func _advance_after_action(time_cost: int = DecisionRulesScript.ACTION_COST) -> void:
 	if not _begin_interaction_feedback("正在推进时间…"):
 		return
 	await get_tree().process_frame
-	var transition := session.clock.advance()
+	var previous_day := session.clock.day
+	var target_index := mini(GameClock.DAYS * GameClock.SLOTS_PER_DAY, session.clock.get_index() + maxi(time_cost, 1))
+	var next_fixed_index := event_engine.get_next_fixed_index(session, target_index)
+	if next_fixed_index >= 0:
+		target_index = next_fixed_index
+	var transition := session.clock.advance(target_index - session.clock.get_index())
 	var day_messages: Array[String] = []
 	if bool(transition.get("day_changed", false)) and not session.clock.is_finished():
+		var commitment_result := DecisionRulesScript.settle_commitment(session, previous_day)
+		if not commitment_result.is_empty():
+			day_messages.append(str(commitment_result.get("message", "")))
+			for effect in commitment_result.get("effects", []):
+				day_messages.append(str(effect))
+		var sleep_result := DecisionRulesScript.settle_sleep_debt(session, previous_day)
+		if not sleep_result.is_empty():
+			day_messages.append(str(sleep_result.get("message", "")))
+			for effect in sleep_result.get("effects", []):
+				day_messages.append(str(effect))
 		var energy_recovery := DifficultyRules.adjust_effect_amount("stat", "energy", 7, session.difficulty_id)
 		var stress_relief := DifficultyRules.adjust_effect_amount("stat", "stress", -2, session.difficulty_id)
 		var energy_change := session.change_stat("energy", energy_recovery)
@@ -953,13 +1065,21 @@ func _save_current_session() -> void:
 func _complete_advance(consequences: Array[Dictionary], day_messages: Array[String]) -> void:
 	if not consequences.is_empty():
 		var first: Dictionary = consequences[0]
+		var consequence_messages: Array[String] = []
 		var effect_lines: Array[String] = []
-		for line in first.get("effects", []):
-			effect_lines.append(str(line))
+		for consequence in consequences:
+			consequence_messages.append(str(consequence.get("message", "之前的选择产生了影响。")))
+			for line in consequence.get("effects", []):
+				effect_lines.append(str(line))
 		effect_lines.append_array(day_messages)
-		show_result(str(first.get("title", "延迟后果")), str(first.get("message", "之前的选择产生了影响。")), _visible_effects(effect_lines), _present_current_state)
+		show_result(
+			str(first.get("title", "延迟后果")) if consequences.size() == 1 else "%d 项旧选择同时回来了" % consequences.size(),
+			"\n\n".join(consequence_messages),
+			_visible_effects(effect_lines),
+			_present_current_state
+		)
 	elif not day_messages.is_empty():
-		show_result("新的一天", "睡眠没有解决所有问题，但给了你重新安排的机会。", day_messages, _present_current_state)
+		show_result("跨日回顾", "昨天的承诺、债务和行动都被带进了今天。", day_messages, _present_current_state)
 	else:
 		_present_current_state()
 

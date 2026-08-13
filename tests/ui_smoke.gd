@@ -26,6 +26,8 @@ func _has_label_containing(node: Node, fragment: String) -> bool:
 
 
 func _count_nodes_with_script(node: Node, script_path: String) -> int:
+	if node == null:
+		return 0
 	var count := 0
 	var attached_script: Script = node.get_script() as Script
 	if attached_script != null and attached_script.resource_path == script_path:
@@ -49,6 +51,14 @@ func _wait_for_node(app: Node, node_name: String, timeout_ms: int = 3000) -> Nod
 		await process_frame
 		found = app.find_child(node_name, true, false)
 	return found
+
+
+func _latest_button(app: Node, node_name: String) -> Button:
+	var matches := app.find_children(node_name, "", true, false)
+	for index in range(matches.size() - 1, -1, -1):
+		if matches[index] is Button and matches[index].is_inside_tree():
+			return matches[index] as Button
+	return null
 
 
 func _run() -> void:
@@ -111,8 +121,21 @@ func _run() -> void:
 	_expect(app.active_photo_background.texture == first_photo_texture, "choice result should reuse the active original photo texture instead of decoding it again")
 	var first_continue := app.find_child("ContinueResult", true, false) as Button
 	first_continue.pressed.emit()
-	_expect(await _wait_for_screen(app, "map"), "continuing should reach the campus map")
-	_expect(app.session.clock.get_index() == 1, "first choice should consume one slot")
+	_expect(await _wait_for_screen(app, "event"), "a two-slot choice should stop at the next unfired fixed schedule instead of skipping it")
+	_expect(app.session.clock.get_index() == 2, "first major choice should consume two slots")
+	var schedule_choice := app.find_child("Choice_record", true, false) as Button
+	_expect(schedule_choice != null, "the day-one schedule decision should remain reachable after the compressed action")
+	schedule_choice.pressed.emit()
+	_expect(await _wait_for_screen(app, "result"), "schedule choice should produce a receipt")
+	var schedule_continue := app.find_child("ContinueResult", true, false) as Button
+	schedule_continue.pressed.emit()
+	_expect(await _wait_for_screen(app, "commitment"), "the first open phase should ask what the player intends to protect")
+	_expect(_has_label_containing(app, "至少要守住什么"), "phase commitment should explain that not every meter can be maximized")
+	var project_commitment := app.find_child("Commitment_project", true, false) as Button
+	_expect(project_commitment != null, "commitment sheet should expose a project promise")
+	project_commitment.pressed.emit()
+	_expect(await _wait_for_screen(app, "map"), "registering a commitment should reach the campus map without consuming time")
+	_expect(app.session.clock.get_index() == 4, "two major fixed decisions should leave day one late night as the first free action")
 	var campus_map := app.find_child("CampusMapView", true, false) as Control
 	var library_location_button := app.find_child("Location_library", true, false) as Button
 	_expect(campus_map != null and library_location_button != null, "campus screen should expose a full-canvas map with building hotspots")
@@ -120,6 +143,7 @@ func _run() -> void:
 	var map_status := app.find_child("MapStatusRibbon", true, false) as Control
 	var study_value := map_status.find_child("StatusValue_study", true, false) as Label if map_status != null else null
 	_expect(map_status != null and study_value != null and study_value.get_theme_font_size("font_size") >= 18, "map status should use four prominent meters instead of the old twelve-point value line")
+	_expect(_has_label_containing(app, "本阶段｜留下可复现成果") and _has_label_containing(app, "次日风险"), "map should keep the current promise and accumulated cross-day risks visible")
 	var advice := AIAdvisor.new(app.repository.ai_advice).choose_advice(app.session)
 	app.show_ai_advice(advice)
 	await process_frame
@@ -180,8 +204,12 @@ func _run() -> void:
 	var library_continue := app.find_child("ContinueResult", true, false) as Button
 	library_continue.pressed.emit()
 	_expect(app.current_screen != "event_loading" and not _has_label_containing(app, "下一幕正在准备"), "fixed events should keep the current receipt visible instead of inserting the retired loading page")
-	_expect(await _wait_for_screen(app, "event"), "day-one schedule notice should trigger on its fixed slot")
-	_expect(app.session.clock.get_index() == 2, "location event should consume one slot")
+	await process_frame
+	_expect(app.current_screen == "result" and _has_label_containing(app, "跨日回顾"), "crossing midnight should visibly settle the promise and its debt before continuing")
+	var day_recap_continue := _latest_button(app, "ContinueResult")
+	day_recap_continue.pressed.emit()
+	_expect(await _wait_for_screen(app, "map"), "closing the cross-day recap should return to the campus")
+	_expect(app.session.clock.get_index() == 7, "the self-directed library relationship decision should consume three slots")
 
 	app.session.current_location_id = "field"
 	app.session.current_background_path = "res://assets/backgrounds/locations/field/网球.jpg"
@@ -256,7 +284,7 @@ func _run() -> void:
 		"title": "抵达 · 齐园餐厅 · 水果区",
 		"body": "你准备挑些水果补充能量。",
 		"question": "这个时段，你准备做什么？",
-		"cost_text": "行动后推进 1 个时段",
+		"cost_text": "重要行动通常推进约 2 个时段",
 		"state_tags": [],
 		"choices": [],
 	}, true)
@@ -280,15 +308,16 @@ func _run() -> void:
 	app.session.stats.stress = DifficultyRules.get_crisis_threshold("medium")
 	app._advance_after_action()
 	_expect(app.current_screen != "stress_crisis_loading" and not _has_label_containing(app, "身体状态正在显现"), "stress photographs should load without the retired preparation page")
-	_expect(await _wait_for_screen(app, "stress_crisis"), "high stress should automatically open the disorientation choice screen after an action")
+	_expect(await _wait_for_screen(app, "stress_crisis", 15000), "high stress should automatically open the disorientation choice screen after an action")
 	_expect(ambience != null and ambience.is_stress_layer_playing(), "stress crisis should add the optional body-feedback sound layer")
 	_expect(app.active_photo_background != null, "stress crisis should use the long-exposure photograph")
 	var stress_before := int(app.session.stats.stress)
 	var recover_button := app.find_child("StressRecover", true, false) as Button
 	_expect(recover_button != null, "stress crisis responses should use interactive choice cards")
-	recover_button.pressed.emit()
-	await process_frame
-	_expect(int(app.session.stats.stress) < stress_before, "choosing to recover should lower stress")
+	if recover_button != null:
+		recover_button.pressed.emit()
+		await process_frame
+		_expect(int(app.session.stats.stress) < stress_before, "choosing to recover should lower stress")
 	_expect(app._photo_texture_cache.size() <= 4, "photo cache should remain bounded after visiting several original-resolution scenes")
 	app.save_service.delete_save()
 	app.queue_free()

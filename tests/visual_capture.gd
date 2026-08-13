@@ -29,6 +29,12 @@ func _capture() -> void:
 	_save_viewport("res://reports/difficulty_setup.png")
 	app.session = GameSession.new()
 	app.session.reset("演示同学", "social")
+	app.show_commitment()
+	for _frame in 5:
+		await process_frame
+	_save_viewport("res://reports/commitment_sheet.png")
+	DecisionRules.begin_commitment(app.session, "social")
+	DecisionRules.register_effect(app.session, "relationship", "roommate", 4)
 	app.show_map()
 	for _frame in 5:
 		await process_frame
@@ -156,7 +162,7 @@ func _capture() -> void:
 		"title": "抵达 · 齐园餐厅 · 水果区",
 		"body": "你来到齐园餐厅的水果区，准备挑些水果补充能量。",
 		"question": "这个时段，你准备做什么？",
-		"cost_text": "行动后推进 1 个时段",
+		"cost_text": "自主行动会推进约 3 个时段",
 		"state_tags": [],
 		"choices": [],
 	}, true)
@@ -179,6 +185,8 @@ func _capture() -> void:
 	app.session.stats.stress = 58
 	app.session.stats.ai_dependence = 38
 	app.session.flags["verified_ai"] = true
+	app.session.flags["exam_outcome"] = "strong"
+	app.session.flags["presentation_outcome"] = "pass"
 	app.show_ending()
 	for _frame in 5:
 		await process_frame

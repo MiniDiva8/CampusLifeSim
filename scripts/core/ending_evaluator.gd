@@ -11,6 +11,7 @@ func evaluate(session: GameSession, endings: Array) -> Dictionary:
 			return ending
 	return {
 		"id": "balanced_default",
-		"title": "继续前进的人",
-		"description": "期末周没有完美答案，但你承担了自己的选择，也找到了下一步。",
+		"title": "惊险交卷",
+		"tagline": "流程走完了，代价也没有凭空消失。",
+		"description": "你完成了考试和展示，却有几处关键准备只做到勉强可用。那些没有兑现的承诺和没有偿还的债务，构成了这次期末周最真实的成绩单。",
 	}

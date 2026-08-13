@@ -86,6 +86,13 @@ static func get_action_pressure(session: GameSession) -> int:
 		pressure += 1 if difficulty_id == "medium" else 2
 	if not bool(session.flags.get("presentation_completed", false)) and session.clock.day >= 6 and int(session.tasks.get("presentation", 0)) < 60:
 		pressure += 1 if difficulty_id == "medium" else 2
+	var debt_total := 0
+	for value in session.debts.values():
+		debt_total += int(value)
+	if debt_total >= 3:
+		pressure += 1 if difficulty_id == "medium" else 2
+	if debt_total >= 7 and difficulty_id == "hard":
+		pressure += 1
 	return pressure
 
 
